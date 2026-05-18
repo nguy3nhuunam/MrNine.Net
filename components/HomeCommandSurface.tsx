@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -735,6 +736,117 @@ function InterfaceThemeSelector({
   );
 }
 
+function AuthControl() {
+  const { data: session, status } = useSession();
+  const [open, setOpen] = useState(false);
+  const userName = session?.user?.name || session?.user?.email || "Account";
+  const initials = userName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "MR";
+
+  if (status === "authenticated") {
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((current) => !current)}
+          className="flex h-9 items-center gap-2 rounded-full border border-[#45a85d]/32 bg-[#071109]/88 px-2.5 pr-3 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#dff8e4] transition hover:border-[#45a85d]/62 hover:bg-[#0a1a0d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80"
+        >
+          <span className="flex size-6 items-center justify-center rounded-full border border-[#45a85d]/35 bg-[#18c964]/14 text-[0.56rem] font-bold text-[#18c964]">
+            {initials}
+          </span>
+          <span className="hidden max-w-28 truncate lg:block">{userName}</span>
+        </button>
+
+        {open ? (
+          <div
+            role="menu"
+            aria-label="Account menu"
+            className="absolute right-0 top-11 z-50 w-64 rounded-xl border border-white/10 bg-[#0b0a08]/96 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+          >
+            <div className="border-b border-white/8 px-3 py-2">
+              <div className="truncate text-sm font-bold text-[#f4eadc]">{userName}</div>
+              <div className="mt-1 truncate font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#7f8c7d]">
+                MongoDB session
+              </div>
+            </div>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => void signOut()}
+              className="mt-2 flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[#ffb4ad] transition hover:border-[#ef4444]/24 hover:bg-[#ef4444]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
+            >
+              Sign out
+              <ArrowRight className="size-3.5" />
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="h-9 rounded-full border border-[#ef4444]/40 bg-transparent px-5 font-mono text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[#f4eadc] transition hover:border-[#ef4444]/70 hover:bg-[#ef4444]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 disabled:opacity-55"
+        disabled={status === "loading"}
+      >
+        {status === "loading" ? "Checking" : "Sign In"}
+      </button>
+
+      {open ? (
+        <div
+          role="menu"
+          aria-label="Sign in options"
+          className="absolute right-0 top-11 z-50 w-64 rounded-xl border border-white/10 bg-[#0b0a08]/96 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+        >
+          <div className="px-3 py-2">
+            <div className="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#756d64]">Account access</div>
+            <div className="mt-1 text-sm font-bold text-[#f4eadc]">Continue with</div>
+          </div>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => void signIn("google")}
+            className="flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition hover:border-[#ef4444]/22 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
+          >
+            <span className="flex size-7 items-center justify-center rounded-md border border-[#ef4444]/24 bg-[#ef4444]/10 font-mono text-[0.58rem] font-bold text-[#ef4444]">
+              G
+            </span>
+            <span>
+              <span className="block text-sm font-bold text-[#f4eadc]">Google</span>
+              <span className="block font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">OAuth provider</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => void signIn("discord")}
+            className="mt-1 flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition hover:border-[#47c9d9]/22 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#47c9d9]/60"
+          >
+            <span className="flex size-7 items-center justify-center rounded-md border border-[#47c9d9]/24 bg-[#47c9d9]/10 font-mono text-[0.58rem] font-bold text-[#47c9d9]">
+              D
+            </span>
+            <span>
+              <span className="block text-sm font-bold text-[#f4eadc]">Discord</span>
+              <span className="block font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">OAuth provider</span>
+            </span>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function AskAnythingChat() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -1049,9 +1161,7 @@ export function HomeCommandSurface() {
           </div>
           <InterfaceThemeSelector theme={activeTheme} visuals={activeVisuals} onThemeChange={updateInterfaceTheme} />
           <BangkokClock />
-          <Button variant="outline" className="h-9 border-[#ef4444]/40 px-5 font-mono text-[0.62rem] uppercase tracking-[0.24em]">
-            Sign In
-          </Button>
+          <AuthControl />
           <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
             <Menu className="size-4" />
           </Button>

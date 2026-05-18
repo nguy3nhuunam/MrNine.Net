@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, JetBrains_Mono, Oxanium, Teko } from "next/font/google";
+import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import "./globals.css";
 
 const displayFont = Oxanium({
@@ -54,7 +55,7 @@ export default function RootLayout({
           } as CSSProperties
         }
       >
-        {children}
+        <AuthSessionProvider>{children}</AuthSessionProvider>
       </body>
     </html>
   );
