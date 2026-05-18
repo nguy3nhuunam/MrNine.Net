@@ -4,15 +4,16 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Loader2, PenLine, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { languageOptions as appLanguageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 
 const STUDIO_URL = "/inkos-studio/";
-const languageOptions = [
+const legacyLanguageOptions = [
   { value: "en", label: "EN", title: "English" },
   { value: "vi", label: "VI", title: "Tiếng Việt" },
 ] as const;
 
 type StudioState = "starting" | "ready" | "error";
-type WebLanguage = (typeof languageOptions)[number]["value"];
+void legacyLanguageOptions;
 
 const studioViText: Record<string, string> = {
   "InkOS": "InkOS",
@@ -426,19 +427,8 @@ export function StoryForgeStudioShell() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const initialStudioSyncRef = useRef(false);
   const [state, setState] = useState<StudioState>("starting");
-  const [language, setLanguage] = useState<WebLanguage>("vi");
+  const { language, setLanguage } = useLanguage();
   const copy = shellCopy[language];
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      const saved = window.localStorage.getItem("webai-language");
-      if (saved === "en" || saved === "vi") {
-        setLanguage(saved);
-      }
-    }, 0);
-
-    return () => window.clearTimeout(timeout);
-  }, []);
 
   const syncStudioLanguage = useCallback(async (nextLanguage: WebLanguage) => {
     const studioLanguage = nextLanguage === "vi" ? "zh" : "en";
@@ -461,7 +451,6 @@ export function StoryForgeStudioShell() {
 
   const updateLanguage = useCallback((nextLanguage: WebLanguage) => {
     setLanguage(nextLanguage);
-    window.localStorage.setItem("webai-language", nextLanguage);
 
     if (state !== "ready") {
       return;
@@ -470,7 +459,7 @@ export function StoryForgeStudioShell() {
     void syncStudioLanguage(nextLanguage).finally(() => {
       window.setTimeout(() => iframeRef.current?.contentWindow?.location.reload(), 150);
     });
-  }, [state, syncStudioLanguage]);
+  }, [setLanguage, state, syncStudioLanguage]);
 
   const injectTheme = useCallback(() => {
     const frame = iframeRef.current;
@@ -748,7 +737,7 @@ export function StoryForgeStudioShell() {
 
           <div className="flex items-center gap-2">
             <div className="flex rounded-full border border-white/10 bg-white/[0.03] p-0.5 font-mono text-[0.58rem] uppercase tracking-[0.16em]">
-              {languageOptions.map((option) => (
+              {appLanguageOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"

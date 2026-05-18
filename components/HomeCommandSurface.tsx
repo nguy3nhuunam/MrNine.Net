@@ -23,19 +23,21 @@ import {
 import { motion } from "framer-motion";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { languageOptions as appLanguageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
 
-type WebLanguage = "en" | "vi";
 type InterfaceTheme = "auto" | "crimson" | "signal" | "gold" | "frost";
 type AskMessage = {
   role: "user" | "assistant";
   content: string;
 };
 
-const languageOptions: ReadonlyArray<{ value: WebLanguage; label: string; title: string }> = [
+const legacyLanguageOptions: ReadonlyArray<{ value: WebLanguage; label: string; title: string }> = [
   { value: "en", label: "EN", title: "English" },
   { value: "vi", label: "VI", title: "Tiếng Việt" },
 ];
+
+void legacyLanguageOptions;
 
 const interfaceThemes: ReadonlyArray<{
   value: InterfaceTheme;
@@ -319,6 +321,25 @@ const recentOutputs = [
   { title: "Prompt map", meta: "Command / 2 min ago" },
 ];
 
+const systemPanelCopy = {
+  en: Object.fromEntries(systemPanelItems.map((item) => [item.label, item])),
+  vi: {
+    "Current project": { label: "Dự án hiện tại", value: "Personal OS" },
+    "LLM router": { label: "Bộ định tuyến LLM", value: "Trực tuyến" },
+    "Voice runtime": { label: "Runtime giọng nói", value: "Sẵn sàng" },
+    "Video pipe": { label: "Pipeline video", value: "Sẵn sàng" },
+  },
+} satisfies Record<WebLanguage, Record<string, Partial<(typeof systemPanelItems)[number]>>>;
+
+const recentOutputCopy = {
+  en: Object.fromEntries(recentOutputs.map((output) => [output.title, output])),
+  vi: {
+    "Story outline": { title: "Dàn ý truyện", meta: "Story Forge / đã lưu" },
+    "Voice draft": { title: "Bản nháp giọng", meta: "Voice Studio / trong hàng đợi" },
+    "Prompt map": { title: "Bản đồ prompt", meta: "Command / 2 phút trước" },
+  },
+} satisfies Record<WebLanguage, Record<string, Partial<(typeof recentOutputs)[number]>>>;
+
 const quickCommands = [
   { command: "/story", label: "Story", hint: "plot + chapter", module: "Story Forge" },
   { command: "/voice", label: "Voice", hint: "narration", module: "Voice Studio" },
@@ -326,6 +347,219 @@ const quickCommands = [
   { command: "/pdf", label: "PDF", hint: "document core", module: "Document Core" },
   { command: "/code", label: "Code", hint: "debug lane", module: "Code Lab" },
 ];
+
+const homeCopy = {
+  en: {
+    futureDomain: "Future Domain",
+    desktop: "2026 / Desktop",
+    home: "Home",
+    online: "Online",
+    heroDescription: "A personal AI control surface: writing, voice, image, video, documents, coding, and tools woven into one command center.",
+    commandPlaceholder: "Ask MrNine to write, render, convert, debug...",
+    mobileCommandPlaceholder: "Ask MrNine...",
+    run: "Run",
+    modules: "Modules",
+    todo: "To-do",
+    missionDeck: "Mission deck / 08",
+    launchConsole: "Launch console",
+    allOnline: "All online",
+    create: "Create",
+    tools: "Tools",
+    ok: "OK",
+    outputDock: "Output dock",
+    build: "Build / 2026.05.17",
+    systemPanel: "System panel",
+    modulePreview: "Module preview",
+    context: "Context",
+    recentOutput: "Recent output",
+    queueClear: "Queue clear",
+    queueBody: "Ready for command input, module launch, or project routing.",
+    runtimeRequired: "Runtime required",
+    readyToOpen: "Ready to open",
+    openMenu: "Open menu",
+    skip: "Skip to content",
+    mobileRun: "Run mobile command",
+    bangkok: "Bangkok",
+    bangkokAria: "Current time in Bangkok",
+  },
+  vi: {
+    futureDomain: "Tên miền tương lai",
+    desktop: "2026 / Giao diện",
+    home: "Trang chủ",
+    online: "Trực tuyến",
+    heroDescription: "Một trung tâm điều khiển AI cá nhân: viết, giọng nói, hình ảnh, video, tài liệu, code và công cụ trong cùng một giao diện lệnh.",
+    commandPlaceholder: "Yêu cầu MrNine viết, dựng, chuyển đổi, debug...",
+    mobileCommandPlaceholder: "Hỏi MrNine...",
+    run: "Chạy",
+    modules: "Module",
+    todo: "Việc cần làm",
+    missionDeck: "Bảng nhiệm vụ / 08",
+    launchConsole: "Bảng điều khiển",
+    allOnline: "Tất cả sẵn sàng",
+    create: "Sáng tạo",
+    tools: "Công cụ",
+    ok: "OK",
+    outputDock: "Kết quả gần đây",
+    build: "Bản dựng / 2026.05.17",
+    systemPanel: "Bảng hệ thống",
+    modulePreview: "Xem trước module",
+    context: "Ngữ cảnh",
+    recentOutput: "Kết quả gần đây",
+    queueClear: "Hàng đợi trống",
+    queueBody: "Sẵn sàng nhận lệnh, mở module hoặc điều phối dự án.",
+    runtimeRequired: "Cần runtime",
+    readyToOpen: "Sẵn sàng mở",
+    openMenu: "Mở menu",
+    skip: "Bỏ qua tới nội dung",
+    mobileRun: "Chạy lệnh mobile",
+    bangkok: "Bangkok",
+    bangkokAria: "Giờ hiện tại tại Bangkok",
+  },
+} satisfies Record<WebLanguage, Record<string, string>>;
+
+const moduleCopy = {
+  en: Object.fromEntries(modules.map((module) => [module.title, module])),
+  vi: {
+    "AI Playground": {
+      title: "AI Playground",
+      detail: "Chat, ảnh, giọng nói",
+      summary: "Một bề mặt lệnh cho chat nhanh, sáng tạo nội dung và điều phối qua nhiều module.",
+      signal: "Lõi lệnh",
+      action: "Mở chat",
+    },
+    "Story Forge": {
+      title: "Story Forge",
+      detail: "Cốt truyện, bản nháp, chương",
+      summary: "Studio viết dài với cốt truyện, dàn ý, chương và bộ nhớ dự án.",
+      signal: "Máy viết truyện",
+      action: "Mở viết truyện",
+    },
+    "Voice Studio": {
+      title: "Voice Studio",
+      detail: "Thuyết minh, TTS",
+      summary: "Không gian nhân bản giọng nói và thuyết minh dùng OmniVoice runtime.",
+      signal: "Hàng đợi giọng",
+      action: "Mở giọng nói",
+    },
+    "Vision Foundry": {
+      title: "Vision Foundry",
+      detail: "Hình ảnh và video",
+      summary: "Luồng tạo hình ảnh và thử nghiệm pipeline video.",
+      signal: "Đường dựng hình",
+      action: "Mở hình ảnh",
+    },
+    "Document Core": {
+      title: "Document Core",
+      detail: "PDF, Word, slide",
+      summary: "Chuyển đổi, tóm tắt, trích xuất và xử lý tài liệu văn phòng.",
+      signal: "Tác vụ file",
+      action: "Sắp ra mắt",
+    },
+    "Code Lab": {
+      title: "Code Lab",
+      detail: "Build và debug",
+      summary: "Không gian trợ lý code cho sửa lỗi, scaffold, review và deploy.",
+      signal: "Luồng dev",
+      action: "Sắp ra mắt",
+    },
+    "Business Ops": {
+      title: "Business Ops",
+      detail: "Email, quảng cáo, kế hoạch",
+      summary: "AI vận hành cho email, quảng cáo, lập kế hoạch, chiến dịch và công việc hằng ngày.",
+      signal: "Bàn vận hành",
+      action: "Sắp ra mắt",
+    },
+    "To-Do List": {
+      title: "To-Do List",
+      detail: "Ưu tiên, lịch sử",
+      summary: "Bảng ưu tiên cá nhân kết nối với lịch sử lệnh và kết quả đã lưu.",
+      signal: "Luồng công việc",
+      action: "Sắp ra mắt",
+    },
+  },
+} satisfies Record<WebLanguage, Record<string, Partial<ModuleCard>>>;
+
+const quickCommandCopy = {
+  en: Object.fromEntries(quickCommands.map((command) => [command.command, command])),
+  vi: {
+    "/story": { label: "Truyện", hint: "cốt truyện + chương", module: "Story Forge" },
+    "/voice": { label: "Giọng", hint: "thuyết minh", module: "Voice Studio" },
+    "/image": { label: "Ảnh", hint: "prompt hình ảnh", module: "Vision Foundry" },
+    "/pdf": { label: "PDF", hint: "tài liệu", module: "Document Core" },
+    "/code": { label: "Code", hint: "debug", module: "Code Lab" },
+  },
+} satisfies Record<WebLanguage, Record<string, Partial<(typeof quickCommands)[number]>>>;
+
+const authCopy = {
+  en: {
+    account: "Account",
+    accountMenu: "Account menu",
+    mongoSession: "MongoDB session",
+    signOut: "Sign out",
+    signIn: "Sign In",
+    checking: "Checking",
+    signInOptions: "Sign in options",
+    accountAccess: "Account access",
+    continueWith: "Continue with",
+    oauthProvider: "OAuth provider",
+  },
+  vi: {
+    account: "Tài khoản",
+    accountMenu: "Menu tài khoản",
+    mongoSession: "Phiên MongoDB",
+    signOut: "Đăng xuất",
+    signIn: "Đăng nhập",
+    checking: "Đang kiểm tra",
+    signInOptions: "Tuỳ chọn đăng nhập",
+    accountAccess: "Truy cập tài khoản",
+    continueWith: "Tiếp tục với",
+    oauthProvider: "Nhà cung cấp OAuth",
+  },
+} satisfies Record<WebLanguage, Record<string, string>>;
+
+const chatCopy = {
+  en: {
+    greeting: "I am MrNine AI. What do you want to write, generate, convert, debug, or ask?",
+    aria: "MrNine AI chat",
+    subtitle: "Ask anything / gpt-5.5",
+    close: "Close chat",
+    thinking: "Thinking",
+    emptyResponse: "I did not receive response content yet.",
+    failed: "Chat request failed.",
+    placeholder: "Ask MrNine anything...",
+    send: "Send message",
+    button: "Ask anything",
+  },
+  vi: {
+    greeting: "Tôi là MrNine AI. Bạn muốn viết, tạo ảnh, dựng video, xử lý tài liệu, debug hay hỏi nhanh điều gì?",
+    aria: "Khung chat MrNine AI",
+    subtitle: "Hỏi bất cứ gì / gpt-5.5",
+    close: "Đóng chat",
+    thinking: "Đang suy nghĩ",
+    emptyResponse: "Tôi chưa nhận được nội dung phản hồi.",
+    failed: "Yêu cầu chat thất bại.",
+    placeholder: "Hỏi MrNine bất cứ gì...",
+    send: "Gửi tin nhắn",
+    button: "Hỏi bất cứ gì",
+  },
+} satisfies Record<WebLanguage, Record<string, string>>;
+
+const themeCopy = {
+  en: {
+    auto: { label: "Auto", title: "Balanced control surface" },
+    crimson: { label: "Crimson", title: "Red terminal interface" },
+    signal: { label: "Signal", title: "Green operations interface" },
+    gold: { label: "Gold", title: "Amber market interface" },
+    frost: { label: "Frost", title: "Cold visual engine interface" },
+  },
+  vi: {
+    auto: { label: "Auto", title: "Bề mặt điều khiển cân bằng" },
+    crimson: { label: "Đỏ", title: "Giao diện terminal đỏ" },
+    signal: { label: "Tín hiệu", title: "Giao diện vận hành xanh" },
+    gold: { label: "Vàng", title: "Giao diện thị trường amber" },
+    frost: { label: "Băng", title: "Giao diện visual engine lạnh" },
+  },
+} satisfies Record<WebLanguage, Record<InterfaceTheme, { label: string; title: string }>>;
 
 const dailyHeadlines = [
   "ask AI, build everything",
@@ -351,6 +585,36 @@ const dailyHeadlines = [
   "compose emails that convert",
   "sync every AI tool here",
 ];
+
+const dailyHeadlinesVi = [
+  "hỏi AI, xây mọi thứ",
+  "một prompt, tạo nhanh hơn",
+  "viết, nói, dựng, triển khai",
+  "biến ý tưởng thành quy trình",
+  "một lệnh, nhiều engine",
+  "tạo truyện, giọng nói, thế giới",
+  "gọi văn bản, ảnh, video",
+  "điều khiển không gian AI",
+  "nháp, chuyển đổi, tạo nội dung",
+  "nghĩ ít hơn, tạo nhiều hơn",
+  "từ tài liệu tới triển khai",
+  "phòng điều khiển AI mỗi ngày",
+  "viết chương trong vài phút",
+  "biến kịch bản thành cảnh phim",
+  "chuyển PDF thành câu trả lời",
+  "tạo giọng nói theo yêu cầu",
+  "thiết kế ảnh từ prompt",
+  "lên kế hoạch, code, ra mắt",
+  "dịch file có ngữ cảnh",
+  "tạo slide từ ghi chú",
+  "viết email chuyển đổi tốt hơn",
+  "gom mọi công cụ AI tại đây",
+];
+
+const dailyHeadlinesByLanguage = {
+  en: dailyHeadlines,
+  vi: dailyHeadlinesVi,
+} satisfies Record<WebLanguage, string[]>;
 
 const socialLinks = [
   { label: "GitHub", icon: <GithubIcon /> },
@@ -438,32 +702,34 @@ function InstagramIcon() {
   );
 }
 
-function getRandomHeadline(previous?: string) {
-  if (dailyHeadlines.length === 1) {
-    return dailyHeadlines[0];
+function getRandomHeadline(language: WebLanguage, previous?: string) {
+  const source = dailyHeadlinesByLanguage[language];
+
+  if (source.length === 1) {
+    return source[0];
   }
 
-  let next = dailyHeadlines[Math.floor(Math.random() * dailyHeadlines.length)];
+  let next = source[Math.floor(Math.random() * source.length)];
 
   while (next === previous) {
-    next = dailyHeadlines[Math.floor(Math.random() * dailyHeadlines.length)];
+    next = source[Math.floor(Math.random() * source.length)];
   }
 
   return next;
 }
 
-function DailyTypeHeadline() {
-  const [headline, setHeadline] = useState(dailyHeadlines[0]);
+function DailyTypeHeadline({ language }: Readonly<{ language: WebLanguage }>) {
+  const [headline, setHeadline] = useState(dailyHeadlinesByLanguage[language][0]);
   const [typedCount, setTypedCount] = useState(0);
   const characters = useMemo(() => Array.from(headline), [headline]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setHeadline((previous) => getRandomHeadline(previous));
+      setHeadline((previous) => getRandomHeadline(language, previous));
     }, 0);
 
     return () => window.clearTimeout(timeout);
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     if (typedCount > characters.length) {
@@ -473,7 +739,7 @@ function DailyTypeHeadline() {
     const timeout = window.setTimeout(() => {
       setTypedCount((current) => {
         if (current >= characters.length) {
-          setHeadline((previous) => getRandomHeadline(previous));
+          setHeadline((previous) => getRandomHeadline(language, previous));
           return 0;
         }
 
@@ -482,7 +748,7 @@ function DailyTypeHeadline() {
     }, typedCount >= characters.length ? 900 : 333);
 
     return () => window.clearTimeout(timeout);
-  }, [characters.length, typedCount]);
+  }, [characters.length, language, typedCount]);
 
   return (
     <h1
@@ -512,7 +778,7 @@ function DailyTypeHeadline() {
   );
 }
 
-function BangkokClock() {
+function BangkokClock({ copy }: Readonly<{ copy: (typeof homeCopy)[WebLanguage] }>) {
   const [time, setTime] = useState("");
 
   useEffect(() => {
@@ -537,11 +803,11 @@ function BangkokClock() {
   return (
     <time
       dateTime={time}
-      aria-label={`Current time in Bangkok: ${time || "loading"}`}
+      aria-label={`${copy.bangkokAria}: ${time || "loading"}`}
       className="hidden min-w-[8.25rem] rounded-full border border-[#d6a548]/24 bg-[#201707] px-3 py-1.5 font-mono text-[0.78rem] font-bold tabular-nums text-[#e4c56b] xl:block"
       suppressHydrationWarning
     >
-      {time || "--:--:--"} <span className="ml-2 text-[0.55rem] text-[#7b7369]">Bangkok</span>
+      {time || "--:--:--"} <span className="ml-2 text-[0.55rem] text-[#7b7369]">{copy.bangkok}</span>
     </time>
   );
 }
@@ -685,10 +951,12 @@ function HeroParticleNetwork() {
 function InterfaceThemeSelector({
   theme,
   visuals,
+  language,
   onThemeChange,
 }: Readonly<{
   theme: (typeof interfaceThemes)[number];
   visuals: (typeof themeVisuals)[InterfaceTheme];
+  language: WebLanguage;
   onThemeChange: (theme: InterfaceTheme) => void;
 }>) {
   const [open, setOpen] = useState(false);
@@ -706,14 +974,14 @@ function InterfaceThemeSelector({
         style={visuals.selector}
       >
         <span className={cn("size-2 rounded-full shadow-[0_0_10px_currentColor]", theme.swatch)} />
-        {theme.label}
+        {themeCopy[language][theme.value].label}
         <ChevronDown className={cn("size-3 transition", open && "rotate-180")} aria-hidden="true" />
       </button>
 
       {open ? (
         <div
           role="menu"
-          aria-label="Select interface theme"
+          aria-label={language === "vi" ? "Chọn giao diện" : "Select interface theme"}
           className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-white/10 bg-[#0b0a08]/96 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl"
         >
           {interfaceThemes.map((option) => (
@@ -734,9 +1002,9 @@ function InterfaceThemeSelector({
               <span className={cn("size-2.5 rounded-full", option.swatch)} />
               <span className="min-w-0 flex-1">
                 <span className="block font-mono text-[0.66rem] uppercase tracking-[0.18em] text-[#f4eadc]">
-                  {option.label}
+                  {themeCopy[language][option.value].label}
                 </span>
-                <span className="block truncate text-[0.68rem] text-[#8d8780]">{option.title}</span>
+                <span className="block truncate text-[0.68rem] text-[#8d8780]">{themeCopy[language][option.value].title}</span>
               </span>
             </button>
           ))}
@@ -746,10 +1014,11 @@ function InterfaceThemeSelector({
   );
 }
 
-function AuthControl() {
+function AuthControl({ language }: Readonly<{ language: WebLanguage }>) {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
-  const userName = session?.user?.name || session?.user?.email || "Account";
+  const copy = authCopy[language];
+  const userName = session?.user?.name || session?.user?.email || copy.account;
   const initials = userName
     .split(/\s+/)
     .filter(Boolean)
@@ -776,13 +1045,13 @@ function AuthControl() {
         {open ? (
           <div
             role="menu"
-            aria-label="Account menu"
+            aria-label={copy.accountMenu}
             className="absolute right-0 top-11 z-50 w-64 rounded-xl border border-white/10 bg-[#0b0a08]/96 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl"
           >
             <div className="border-b border-white/8 px-3 py-2">
               <div className="truncate text-sm font-bold text-[#f4eadc]">{userName}</div>
               <div className="mt-1 truncate font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#7f8c7d]">
-                MongoDB session
+                {copy.mongoSession}
               </div>
             </div>
             <button
@@ -791,7 +1060,7 @@ function AuthControl() {
               onClick={() => void signOut()}
               className="mt-2 flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[#ffb4ad] transition hover:border-[#ef4444]/24 hover:bg-[#ef4444]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
             >
-              Sign out
+              {copy.signOut}
               <ArrowRight className="size-3.5" />
             </button>
           </div>
@@ -810,18 +1079,18 @@ function AuthControl() {
         className="h-9 rounded-full border border-[#ef4444]/40 bg-transparent px-5 font-mono text-[0.62rem] font-bold uppercase tracking-[0.24em] text-[#f4eadc] transition hover:border-[#ef4444]/70 hover:bg-[#ef4444]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 disabled:opacity-55"
         disabled={status === "loading"}
       >
-        {status === "loading" ? "Checking" : "Sign In"}
+        {status === "loading" ? copy.checking : copy.signIn}
       </button>
 
       {open ? (
         <div
           role="menu"
-          aria-label="Sign in options"
+          aria-label={copy.signInOptions}
           className="absolute right-0 top-11 z-50 w-64 rounded-xl border border-white/10 bg-[#0b0a08]/96 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl"
         >
           <div className="px-3 py-2">
-            <div className="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#756d64]">Account access</div>
-            <div className="mt-1 text-sm font-bold text-[#f4eadc]">Continue with</div>
+            <div className="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#756d64]">{copy.accountAccess}</div>
+            <div className="mt-1 text-sm font-bold text-[#f4eadc]">{copy.continueWith}</div>
           </div>
           <button
             type="button"
@@ -834,7 +1103,7 @@ function AuthControl() {
             </span>
             <span>
               <span className="block text-sm font-bold text-[#f4eadc]">Google</span>
-              <span className="block font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">OAuth provider</span>
+              <span className="block font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">{copy.oauthProvider}</span>
             </span>
           </button>
           <button
@@ -848,7 +1117,7 @@ function AuthControl() {
             </span>
             <span>
               <span className="block text-sm font-bold text-[#f4eadc]">Discord</span>
-              <span className="block font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">OAuth provider</span>
+              <span className="block font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">{copy.oauthProvider}</span>
             </span>
           </button>
         </div>
@@ -857,7 +1126,8 @@ function AuthControl() {
   );
 }
 
-function AskAnythingChat() {
+function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
+  const copy = chatCopy[language];
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -868,6 +1138,20 @@ function AskAnythingChat() {
       content: "Tôi là MrNine AI. Bạn muốn viết, tạo ảnh, dựng video, xử lý tài liệu hay hỏi nhanh điều gì?",
     },
   ]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setMessages((current) => {
+        if (current.length !== 1 || current[0]?.role !== "assistant") {
+          return current;
+        }
+
+        return [{ role: "assistant", content: copy.greeting }];
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [copy.greeting]);
 
   useEffect(() => {
     function openChat(event: Event) {
@@ -905,7 +1189,7 @@ function AskAnythingChat() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error || "Chat request failed.");
+        throw new Error(data?.error || copy.failed);
       }
 
       setMessages((current) => [
@@ -913,7 +1197,7 @@ function AskAnythingChat() {
         { role: "assistant", content: data.message || "Tôi chưa nhận được nội dung phản hồi." },
       ]);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Chat request failed.");
+      setError(requestError instanceof Error ? requestError.message : copy.failed);
     } finally {
       setLoading(false);
     }
@@ -923,7 +1207,7 @@ function AskAnythingChat() {
     <>
       {open ? (
         <section
-          aria-label="MrNine AI chat"
+          aria-label={copy.aria}
           className="fixed bottom-28 right-5 z-50 flex h-[min(36rem,calc(100vh-8rem))] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-[#45a85d]/28 bg-[#080b08]/96 shadow-[0_24px_90px_rgba(0,0,0,0.58),0_0_44px_rgba(24,201,100,0.16)] backdrop-blur-xl"
         >
           <div className="flex items-center justify-between border-b border-white/10 bg-[#0b140d] px-4 py-3">
@@ -932,12 +1216,12 @@ function AskAnythingChat() {
                 Mr<span className="text-[#18c964]">Nine</span> AI
               </div>
               <div className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#7f8c7d]">
-                Ask anything / gpt-5.5
+                {copy.subtitle}
               </div>
             </div>
             <button
               type="button"
-              aria-label="Close chat"
+              aria-label={copy.close}
               onClick={() => setOpen(false)}
               className="flex size-9 items-center justify-center rounded-lg text-[#9aa596] transition hover:bg-white/[0.06] hover:text-[#f4eadc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80"
             >
@@ -966,7 +1250,7 @@ function AskAnythingChat() {
             {loading ? (
               <div className="flex items-center gap-2 font-mono text-[0.66rem] uppercase tracking-[0.18em] text-[#7f8c7d]">
                 <LoaderCircle className="size-3.5 animate-spin text-[#18c964]" />
-                Thinking
+                {copy.thinking}
               </div>
             ) : null}
             {error ? <div className="rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-xs text-[#ffb4ad]">{error}</div> : null}
@@ -984,7 +1268,7 @@ function AskAnythingChat() {
                     void sendMessage();
                   }
                 }}
-                placeholder="Ask MrNine anything..."
+        placeholder={copy.placeholder}
                 className="max-h-28 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[#f4eadc] placeholder:text-[#6f776d] focus:outline-none"
               />
               <button
@@ -992,7 +1276,7 @@ function AskAnythingChat() {
                 onClick={() => void sendMessage()}
                 disabled={!input.trim() || loading}
                 className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[#18c964] text-[#061009] transition hover:bg-[#22dd73] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80"
-                aria-label="Send message"
+                aria-label={copy.send}
               >
                 {loading ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
               </button>
@@ -1011,7 +1295,7 @@ function AskAnythingChat() {
         <span className="flex size-7 items-center justify-center rounded-md border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/70 group-hover:bg-[#18c964]/18">
           <Send className="ask-icon-wake size-3.5" />
         </span>
-        <span>Ask anything</span>
+        <span>{copy.button}</span>
         <span className="flex gap-0.5 text-[#45a85d]">
           <span className="animate-[pulse_1.2s_ease-in-out_infinite]">.</span>
           <span className="animate-[pulse_1.2s_ease-in-out_0.18s_infinite]">.</span>
@@ -1023,7 +1307,7 @@ function AskAnythingChat() {
 }
 
 export function HomeCommandSurface() {
-  const [language, setLanguage] = useState<WebLanguage>("vi");
+  const { language, setLanguage } = useLanguage();
   const [interfaceTheme, setInterfaceTheme] = useState<InterfaceTheme>("auto");
   const [armingModule, setArmingModule] = useState("");
   const [commandInput, setCommandInput] = useState("");
@@ -1036,14 +1320,10 @@ export function HomeCommandSurface() {
   const commandMode = quickCommands.find((item) => commandInput.trimStart().startsWith(item.command));
   const slashMode = commandInput.trimStart().startsWith("/");
   const PreviewIcon = previewModule?.icon;
+  const copy = homeCopy[language];
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      const saved = window.localStorage.getItem("mrnine-language");
-      if (saved === "en" || saved === "vi") {
-        setLanguage(saved);
-      }
-
       const savedTheme = window.localStorage.getItem("mrnine-interface-theme");
       if (interfaceThemes.some((theme) => theme.value === savedTheme)) {
         setInterfaceTheme(savedTheme as InterfaceTheme);
@@ -1052,11 +1332,6 @@ export function HomeCommandSurface() {
 
     return () => window.clearTimeout(timeout);
   }, []);
-
-  function updateLanguage(nextLanguage: WebLanguage) {
-    setLanguage(nextLanguage);
-    window.localStorage.setItem("mrnine-language", nextLanguage);
-  }
 
   function updateInterfaceTheme(nextTheme: InterfaceTheme) {
     setInterfaceTheme(nextTheme);
@@ -1132,7 +1407,7 @@ export function HomeCommandSurface() {
   return (
     <main className="relative min-h-screen overflow-x-hidden pb-20 transition-colors duration-300 sm:pb-0 lg:h-screen lg:overflow-hidden" style={activeVisuals.main}>
       <a href="#main-content" className="skip-link focus:left-4 focus:top-4">
-        Skip to content
+        {copy.skip}
       </a>
 
       <div className="pointer-events-none absolute inset-0 transition-colors duration-300" style={activeVisuals.ambient} />
@@ -1145,8 +1420,8 @@ export function HomeCommandSurface() {
             Mr<span className="text-[#ef4444]">Nine</span>
           </div>
           <div className="font-mono text-[0.56rem] uppercase leading-3 tracking-[0.28em] text-[#7b7369]">
-            <div>Future Domain</div>
-            <div>2026 / Desktop</div>
+            <div>{copy.futureDomain}</div>
+            <div>{copy.desktop}</div>
           </div>
         </div>
 
@@ -1164,13 +1439,13 @@ export function HomeCommandSurface() {
 
         <div className="ml-auto flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.025] p-1 shadow-[0_0_0_1px_rgba(255,255,255,0.018)_inset]">
           <div className="hidden rounded-full border border-white/10 bg-white/[0.03] p-0.5 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#c4b9ad] md:flex">
-            {languageOptions.map((option) => (
+            {appLanguageOptions.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 title={option.title}
                 aria-pressed={language === option.value}
-                onClick={() => updateLanguage(option.value)}
+                onClick={() => setLanguage(option.value)}
                 className={cn(
                   "rounded-full px-2.5 py-1 transition hover:text-[#f4eadc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70",
                   language === option.value
@@ -1182,10 +1457,10 @@ export function HomeCommandSurface() {
               </button>
             ))}
           </div>
-          <InterfaceThemeSelector theme={activeTheme} visuals={activeVisuals} onThemeChange={updateInterfaceTheme} />
-          <BangkokClock />
-          <AuthControl />
-          <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
+          <InterfaceThemeSelector theme={activeTheme} visuals={activeVisuals} language={language} onThemeChange={updateInterfaceTheme} />
+          <BangkokClock copy={copy} />
+          <AuthControl language={language} />
+          <Button variant="ghost" size="icon" className="md:hidden" aria-label={copy.openMenu}>
             <Menu className="size-4" />
           </Button>
         </div>
@@ -1239,11 +1514,11 @@ export function HomeCommandSurface() {
             <div className="absolute inset-0 z-[1] bg-[radial-gradient(circle_at_24%_22%,rgba(69,168,93,0.12),transparent_16%),radial-gradient(circle_at_52%_18%,rgba(214,165,72,0.1),transparent_12%),radial-gradient(circle_at_72%_36%,rgba(239,68,68,0.1),transparent_14%)]" />
             <div className="relative z-[2] max-w-[88rem]">
               <div className="mb-6 font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">
-                Home
+                {copy.home}
               </div>
               <div className="mb-5 flex items-center gap-3 font-mono text-[0.64rem] uppercase tracking-[0.28em] text-[#ef4444]">
                 <span className="size-1 rounded-full bg-[#ef4444]" />
-                Online
+                {copy.online}
                 <span className="text-[#6f675e]">/</span>
                 Exp 009
               </div>
@@ -1253,11 +1528,11 @@ export function HomeCommandSurface() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               >
-                <DailyTypeHeadline />
+                <DailyTypeHeadline key={language} language={language} />
               </motion.div>
 
               <p className="mt-5 max-w-2xl text-sm leading-7 text-[#a79d91] sm:text-base">
-                A personal AI control surface: writing, voice, image, video, documents, coding, and tools woven into one command center.
+                {copy.heroDescription}
               </p>
 
               <form
@@ -1277,14 +1552,14 @@ export function HomeCommandSurface() {
                     onFocus={() => setCommandFocused(true)}
                     onBlur={() => setCommandFocused(false)}
                     onChange={(event) => setCommandInput(event.target.value)}
-                    placeholder="Ask MrNine to write, render, convert, debug..."
+                    placeholder={copy.commandPlaceholder}
                     className="min-w-0 flex-1 bg-transparent px-1 text-sm text-[#f4eadc] outline-none placeholder:text-[#6f675e]"
                   />
                   <Button
                     type="submit"
                     className="h-9 rounded-md bg-[#ef4444] px-4 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[#090807] hover:bg-[#ff5b55]"
                   >
-                    Run
+                    {copy.run}
                     <ArrowRight className="size-3.5" />
                   </Button>
                 </div>
@@ -1292,6 +1567,7 @@ export function HomeCommandSurface() {
                   {quickCommands.map((item) => {
                     const selected = commandInput.trimStart().startsWith(item.command);
                     const hinted = slashMode && item.command.startsWith(commandInput.trimStart());
+                    const localizedCommand = quickCommandCopy[language][item.command as keyof typeof quickCommandCopy.vi] ?? item;
 
                     return (
                       <button
@@ -1305,17 +1581,17 @@ export function HomeCommandSurface() {
                             ? "border-[#ef4444]/44 bg-[#ef4444]/12 text-[#ffd7d3]"
                             : "border-white/8 bg-white/[0.025] text-[#8f8579] hover:border-[#d6a548]/30 hover:text-[#f4eadc]",
                         )}
-                        aria-label={`${item.command} ${item.hint}`}
+                        aria-label={`${item.command} ${localizedCommand.hint ?? item.hint}`}
                       >
                         <span className="text-[#ef4444]">{item.command}</span>
-                        <span className="ml-1 hidden text-[#756d64] sm:inline">{item.hint}</span>
+                        <span className="ml-1 hidden text-[#756d64] sm:inline">{localizedCommand.hint ?? item.hint}</span>
                       </button>
                     );
                   })}
                   {commandMode ? (
                     <span className="ml-auto hidden items-center gap-1.5 font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#45a85d] md:flex">
                       <span className="size-1.5 rounded-full bg-[#45a85d]" />
-                      {commandMode.module}
+                      {quickCommandCopy[language][commandMode.command as keyof typeof quickCommandCopy.vi]?.module ?? commandMode.module}
                     </span>
                   ) : null}
                 </div>
@@ -1323,10 +1599,10 @@ export function HomeCommandSurface() {
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button variant="outline" className="h-10 rounded-md px-4 font-mono text-[0.65rem] uppercase tracking-[0.16em]">
-                  Modules
+                  {copy.modules}
                 </Button>
                 <Button variant="outline" className="h-10 rounded-md px-4 font-mono text-[0.65rem] uppercase tracking-[0.16em]">
-                  To-do
+                  {copy.todo}
                 </Button>
               </div>
             </div>
@@ -1352,19 +1628,19 @@ export function HomeCommandSurface() {
           <section className="min-h-0 flex-1 py-5">
             <div className="mb-4 flex items-end justify-between">
               <div>
-                <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#756d64]">Mission deck / 08</p>
-                <h2 className="mt-1 text-xl font-bold tracking-[-0.04em] text-[#f4eadc]">Launch console</h2>
+                <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#756d64]">{copy.missionDeck}</p>
+                <h2 className="mt-1 text-xl font-bold tracking-[-0.04em] text-[#f4eadc]">{copy.launchConsole}</h2>
               </div>
               <div className="hidden items-center gap-2 font-mono text-[0.6rem] uppercase tracking-[0.2em] text-[#45a85d] md:flex">
                 <span className="size-1.5 rounded-full bg-[#45a85d]" />
-                All online
+                {copy.allOnline}
               </div>
             </div>
 
             <div className="grid grid-cols-[repeat(auto-fit,minmax(13.75rem,1fr))] gap-3 min-[1920px]:grid-cols-4">
               {moduleGroups.map((group) => (
                 <div key={group.label} className="col-span-full mt-1 flex items-center gap-3 first:mt-0">
-                  <span className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#d6a548]">{group.label}</span>
+                  <span className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#d6a548]">{group.label === "Create" ? copy.create : copy.tools}</span>
                   <span className="h-px flex-1 bg-gradient-to-r from-[#2a251f] to-transparent" />
                 </div>
               ))}
@@ -1376,6 +1652,7 @@ export function HomeCommandSurface() {
               ).map((module, index) => {
                   const Icon = module.icon;
                   const accent = accentMap[module.accent as keyof typeof accentMap];
+                  const localizedModule = moduleCopy[language][module.title as keyof typeof moduleCopy.vi] ?? module;
 
                   return (
                     <motion.button
@@ -1406,22 +1683,22 @@ export function HomeCommandSurface() {
                           </div>
                           <div className="text-right">
                             <span className={cn("block font-mono text-[0.62rem] font-bold", accent.text)}>{module.number}</span>
-                            <span className="mt-1 block font-mono text-[0.46rem] uppercase tracking-[0.14em] text-[#6f675e]">{module.group}</span>
+                            <span className="mt-1 block font-mono text-[0.46rem] uppercase tracking-[0.14em] text-[#6f675e]">{module.group === "Create" ? copy.create : copy.tools}</span>
                           </div>
                         </div>
-                        <h3 className="truncate text-[0.9rem] font-bold leading-tight text-[#efe6dc]">{module.title}</h3>
-                        <p className="mt-0.5 truncate text-[0.68rem] leading-5 text-[#8f8579]">{module.detail}</p>
+                        <h3 className="truncate text-[0.9rem] font-bold leading-tight text-[#efe6dc]">{localizedModule.title ?? module.title}</h3>
+                        <p className="mt-0.5 truncate text-[0.68rem] leading-5 text-[#8f8579]">{localizedModule.detail ?? module.detail}</p>
                         <div className="mt-3 h-px w-full bg-gradient-to-r from-white/8 via-white/4 to-transparent" />
                         <div className="mt-auto flex items-center justify-between gap-2 pt-3 font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#82786e]">
-                          <span className="truncate">{module.signal}</span>
+                          <span className="truncate">{localizedModule.signal ?? module.signal}</span>
                           <span className="flex items-center gap-1.5">
                             <span className={cn("size-1.5 rounded-full", accent.dot)} />
-                            OK
+                            {copy.ok}
                           </span>
                         </div>
                       </div>
                       <div className="module-detail-strip absolute inset-x-0 bottom-0 flex h-8 translate-y-full items-center justify-between border-t border-white/8 bg-[#090807]/96 px-3 font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#d8cfc4] transition duration-250 group-hover:translate-y-0 group-focus-visible:translate-y-0">
-                        <span>{module.action === "Coming soon" ? "Runtime required" : module.action}</span>
+                        <span>{module.action === "Coming soon" ? copy.runtimeRequired : localizedModule.action ?? module.action}</span>
                         <ArrowRight className={cn("size-3", accent.text)} />
                       </div>
                     </motion.button>
@@ -1431,22 +1708,22 @@ export function HomeCommandSurface() {
           </section>
 
           <div className="recent-output-dock mb-3 hidden shrink-0 items-center gap-2 overflow-hidden rounded-lg border border-[#2a251f] bg-[#0c0a08]/82 px-3 py-2 md:flex 2xl:hidden">
-            <div className="mr-2 shrink-0 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#d6a548]">Output dock</div>
+            <div className="mr-2 shrink-0 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#d6a548]">{copy.outputDock}</div>
             {recentOutputs.map((output) => (
               <button
                 key={output.title}
                 type="button"
                 className="min-w-0 flex-1 rounded-md border border-white/7 bg-white/[0.025] px-3 py-2 text-left transition hover:border-[#45a85d]/24 hover:bg-[#45a85d]/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/70"
               >
-                <div className="truncate text-xs font-bold text-[#efe6dc]">{output.title}</div>
-                <div className="mt-0.5 truncate font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#756d64]">{output.meta}</div>
+                <div className="truncate text-xs font-bold text-[#efe6dc]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.title ?? output.title}</div>
+                <div className="mt-0.5 truncate font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#756d64]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.meta ?? output.meta}</div>
               </button>
             ))}
           </div>
 
           <footer className="flex h-10 shrink-0 items-center justify-between border-t border-[#25211b] font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#776f66]">
             <div>MrNine / 2026 / Exp 009</div>
-            <div className="hidden sm:block">Build / 2026.05.17</div>
+            <div className="hidden sm:block">{copy.build}</div>
             <div className="flex items-center gap-1">
               {socialLinks.map((social) => (
                 <SocialIconButton key={social.label} {...social} />
@@ -1458,9 +1735,9 @@ export function HomeCommandSurface() {
           <aside className="hidden min-h-0 border-l border-[#25211b] py-5 2xl:flex 2xl:flex-col">
             <div className="mb-4 px-4">
               <p className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#756d64]">
-                {previewModule ? "Module preview" : "System panel"}
+                {previewModule ? copy.modulePreview : copy.systemPanel}
               </p>
-              <h2 className="mt-1 text-lg font-bold tracking-[-0.04em] text-[#f4eadc]">{previewModule ? previewModule.title : "Context"}</h2>
+              <h2 className="mt-1 text-lg font-bold tracking-[-0.04em] text-[#f4eadc]">{previewModule ? moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.title ?? previewModule.title : copy.context}</h2>
             </div>
 
             <motion.div
@@ -1481,19 +1758,19 @@ export function HomeCommandSurface() {
                   >
                     {PreviewIcon ? <PreviewIcon className={cn("size-5", accentMap[previewModule.accent as keyof typeof accentMap].text)} /> : null}
                   </div>
-                  <div className="font-mono text-[0.52rem] uppercase tracking-[0.18em] text-[#756d64]">{previewModule.signal}</div>
-                  <p className="mt-2 text-sm leading-6 text-[#d8cfc4]">{previewModule.summary}</p>
+                  <div className="font-mono text-[0.52rem] uppercase tracking-[0.18em] text-[#756d64]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.signal ?? previewModule.signal}</div>
+                  <p className="mt-2 text-sm leading-6 text-[#d8cfc4]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.summary ?? previewModule.summary}</p>
                   <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 font-mono text-[0.54rem] uppercase tracking-[0.16em]">
                     <span className={accentMap[previewModule.accent as keyof typeof accentMap].text}>{previewModule.number}</span>
-                    <span className="text-[#8f8579]">{previewModule.action === "Coming soon" ? "Runtime required" : "Ready to open"}</span>
+                    <span className="text-[#8f8579]">{previewModule.action === "Coming soon" ? copy.runtimeRequired : copy.readyToOpen}</span>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {systemPanelItems.map((item) => (
                     <div key={item.label} className="rounded-lg border border-[#2a251f] bg-[#100d0a]/76 px-3 py-3">
-                      <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">{item.label}</div>
-                      <div className={cn("mt-1 text-sm font-bold", item.tone)}>{item.value}</div>
+                      <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">{systemPanelCopy[language][item.label as keyof typeof systemPanelCopy.vi]?.label ?? item.label}</div>
+                      <div className={cn("mt-1 text-sm font-bold", item.tone)}>{systemPanelCopy[language][item.label as keyof typeof systemPanelCopy.vi]?.value ?? item.value}</div>
                     </div>
                   ))}
                 </div>
@@ -1502,14 +1779,14 @@ export function HomeCommandSurface() {
 
             <div className="mt-6 px-4">
               <div className="mb-3 flex items-center justify-between">
-                <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">Recent output</p>
+                <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">{copy.recentOutput}</p>
                 <span className="size-1.5 rounded-full bg-[#45a85d] shadow-[0_0_12px_rgba(69,168,93,0.72)]" />
               </div>
               <div className="space-y-2">
                 {recentOutputs.map((output) => (
                   <div key={output.title} className="rounded-md border border-white/8 bg-white/[0.03] px-3 py-2">
-                    <div className="truncate text-xs font-bold text-[#e8dfd4]">{output.title}</div>
-                    <div className="mt-1 truncate font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">{output.meta}</div>
+                    <div className="truncate text-xs font-bold text-[#e8dfd4]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.title ?? output.title}</div>
+                    <div className="mt-1 truncate font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.meta ?? output.meta}</div>
                   </div>
                 ))}
               </div>
@@ -1519,9 +1796,9 @@ export function HomeCommandSurface() {
               <div className="rounded-lg border border-[#45a85d]/18 bg-[#071109]/72 p-3">
                 <div className="flex items-center gap-2 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#45a85d]">
                   <span className="size-1.5 rounded-full bg-[#45a85d]" />
-                  Queue clear
+                  {copy.queueClear}
                 </div>
-                <p className="mt-2 text-xs leading-5 text-[#8f8579]">Ready for command input, module launch, or project routing.</p>
+                <p className="mt-2 text-xs leading-5 text-[#8f8579]">{copy.queueBody}</p>
               </div>
             </div>
           </aside>
@@ -1540,15 +1817,15 @@ export function HomeCommandSurface() {
           onFocus={() => setCommandFocused(true)}
           onBlur={() => setCommandFocused(false)}
           onChange={(event) => setCommandInput(event.target.value)}
-          placeholder="Ask MrNine..."
+          placeholder={copy.mobileCommandPlaceholder}
           className="min-w-0 flex-1 bg-transparent text-sm text-[#f4eadc] outline-none placeholder:text-[#6f776d]"
         />
-        <Button type="submit" size="icon" className="size-9 rounded-md bg-[#45a85d] text-[#061009] hover:bg-[#58c772]" aria-label="Run mobile command">
+        <Button type="submit" size="icon" className="size-9 rounded-md bg-[#45a85d] text-[#061009] hover:bg-[#58c772]" aria-label={copy.mobileRun}>
           <ArrowRight className="size-4" />
         </Button>
       </form>
 
-      <AskAnythingChat />
+      <AskAnythingChat key={language} language={language} />
     </main>
   );
 }

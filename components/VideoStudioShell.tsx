@@ -13,6 +13,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 
 type StudioState = "starting" | "ready" | "setup" | "error";
 
@@ -28,10 +29,57 @@ type StartResponse = {
 
 const defaultStudioUrl = "http://127.0.0.1:8501";
 
+const videoCopy = {
+  en: {
+    back: "Back to MrNine home",
+    title: "Video Studio",
+    online: "Online",
+    starting: "Starting",
+    setup: "Setup",
+    reload: "Reload",
+    startingMessage: "Starting Pixelle-Video Studio...",
+    runtimeNotReady: "Pixelle-Video runtime is not ready.",
+    failed: "Pixelle-Video Studio failed to start.",
+    ready: "Pixelle-Video Studio is ready.",
+    runtime: "Pixelle runtime",
+    loadingLocal: "Loading local Studio",
+    setupRequired: "Runtime setup required",
+    couldNotStart: "Studio could not start",
+    features: ["Script to video", "Image and video workflows", "Voice narration", "Streamlit UI preserved"],
+    localRuntime: "Local runtime",
+    commands: "Commands for this machine",
+    startupLog: "Startup log",
+    copy: "Copy",
+  },
+  vi: {
+    back: "Quay lại trang chủ MrNine",
+    title: "Video Studio",
+    online: "Trực tuyến",
+    starting: "Đang khởi động",
+    setup: "Cài đặt",
+    reload: "Tải lại",
+    startingMessage: "Đang khởi động Pixelle-Video Studio...",
+    runtimeNotReady: "Runtime Pixelle-Video chưa sẵn sàng.",
+    failed: "Không thể khởi động Pixelle-Video Studio.",
+    ready: "Pixelle-Video Studio đã sẵn sàng.",
+    runtime: "Runtime Pixelle",
+    loadingLocal: "Đang tải Studio local",
+    setupRequired: "Cần cài đặt runtime",
+    couldNotStart: "Không thể khởi động Studio",
+    features: ["Kịch bản sang video", "Quy trình ảnh và video", "Thuyết minh giọng nói", "Giữ nguyên UI Streamlit"],
+    localRuntime: "Runtime local",
+    commands: "Lệnh cho máy này",
+    startupLog: "Log khởi động",
+    copy: "Sao chép",
+  },
+} satisfies Record<WebLanguage, Record<string, string | string[]>>;
+
 export function VideoStudioShell() {
+  const { language, setLanguage } = useLanguage();
+  const copy = videoCopy[language];
   const [state, setState] = useState<StudioState>("starting");
   const [studioUrl, setStudioUrl] = useState(defaultStudioUrl);
-  const [message, setMessage] = useState("Starting Pixelle-Video Studio...");
+  const [message, setMessage] = useState(copy.startingMessage as string);
   const [commands, setCommands] = useState<string[]>([]);
   const [runtimeLog, setRuntimeLog] = useState<string | undefined>();
 
@@ -41,7 +89,7 @@ export function VideoStudioShell() {
 
     async function startStudio() {
       setState("starting");
-      setMessage("Starting Pixelle-Video Studio...");
+      setMessage(copy.startingMessage as string);
 
       try {
         const response = await fetch("/api/video-studio/start", { method: "POST" });
@@ -57,14 +105,14 @@ export function VideoStudioShell() {
         if (data.installed === false) {
           if (!cancelled) {
             setState("setup");
-            setMessage(data.message || "Pixelle-Video runtime is not ready.");
+            setMessage(data.message || (copy.runtimeNotReady as string));
             setCommands(data.installCommands || []);
           }
           return;
         }
 
         if (!response.ok || data.ok === false) {
-          throw new Error(data.message || "Pixelle-Video Studio failed to start.");
+          throw new Error(data.message || (copy.failed as string));
         }
 
         poll = window.setInterval(async () => {
@@ -80,19 +128,19 @@ export function VideoStudioShell() {
           if (!cancelled && status.status === "ready") {
             window.clearInterval(poll);
             setState("ready");
-            setMessage("Pixelle-Video Studio is ready.");
+            setMessage(copy.ready as string);
           }
           if (!cancelled && status.installed === false) {
             window.clearInterval(poll);
             setState("setup");
-            setMessage(status.message || "Pixelle-Video runtime is not ready.");
+            setMessage(status.message || (copy.runtimeNotReady as string));
             setCommands(status.installCommands || []);
           }
         }, 1_500);
       } catch (error) {
         if (!cancelled) {
           setState("error");
-          setMessage(error instanceof Error ? error.message : "Pixelle-Video Studio failed to start.");
+          setMessage(error instanceof Error ? error.message : (copy.failed as string));
         }
       }
     }
@@ -105,7 +153,7 @@ export function VideoStudioShell() {
         window.clearInterval(poll);
       }
     };
-  }, []);
+  }, [copy.failed, copy.ready, copy.runtimeNotReady, copy.startingMessage]);
 
   const copyCommands = async () => {
     if (!commands.length) {
@@ -123,7 +171,7 @@ export function VideoStudioShell() {
           <div className="flex min-w-0 items-center gap-3">
             <Link
               href="/"
-              aria-label="Back to MrNine home"
+              aria-label={copy.back as string}
               className="flex size-9 shrink-0 items-center justify-center rounded-md border border-white/10 text-[#a79d91] transition hover:border-[#ef4444]/40 hover:text-[#f4eadc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
             >
               <ArrowLeft className="size-4" />
@@ -136,7 +184,7 @@ export function VideoStudioShell() {
                 MrNine / Pixelle-Video
               </p>
               <h1 className="truncate text-lg font-black tracking-[-0.04em] text-[#f4eadc]">
-                Video Studio
+                {copy.title as string}
               </h1>
             </div>
           </div>
@@ -152,7 +200,23 @@ export function VideoStudioShell() {
                       : "bg-[#d6a548]"
                 }`}
               />
-              {state === "ready" ? "Online" : state === "starting" ? "Starting" : "Setup"}
+              {state === "ready" ? copy.online as string : state === "starting" ? copy.starting as string : copy.setup as string}
+            </div>
+            <div className="flex rounded-full border border-white/10 bg-white/[0.03] p-0.5 font-mono text-[0.58rem] uppercase tracking-[0.16em]">
+              {languageOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  title={option.title}
+                  aria-pressed={language === option.value}
+                  onClick={() => setLanguage(option.value)}
+                  className={`rounded-full px-2.5 py-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 ${
+                    language === option.value ? "bg-[#ef4444] text-white" : "text-[#9f968b] hover:text-[#f4eadc]"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
             <Button
               type="button"
@@ -161,7 +225,7 @@ export function VideoStudioShell() {
               className="h-9 rounded-md border-white/10 bg-white/[0.03] px-3 text-[#cfc4b8] hover:bg-white/[0.06]"
             >
               <RefreshCw className="size-4" />
-              <span className="hidden sm:inline">Reload</span>
+              <span className="hidden sm:inline">{copy.reload as string}</span>
             </Button>
           </div>
         </header>
@@ -190,26 +254,21 @@ export function VideoStudioShell() {
                     </div>
                     <div>
                       <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[#45a85d]">
-                        Pixelle runtime
+                        {copy.runtime as string}
                       </p>
                       <h2 className="mt-2 text-xl font-black tracking-[-0.04em] text-[#fff5eb]">
                         {state === "starting"
-                          ? "Loading local Studio"
+                          ? copy.loadingLocal as string
                           : state === "setup"
-                            ? "Runtime setup required"
-                            : "Studio could not start"}
+                            ? copy.setupRequired as string
+                            : copy.couldNotStart as string}
                       </h2>
                       <p className="mt-3 text-sm leading-6 text-[#a79d91]">{message}</p>
                     </div>
                   </div>
 
                   <div className="mt-5 grid gap-2 font-mono text-[0.64rem] uppercase tracking-[0.16em] text-[#9f968b]">
-                    {[
-                      "Script to video",
-                      "Image and video workflows",
-                      "Voice narration",
-                      "Streamlit UI preserved",
-                    ].map((item) => (
+                    {(copy.features as string[]).map((item) => (
                       <div key={item} className="flex items-center gap-2">
                         <CheckCircle2 className="size-3.5 text-[#45a85d]" />
                         {item}
@@ -222,10 +281,10 @@ export function VideoStudioShell() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[#ef4444]">
-                        Local runtime
+                        {copy.localRuntime as string}
                       </p>
                       <h3 className="mt-2 text-base font-black text-[#f4eadc]">
-                        {commands.length ? "Commands for this machine" : "Startup log"}
+                        {commands.length ? copy.commands as string : copy.startupLog as string}
                       </h3>
                     </div>
                     <Button
@@ -236,7 +295,7 @@ export function VideoStudioShell() {
                       className="h-9 rounded-md border-white/10 bg-white/[0.03] px-3 text-[#cfc4b8] hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
                     >
                       <Copy className="size-4" />
-                      Copy
+                      {copy.copy as string}
                     </Button>
                   </div>
 

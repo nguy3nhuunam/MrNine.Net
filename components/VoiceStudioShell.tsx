@@ -13,6 +13,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 
 type StudioState = "starting" | "ready" | "setup" | "error";
 
@@ -28,11 +29,58 @@ type StartResponse = {
 
 const framedStudioUrl = "/voice-studio-runtime/";
 
+const voiceCopy = {
+  en: {
+    back: "Back to MrNine home",
+    title: "Voice Studio",
+    online: "Online",
+    starting: "Starting",
+    setup: "Setup",
+    reload: "Reload",
+    startingMessage: "Starting OmniVoice Studio...",
+    runtimeMissing: "OmniVoice runtime is not installed.",
+    failed: "OmniVoice Studio failed to start.",
+    ready: "OmniVoice Studio is ready.",
+    runtime: "OmniVoice runtime",
+    loadingLocal: "Loading local Studio",
+    setupRequired: "Runtime setup required",
+    couldNotStart: "Studio could not start",
+    localInstall: "Local install",
+    commands: "Commands for this machine",
+    startupLog: "Startup log",
+    copy: "Copy",
+    features: ["Voice cloning", "Voice design", "600+ language TTS", "Gradio UI preserved"],
+  },
+  vi: {
+    back: "Quay lại trang chủ MrNine",
+    title: "Voice Studio",
+    online: "Trực tuyến",
+    starting: "Đang khởi động",
+    setup: "Cài đặt",
+    reload: "Tải lại",
+    startingMessage: "Đang khởi động OmniVoice Studio...",
+    runtimeMissing: "OmniVoice runtime chưa được cài đặt.",
+    failed: "Không thể khởi động OmniVoice Studio.",
+    ready: "OmniVoice Studio đã sẵn sàng.",
+    runtime: "Runtime OmniVoice",
+    loadingLocal: "Đang tải Studio local",
+    setupRequired: "Cần cài đặt runtime",
+    couldNotStart: "Không thể khởi động Studio",
+    localInstall: "Cài đặt local",
+    commands: "Lệnh cho máy này",
+    startupLog: "Log khởi động",
+    copy: "Sao chép",
+    features: ["Nhân bản giọng", "Thiết kế giọng", "TTS hơn 600 ngôn ngữ", "Giữ nguyên UI Gradio"],
+  },
+} satisfies Record<WebLanguage, Record<string, string | string[]>>;
+
 export function VoiceStudioShell() {
+  const { language, setLanguage } = useLanguage();
+  const copy = voiceCopy[language];
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [state, setState] = useState<StudioState>("starting");
   const [studioUrl, setStudioUrl] = useState(framedStudioUrl);
-  const [message, setMessage] = useState("Starting OmniVoice Studio...");
+  const [message, setMessage] = useState(copy.startingMessage as string);
   const [commands, setCommands] = useState<string[]>([]);
   const [runtimeLog, setRuntimeLog] = useState<string | undefined>();
 
@@ -42,7 +90,7 @@ export function VoiceStudioShell() {
 
     async function startStudio() {
       setState("starting");
-      setMessage("Starting OmniVoice Studio...");
+      setMessage(copy.startingMessage as string);
 
       try {
         const response = await fetch("/api/voice-studio/start", { method: "POST" });
@@ -55,14 +103,14 @@ export function VoiceStudioShell() {
         if (response.status === 409 || data.installed === false) {
           if (!cancelled) {
             setState("setup");
-            setMessage(data.message || "OmniVoice runtime is not installed.");
+            setMessage(data.message || (copy.runtimeMissing as string));
             setCommands(data.installCommands || []);
           }
           return;
         }
 
         if (!response.ok || data.ok === false) {
-          throw new Error(data.message || "OmniVoice Studio failed to start.");
+          throw new Error(data.message || (copy.failed as string));
         }
 
         poll = window.setInterval(async () => {
@@ -78,13 +126,13 @@ export function VoiceStudioShell() {
           if (!cancelled && status.status === "ready") {
             window.clearInterval(poll);
             setState("ready");
-            setMessage("OmniVoice Studio is ready.");
+            setMessage(copy.ready as string);
           }
         }, 1_250);
       } catch (error) {
         if (!cancelled) {
           setState("error");
-          setMessage(error instanceof Error ? error.message : "OmniVoice Studio failed to start.");
+          setMessage(error instanceof Error ? error.message : (copy.failed as string));
         }
       }
     }
@@ -97,7 +145,7 @@ export function VoiceStudioShell() {
         window.clearInterval(poll);
       }
     };
-  }, []);
+  }, [copy.failed, copy.ready, copy.runtimeMissing, copy.startingMessage]);
 
   const retry = () => {
     window.location.reload();
@@ -459,7 +507,7 @@ export function VoiceStudioShell() {
           <div className="flex min-w-0 items-center gap-3">
             <Link
               href="/"
-              aria-label="Back to MrNine home"
+              aria-label={copy.back as string}
               className="flex size-9 shrink-0 items-center justify-center rounded-md border border-white/10 text-[#a79d91] transition hover:border-[#ef4444]/40 hover:text-[#f4eadc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
             >
               <ArrowLeft className="size-4" />
@@ -472,7 +520,7 @@ export function VoiceStudioShell() {
                 MrNine / OmniVoice Studio
               </p>
               <h1 className="truncate text-lg font-black tracking-[-0.04em] text-[#f4eadc]">
-                Voice Studio
+                {copy.title as string}
               </h1>
             </div>
           </div>
@@ -488,7 +536,23 @@ export function VoiceStudioShell() {
                       : "bg-[#d6a548]"
                 }`}
               />
-              {state === "ready" ? "Online" : state === "starting" ? "Starting" : "Setup"}
+              {state === "ready" ? copy.online as string : state === "starting" ? copy.starting as string : copy.setup as string}
+            </div>
+            <div className="flex rounded-full border border-white/10 bg-white/[0.03] p-0.5 font-mono text-[0.58rem] uppercase tracking-[0.16em]">
+              {languageOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  title={option.title}
+                  aria-pressed={language === option.value}
+                  onClick={() => setLanguage(option.value)}
+                  className={`rounded-full px-2.5 py-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 ${
+                    language === option.value ? "bg-[#ef4444] text-white" : "text-[#9f968b] hover:text-[#f4eadc]"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
             <Button
               type="button"
@@ -497,7 +561,7 @@ export function VoiceStudioShell() {
               className="h-9 rounded-md border-white/10 bg-white/[0.03] px-3 text-[#cfc4b8] hover:bg-white/[0.06]"
             >
               <RefreshCw className="size-4" />
-              <span className="hidden sm:inline">Reload</span>
+              <span className="hidden sm:inline">{copy.reload as string}</span>
             </Button>
           </div>
         </header>
@@ -528,26 +592,21 @@ export function VoiceStudioShell() {
                     </div>
                     <div>
                       <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[#d6a548]">
-                        OmniVoice runtime
+                        {copy.runtime as string}
                       </p>
                       <h2 className="mt-2 text-xl font-black tracking-[-0.04em] text-[#fff5eb]">
                         {state === "starting"
-                          ? "Loading local Studio"
+                          ? copy.loadingLocal as string
                           : state === "setup"
-                            ? "Runtime setup required"
-                            : "Studio could not start"}
+                            ? copy.setupRequired as string
+                            : copy.couldNotStart as string}
                       </h2>
                       <p className="mt-3 text-sm leading-6 text-[#a79d91]">{message}</p>
                     </div>
                   </div>
 
                   <div className="mt-5 grid gap-2 font-mono text-[0.64rem] uppercase tracking-[0.16em] text-[#9f968b]">
-                    {[
-                      "Voice cloning",
-                      "Voice design",
-                      "600+ language TTS",
-                      "Gradio UI preserved",
-                    ].map((item) => (
+                    {(copy.features as string[]).map((item) => (
                       <div key={item} className="flex items-center gap-2">
                         <CheckCircle2 className="size-3.5 text-[#45a85d]" />
                         {item}
@@ -560,10 +619,10 @@ export function VoiceStudioShell() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[#ef4444]">
-                        Local install
+                        {copy.localInstall as string}
                       </p>
                       <h3 className="mt-2 text-base font-black text-[#f4eadc]">
-                        Commands for this machine
+                        {commands.length ? copy.commands as string : copy.startupLog as string}
                       </h3>
                     </div>
                     <Button
@@ -574,7 +633,7 @@ export function VoiceStudioShell() {
                       className="h-9 rounded-md border-white/10 bg-white/[0.03] px-3 text-[#cfc4b8] hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
                     >
                       <Copy className="size-4" />
-                      Copy
+                      {copy.copy as string}
                     </Button>
                   </div>
 
