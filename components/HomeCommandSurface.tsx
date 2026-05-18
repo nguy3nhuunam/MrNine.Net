@@ -1808,7 +1808,7 @@ export function HomeCommandSurface() {
               </div>
             </div>
 
-            <div className="mt-auto px-4">
+            <div className="mt-auto mb-32 px-4">
               <div className="rounded-lg border border-[#45a85d]/18 bg-[#071109]/72 p-3">
                 <div className="flex items-center gap-2 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#45a85d]">
                   <span className="size-1.5 rounded-full bg-[#45a85d]" />
