@@ -207,6 +207,8 @@ const modules = [
     action: "Open command",
     icon: Sparkles,
     accent: "red",
+    shortcut: "1",
+    lastUsed: "2 min",
   },
   {
     number: "02",
@@ -217,6 +219,8 @@ const modules = [
     action: "Launch story",
     icon: PenLine,
     accent: "lime",
+    shortcut: "2",
+    lastUsed: "1 hr",
   },
   {
     number: "03",
@@ -227,6 +231,8 @@ const modules = [
     action: "Open voice",
     icon: AudioLines,
     accent: "amber",
+    shortcut: "3",
+    lastUsed: "yesterday",
   },
   {
     number: "04",
@@ -237,6 +243,8 @@ const modules = [
     action: "Open vision",
     icon: ImageIcon,
     accent: "cyan",
+    shortcut: "4",
+    lastUsed: "3 days",
   },
   {
     number: "05",
@@ -247,6 +255,8 @@ const modules = [
     action: "Coming soon",
     icon: FileText,
     accent: "lime",
+    shortcut: "5",
+    lastUsed: "—",
   },
   {
     number: "06",
@@ -257,6 +267,8 @@ const modules = [
     action: "Coming soon",
     icon: Code2,
     accent: "cyan",
+    shortcut: "6",
+    lastUsed: "—",
   },
   {
     number: "07",
@@ -267,6 +279,8 @@ const modules = [
     action: "Coming soon",
     icon: BriefcaseBusiness,
     accent: "red",
+    shortcut: "7",
+    lastUsed: "—",
   },
   {
     number: "08",
@@ -277,6 +291,8 @@ const modules = [
     action: "Coming soon",
     icon: Check,
     accent: "lime",
+    shortcut: "8",
+    lastUsed: "—",
   },
 ];
 
@@ -766,7 +782,7 @@ function DailyTypeHeadline({ language }: Readonly<{ language: WebLanguage }>) {
                 "transition-[color,text-shadow,opacity] duration-200",
                 index < typedCount
                   ? "text-[#f4eadc] opacity-100 [text-shadow:_0_0_18px_rgba(244,234,220,0.12)]"
-                  : "text-[#f4eadc]/18 opacity-70",
+                  : "text-[#f4eadc]/40 opacity-90",
               )}
             >
               {character === " " ? "\u00A0" : character}
@@ -1133,12 +1149,24 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const [messages, setMessages] = useState<AskMessage[]>([
     {
       role: "assistant",
       content: "Tôi là MrNine AI. Bạn muốn viết, tạo ảnh, dựng video, xử lý tài liệu hay hỏi nhanh điều gì?",
     },
   ]);
+
+  useEffect(() => {
+    function handleScroll() {
+      setScrolledPastHero(window.scrollY > 320);
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1290,7 +1318,12 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
         type="button"
         onClick={() => setOpen(true)}
         aria-expanded={open}
-        className="ask-dock-wake group fixed bottom-14 right-5 z-40 hidden h-12 items-center gap-3 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-4 pr-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:flex lg:bottom-16"
+        aria-hidden={!scrolledPastHero && !open}
+        tabIndex={scrolledPastHero || open ? 0 : -1}
+        className={cn(
+          "ask-dock-wake group fixed bottom-14 right-5 z-40 hidden h-12 items-center gap-3 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-4 pr-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:flex lg:bottom-16",
+          scrolledPastHero ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-4 pointer-events-none",
+        )}
       >
         <span className="pointer-events-none absolute inset-y-0 left-0 w-px bg-[#45a85d]/80 shadow-[0_0_18px_rgba(69,168,93,0.8)]" />
         <span className="flex size-7 items-center justify-center rounded-md border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/70 group-hover:bg-[#18c964]/18">
@@ -1335,6 +1368,33 @@ export function HomeCommandSurface() {
 
     return () => window.clearTimeout(timeout);
   }, []);
+
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        return;
+      }
+
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          commandInputRef.current?.focus();
+        }
+        return;
+      }
+
+      const moduleMatch = modules.find((mod) => mod.shortcut === event.key);
+      if (moduleMatch) {
+        event.preventDefault();
+        openModule(moduleMatch.title);
+      }
+    }
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [armingModule]);
 
   function updateInterfaceTheme(nextTheme: InterfaceTheme) {
     setInterfaceTheme(nextTheme);
@@ -1417,24 +1477,24 @@ export function HomeCommandSurface() {
       <div className="blueprint-layer pointer-events-none absolute inset-0" aria-hidden="true" />
 
       <header className="relative z-30 flex h-14 items-center border-b px-4 transition-colors duration-300" style={activeVisuals.header}>
-        <div className="flex w-[22rem] items-center gap-2">
+        <div className="flex items-center gap-2">
           <div className="font-display text-2xl font-black tracking-[-0.08em] text-[#f4eadc]">
             Mr<span className="text-[#ef4444]">Nine</span>
           </div>
-          <div className="font-mono text-[0.56rem] uppercase leading-3 tracking-[0.28em] text-[#7b7369]">
+          <div className="hidden font-mono text-[0.52rem] uppercase leading-3 tracking-[0.24em] text-[#9a9087] xl:block">
             <div>{copy.futureDomain}</div>
             <div>{copy.desktop}</div>
           </div>
         </div>
 
-        <div className="hidden flex-1 justify-center lg:flex">
-          <div className="flex h-10 items-center gap-3 rounded-full border border-[#1f7d43]/45 bg-[#0b2114] px-4 shadow-[0_0_28px_rgba(34,197,94,0.12)]">
-            <span className="flex size-7 items-center justify-center rounded-full bg-[conic-gradient(from_180deg,#ef4444,#45a85d,#47c9d9,#ef4444)]">
-              <Sparkles className="size-4 text-[#070604]" />
+        <div className="hidden flex-1 justify-center xl:flex">
+          <div className="flex h-9 items-center gap-2.5 rounded-full border border-[#1f7d43]/35 bg-[#0b2114]/72 px-3.5 shadow-[0_0_22px_rgba(34,197,94,0.08)]">
+            <span className="flex size-6 items-center justify-center rounded-full bg-[conic-gradient(from_180deg,#ef4444,#45a85d,#47c9d9,#ef4444)]">
+              <Sparkles className="size-3 text-[#070604]" />
             </span>
-            <div className="font-mono text-[0.64rem] uppercase leading-3 tracking-[0.14em]">
+            <div className="font-mono text-[0.6rem] uppercase leading-3 tracking-[0.14em]">
               <div className="text-[#f4eadc]">009</div>
-              <div className="text-[#8d8780]">mrnine.net</div>
+              <div className="text-[#9a9087]">mrnine.net</div>
             </div>
           </div>
         </div>
@@ -1533,19 +1593,19 @@ export function HomeCommandSurface() {
                 <DailyTypeHeadline key={language} language={language} />
               </motion.div>
 
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-[#a79d91] sm:text-base">
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-[#c4b9ad] sm:text-base">
                 {copy.heroDescription}
               </p>
 
               <form
                 onSubmit={submitCommand}
                 className={cn(
-                  "command-control-line mt-7 max-w-3xl rounded-lg border bg-[#0d0b08]/88 p-2 shadow-[0_0_0_1px_rgba(255,255,255,0.025)_inset,0_18px_70px_rgba(0,0,0,0.2)] backdrop-blur transition",
-                  commandFocused ? "border-[#ef4444]/54 bg-[#120c09]/92 shadow-[0_0_0_1px_rgba(239,68,68,0.14)_inset,0_22px_82px_rgba(0,0,0,0.28)]" : "border-[#2a251f]",
+                  "command-control-line mt-7 max-w-3xl rounded-xl border-2 bg-[#0d0b08]/92 p-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_24px_80px_rgba(239,68,68,0.08),0_18px_70px_rgba(0,0,0,0.32)] backdrop-blur transition",
+                  commandFocused ? "border-[#ef4444]/72 bg-[#120c09]/96 shadow-[0_0_0_1px_rgba(239,68,68,0.2)_inset,0_28px_92px_rgba(239,68,68,0.18),0_22px_82px_rgba(0,0,0,0.4)]" : "border-[#3a322a]",
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/28 bg-[#ef4444]/10 font-mono text-[#ef4444]">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/35 bg-[#ef4444]/14 font-mono text-base text-[#ef4444]">
                     &gt;_
                   </span>
                   <input
@@ -1555,11 +1615,14 @@ export function HomeCommandSurface() {
                     onBlur={() => setCommandFocused(false)}
                     onChange={(event) => setCommandInput(event.target.value)}
                     placeholder={copy.commandPlaceholder}
-                    className="min-w-0 flex-1 bg-transparent px-1 text-sm text-[#f4eadc] outline-none placeholder:text-[#6f675e]"
+                    className="min-w-0 flex-1 bg-transparent px-1 text-base text-[#f4eadc] outline-none placeholder:text-[#8a8278]"
                   />
+                  <kbd className="hidden h-7 items-center gap-1 rounded-md border border-white/12 bg-white/[0.04] px-2 font-mono text-[0.62rem] font-bold text-[#b5ab9f] sm:flex">
+                    <span className="text-[#ef4444]">⌘</span>K
+                  </kbd>
                   <Button
                     type="submit"
-                    className="h-9 rounded-md bg-[#ef4444] px-4 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[#090807] hover:bg-[#ff5b55]"
+                    className="h-10 rounded-md bg-[#ef4444] px-5 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#090807] hover:bg-[#ff5b55]"
                   >
                     {copy.run}
                     <ArrowRight className="size-3.5" />
@@ -1610,13 +1673,13 @@ export function HomeCommandSurface() {
             </div>
           </section>
 
-          <div className="relative flex h-8 shrink-0 items-center overflow-hidden border-b border-[#25211b] font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[#d6a548]">
+          <div className="relative flex h-7 shrink-0 items-center overflow-hidden border-b border-[#25211b]/60 font-mono text-[0.56rem] uppercase tracking-[0.18em] text-[#9a9087] opacity-50 transition-opacity hover:opacity-100">
             <div className="flex min-w-max animate-[marquee_32s_linear_infinite] gap-8">
               {[...ticker, ...ticker].map((item, index) => (
                 <span key={`${item}-${index}`} className="flex items-center gap-2">
                   <span
                     className={cn(
-                      "ticker-dot-signal size-1.5 rounded-full",
+                      "ticker-dot-signal size-1 rounded-full",
                       index % 3 === 0 ? "bg-[#d6a548]" : index % 3 === 1 ? "bg-[#45a85d]" : "bg-[#ef4444]",
                     )}
                     style={{ animationDelay: `${(index % ticker.length) * 0.18}s` }}
@@ -1630,11 +1693,11 @@ export function HomeCommandSurface() {
           <section className="min-h-0 flex-1 py-5">
             <div className="mb-4 flex items-end justify-between">
               <div>
-                <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#756d64]">{copy.missionDeck}</p>
-                <h2 className="mt-1 text-xl font-bold tracking-[-0.04em] text-[#f4eadc]">{copy.launchConsole}</h2>
+                <p className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#9a9087]">{copy.missionDeck}</p>
+                <h2 className="mt-1 text-base font-bold tracking-[-0.03em] text-[#d8cfc4]">{copy.launchConsole}</h2>
               </div>
-              <div className="hidden items-center gap-2 font-mono text-[0.6rem] uppercase tracking-[0.2em] text-[#45a85d] md:flex">
-                <span className="size-1.5 rounded-full bg-[#45a85d]" />
+              <div className="hidden items-center gap-2 font-mono text-[0.56rem] uppercase tracking-[0.2em] text-[#7dd391] md:flex">
+                <span className="size-1 rounded-full bg-[#45a85d]" />
                 {copy.allOnline}
               </div>
             </div>
@@ -1679,34 +1742,36 @@ export function HomeCommandSurface() {
                         ease: [0.16, 1, 0.3, 1],
                       }}
                       className={cn(
-                        "module-card-signal group relative flex min-h-[9.25rem] overflow-hidden rounded-lg border border-[#2a251f] bg-[#14100d]/72 p-3.5 text-left transition hover:-translate-y-0.5 hover:border-[#ef4444]/28 hover:bg-[#18120f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 min-[1920px]:min-h-[9.5rem]",
+                        "module-card-signal group relative flex min-h-[9.25rem] overflow-hidden rounded-lg border border-[#2a251f] bg-[#14100d]/72 p-3.5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[#ef4444]/45 hover:bg-[#1c1612] hover:shadow-[0_12px_40px_rgba(239,68,68,0.12),0_0_0_1px_rgba(239,68,68,0.08)_inset] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 min-[1920px]:min-h-[9.5rem]",
                         moduleIsArming && "module-route-arming",
                         moduleIsDimmed && "pointer-events-none blur-[0.4px]",
                         module.title !== "Story Forge" &&
                           module.title !== "Voice Studio" &&
                           module.title !== "AI Playground" &&
                           module.title !== "Vision Foundry" &&
-                          "cursor-default",
+                          "cursor-default opacity-75",
                       )}
                     >
                       <div className="flex w-full flex-col">
                         <div className="mb-4 flex items-start justify-between">
-                          <div className={cn("module-icon-signal flex size-8 items-center justify-center rounded-md border", accent.border, accent.bg)}>
+                          <div className={cn("module-icon-signal flex size-8 items-center justify-center rounded-md border transition group-hover:scale-110", accent.border, accent.bg)}>
                             <Icon className={cn("size-4", accent.text)} />
                           </div>
-                          <div className="text-right">
-                            <span className={cn("block font-mono text-[0.62rem] font-bold", accent.text)}>{module.number}</span>
-                            <span className="mt-1 block font-mono text-[0.46rem] uppercase tracking-[0.14em] text-[#6f675e]">{module.group === "Create" ? copy.create : copy.tools}</span>
+                          <div className="flex items-center gap-1.5">
+                            <kbd className="hidden rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[0.5rem] font-bold text-[#9f968b] sm:inline-block">
+                              {module.shortcut}
+                            </kbd>
+                            <span className="font-mono text-[0.46rem] uppercase tracking-[0.14em] text-[#6f675e]">{module.group === "Create" ? copy.create : copy.tools}</span>
                           </div>
                         </div>
-                        <h3 className="truncate text-[0.9rem] font-bold leading-tight text-[#efe6dc]">{localizedModule.title ?? module.title}</h3>
-                        <p className="mt-0.5 truncate text-[0.68rem] leading-5 text-[#8f8579]">{localizedModule.detail ?? module.detail}</p>
+                        <h3 className="truncate text-[0.95rem] font-bold leading-tight text-[#f4eadc]">{localizedModule.title ?? module.title}</h3>
+                        <p className="mt-0.5 truncate text-[0.7rem] leading-5 text-[#b5ab9f]">{localizedModule.detail ?? module.detail}</p>
                         <div className="mt-3 h-px w-full bg-gradient-to-r from-white/8 via-white/4 to-transparent" />
-                        <div className="mt-auto flex items-center justify-between gap-2 pt-3 font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#82786e]">
+                        <div className="mt-auto flex items-center justify-between gap-2 pt-3 font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#9a9087]">
                           <span className="truncate">{localizedModule.signal ?? module.signal}</span>
                           <span className="flex items-center gap-1.5">
                             <span className={cn("size-1.5 rounded-full", accent.dot)} />
-                            {copy.ok}
+                            {module.lastUsed}
                           </span>
                         </div>
                       </div>
@@ -1747,8 +1812,8 @@ export function HomeCommandSurface() {
 
           <aside className="hidden min-h-0 border-l border-[#25211b] py-5 2xl:flex 2xl:flex-col">
             <div className="mb-4 px-4">
-              <p className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#756d64]">
-                {previewModule ? copy.modulePreview : copy.systemPanel}
+              <p className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#9a9087]">
+                {previewModule ? copy.modulePreview : copy.recentOutput}
               </p>
               <h2 className="mt-1 text-lg font-bold tracking-[-0.04em] text-[#f4eadc]">{previewModule ? moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.title ?? previewModule.title : copy.context}</h2>
             </div>
@@ -1773,48 +1838,48 @@ export function HomeCommandSurface() {
                     >
                       {PreviewIcon ? <PreviewIcon className={cn("size-5", accentMap[previewModule.accent as keyof typeof accentMap].text)} /> : null}
                     </div>
-                    <div className="font-mono text-[0.52rem] uppercase tracking-[0.18em] text-[#756d64]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.signal ?? previewModule.signal}</div>
-                    <p className="mt-2 text-sm leading-6 text-[#d8cfc4]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.summary ?? previewModule.summary}</p>
+                    <div className="font-mono text-[0.52rem] uppercase tracking-[0.18em] text-[#9a9087]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.signal ?? previewModule.signal}</div>
+                    <p className="mt-2 text-sm leading-6 text-[#e0d6ca]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.summary ?? previewModule.summary}</p>
                     <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 font-mono text-[0.54rem] uppercase tracking-[0.16em]">
                       <span className={accentMap[previewModule.accent as keyof typeof accentMap].text}>{previewModule.number}</span>
-                      <span className="text-[#8f8579]">{previewModule.action === "Coming soon" ? copy.runtimeRequired : copy.readyToOpen}</span>
+                      <span className="text-[#b5ab9f]">{previewModule.action === "Coming soon" ? copy.runtimeRequired : copy.readyToOpen}</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {systemPanelItems.map((item) => (
-                      <div key={item.label} className="rounded-lg border border-[#2a251f] bg-[#100d0a]/76 px-3 py-3">
-                        <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">{systemPanelCopy[language][item.label as keyof typeof systemPanelCopy.vi]?.label ?? item.label}</div>
-                        <div className={cn("mt-1 text-sm font-bold", item.tone)}>{systemPanelCopy[language][item.label as keyof typeof systemPanelCopy.vi]?.value ?? item.value}</div>
+                  <div className="space-y-2">
+                    {recentOutputs.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-[#2a251f] bg-[#100d0a]/40 px-3 py-6 text-center">
+                        <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#9a9087]">{copy.queueClear}</p>
+                        <p className="mt-2 text-xs leading-5 text-[#b5ab9f]">{copy.queueBody}</p>
                       </div>
-                    ))}
+                    ) : (
+                      recentOutputs.map((output) => (
+                        <button
+                          key={output.title}
+                          type="button"
+                          className="group flex w-full items-center justify-between gap-3 rounded-lg border border-[#2a251f] bg-[#100d0a]/76 px-3 py-3 text-left transition hover:-translate-y-0.5 hover:border-[#45a85d]/35 hover:bg-[#0e1a11] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/70"
+                          aria-label={`${recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.title ?? output.title} — ${recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.meta ?? output.meta}`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-bold text-[#f4eadc]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.title ?? output.title}</div>
+                            <div className="mt-1 truncate font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#9a9087]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.meta ?? output.meta}</div>
+                          </div>
+                          <ArrowRight className="size-3.5 shrink-0 text-[#9a9087] opacity-0 transition group-hover:translate-x-0.5 group-hover:text-[#45a85d] group-hover:opacity-100" />
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
 
-            <div className="mt-6 px-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">{copy.recentOutput}</p>
-                <span className="size-1.5 rounded-full bg-[#45a85d] shadow-[0_0_12px_rgba(69,168,93,0.72)]" />
-              </div>
-              <div className="space-y-2">
-                {recentOutputs.map((output) => (
-                  <div key={output.title} className="rounded-md border border-white/8 bg-white/[0.03] px-3 py-2">
-                    <div className="truncate text-xs font-bold text-[#e8dfd4]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.title ?? output.title}</div>
-                    <div className="mt-1 truncate font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.meta ?? output.meta}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="mt-auto mb-32 px-4">
               <div className="rounded-lg border border-[#45a85d]/18 bg-[#071109]/72 p-3">
-                <div className="flex items-center gap-2 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#45a85d]">
+                <div className="flex items-center gap-2 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#7dd391]">
                   <span className="size-1.5 rounded-full bg-[#45a85d]" />
                   {copy.queueClear}
                 </div>
-                <p className="mt-2 text-xs leading-5 text-[#8f8579]">{copy.queueBody}</p>
+                <p className="mt-2 text-xs leading-5 text-[#b5ab9f]">{copy.queueBody}</p>
               </div>
             </div>
           </aside>
