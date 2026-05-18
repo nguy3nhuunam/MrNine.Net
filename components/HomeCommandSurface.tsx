@@ -277,6 +277,8 @@ const modules = [
   },
 ];
 
+type ModuleCard = (typeof modules)[number];
+
 const railItems = [
   { label: "Home", icon: Lock, active: true },
   { label: "Command", icon: Sparkles },
@@ -315,6 +317,14 @@ const recentOutputs = [
   { title: "Story outline", meta: "Story Forge / saved" },
   { title: "Voice draft", meta: "Voice Studio / queued" },
   { title: "Prompt map", meta: "Command / 2 min ago" },
+];
+
+const quickCommands = [
+  { command: "/story", label: "Story", hint: "plot + chapter", module: "Story Forge" },
+  { command: "/voice", label: "Voice", hint: "narration", module: "Voice Studio" },
+  { command: "/image", label: "Image", hint: "visual prompt", module: "Vision Foundry" },
+  { command: "/pdf", label: "PDF", hint: "document core", module: "Document Core" },
+  { command: "/code", label: "Code", hint: "debug lane", module: "Code Lab" },
 ];
 
 const dailyHeadlines = [
@@ -667,7 +677,7 @@ function HeroParticleNetwork() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 z-0 h-full w-full opacity-60 mix-blend-screen"
+      className="pointer-events-none absolute inset-0 z-0 h-full w-full opacity-45 mix-blend-screen"
     />
   );
 }
@@ -995,7 +1005,7 @@ function AskAnythingChat() {
         type="button"
         onClick={() => setOpen(true)}
         aria-expanded={open}
-        className="ask-dock-wake group fixed bottom-14 right-5 z-40 flex h-12 items-center gap-3 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-4 pr-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 lg:bottom-16"
+        className="ask-dock-wake group fixed bottom-14 right-5 z-40 hidden h-12 items-center gap-3 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-4 pr-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:flex lg:bottom-16"
       >
         <span className="pointer-events-none absolute inset-y-0 left-0 w-px bg-[#45a85d]/80 shadow-[0_0_18px_rgba(69,168,93,0.8)]" />
         <span className="flex size-7 items-center justify-center rounded-md border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/70 group-hover:bg-[#18c964]/18">
@@ -1017,9 +1027,15 @@ export function HomeCommandSurface() {
   const [interfaceTheme, setInterfaceTheme] = useState<InterfaceTheme>("auto");
   const [armingModule, setArmingModule] = useState("");
   const [commandInput, setCommandInput] = useState("");
+  const [commandFocused, setCommandFocused] = useState(false);
+  const [previewModule, setPreviewModule] = useState<ModuleCard | null>(null);
   const heroRef = useRef<HTMLElement | null>(null);
+  const commandInputRef = useRef<HTMLInputElement | null>(null);
   const activeTheme = interfaceThemes.find((theme) => theme.value === interfaceTheme) ?? interfaceThemes[0];
   const activeVisuals = themeVisuals[activeTheme.value];
+  const commandMode = quickCommands.find((item) => commandInput.trimStart().startsWith(item.command));
+  const slashMode = commandInput.trimStart().startsWith("/");
+  const PreviewIcon = previewModule?.icon;
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1045,6 +1061,11 @@ export function HomeCommandSurface() {
   function updateInterfaceTheme(nextTheme: InterfaceTheme) {
     setInterfaceTheme(nextTheme);
     window.localStorage.setItem("mrnine-interface-theme", nextTheme);
+  }
+
+  function applyQuickCommand(command: string) {
+    setCommandInput(`${command} `);
+    window.requestAnimationFrame(() => commandInputRef.current?.focus());
   }
 
   function openModule(title: string) {
@@ -1084,6 +1105,7 @@ export function HomeCommandSurface() {
     const prompt = commandInput.trim();
 
     window.dispatchEvent(new CustomEvent("mrnine-open-chat", { detail: { prompt } }));
+    setCommandFocused(false);
   }
 
   function updateNumeralParallax(event: MouseEvent<HTMLElement>) {
@@ -1108,13 +1130,14 @@ export function HomeCommandSurface() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden transition-colors duration-300 lg:h-screen lg:overflow-hidden" style={activeVisuals.main}>
+    <main className="relative min-h-screen overflow-x-hidden pb-20 transition-colors duration-300 sm:pb-0 lg:h-screen lg:overflow-hidden" style={activeVisuals.main}>
       <a href="#main-content" className="skip-link focus:left-4 focus:top-4">
         Skip to content
       </a>
 
       <div className="pointer-events-none absolute inset-0 transition-colors duration-300" style={activeVisuals.ambient} />
       <div className="pointer-events-none absolute inset-0 bg-[size:24px_24px] opacity-55 transition-colors duration-300" style={activeVisuals.grid} />
+      <div className="blueprint-layer pointer-events-none absolute inset-0" aria-hidden="true" />
 
       <header className="relative z-30 flex h-14 items-center border-b px-4 transition-colors duration-300" style={activeVisuals.header}>
         <div className="flex w-[22rem] items-center gap-2">
@@ -1139,7 +1162,7 @@ export function HomeCommandSurface() {
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.025] p-1 shadow-[0_0_0_1px_rgba(255,255,255,0.018)_inset]">
           <div className="hidden rounded-full border border-white/10 bg-white/[0.03] p-0.5 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#c4b9ad] md:flex">
             {languageOptions.map((option) => (
               <button
@@ -1183,8 +1206,11 @@ export function HomeCommandSurface() {
                 )}
               >
                 <Icon className="size-4" />
-                <span className="absolute -bottom-2 font-mono text-[0.45rem] tracking-[0.18em] text-[#6e675f]">
+                <span className="absolute -bottom-2 font-mono text-[0.45rem] tracking-[0.18em] text-[#6e675f] opacity-55 transition group-hover:opacity-100">
                   {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 z-40 -translate-y-1/2 rounded-md border border-[#2a251f] bg-[#0b0907]/95 px-2.5 py-1.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#d8cfc4] opacity-0 shadow-[0_12px_34px_rgba(0,0,0,0.32)] transition group-hover:translate-x-0.5 group-hover:opacity-100">
+                  {label}
                 </span>
               </button>
             ))}
@@ -1202,7 +1228,12 @@ export function HomeCommandSurface() {
             className="relative min-h-[300px] shrink-0 overflow-hidden border-b border-[#25211b] py-5 sm:py-7 lg:min-h-[340px]"
           >
             <HeroParticleNetwork />
-            <div className="hero-numeral-scan absolute -right-1 top-4 z-[1] hidden text-[18vw] font-bold leading-[0.86] tracking-[0.015em] text-[#ef4444]/[0.045] xl:block">
+            <div
+              className={cn(
+                "hero-numeral-scan absolute -right-1 top-4 z-[1] hidden text-[18vw] font-bold leading-[0.86] tracking-[0.015em] text-[#ef4444]/[0.045] transition-opacity duration-500 xl:block",
+                commandFocused && "opacity-35",
+              )}
+            >
               009
             </div>
             <div className="absolute inset-0 z-[1] bg-[radial-gradient(circle_at_24%_22%,rgba(69,168,93,0.12),transparent_16%),radial-gradient(circle_at_52%_18%,rgba(214,165,72,0.1),transparent_12%),radial-gradient(circle_at_72%_36%,rgba(239,68,68,0.1),transparent_14%)]" />
@@ -1231,24 +1262,63 @@ export function HomeCommandSurface() {
 
               <form
                 onSubmit={submitCommand}
-                className="mt-7 flex max-w-3xl items-center gap-2 rounded-lg border border-[#2a251f] bg-[#0d0b08]/88 p-2 shadow-[0_0_0_1px_rgba(255,255,255,0.025)_inset,0_18px_70px_rgba(0,0,0,0.2)] backdrop-blur"
+                className={cn(
+                  "command-control-line mt-7 max-w-3xl rounded-lg border bg-[#0d0b08]/88 p-2 shadow-[0_0_0_1px_rgba(255,255,255,0.025)_inset,0_18px_70px_rgba(0,0,0,0.2)] backdrop-blur transition",
+                  commandFocused ? "border-[#ef4444]/54 bg-[#120c09]/92 shadow-[0_0_0_1px_rgba(239,68,68,0.14)_inset,0_22px_82px_rgba(0,0,0,0.28)]" : "border-[#2a251f]",
+                )}
               >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/28 bg-[#ef4444]/10 font-mono text-[#ef4444]">
-                  &gt;_
-                </span>
-                <input
-                  value={commandInput}
-                  onChange={(event) => setCommandInput(event.target.value)}
-                  placeholder="Ask MrNine to write, render, convert, debug..."
-                  className="min-w-0 flex-1 bg-transparent px-1 text-sm text-[#f4eadc] outline-none placeholder:text-[#6f675e]"
-                />
-                <Button
-                  type="submit"
-                  className="h-9 rounded-md bg-[#ef4444] px-4 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[#090807] hover:bg-[#ff5b55]"
-                >
-                  Run
-                  <ArrowRight className="size-3.5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/28 bg-[#ef4444]/10 font-mono text-[#ef4444]">
+                    &gt;_
+                  </span>
+                  <input
+                    ref={commandInputRef}
+                    value={commandInput}
+                    onFocus={() => setCommandFocused(true)}
+                    onBlur={() => setCommandFocused(false)}
+                    onChange={(event) => setCommandInput(event.target.value)}
+                    placeholder="Ask MrNine to write, render, convert, debug..."
+                    className="min-w-0 flex-1 bg-transparent px-1 text-sm text-[#f4eadc] outline-none placeholder:text-[#6f675e]"
+                  />
+                  <Button
+                    type="submit"
+                    className="h-9 rounded-md bg-[#ef4444] px-4 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[#090807] hover:bg-[#ff5b55]"
+                  >
+                    Run
+                    <ArrowRight className="size-3.5" />
+                  </Button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5 border-t border-white/7 pt-2">
+                  {quickCommands.map((item) => {
+                    const selected = commandInput.trimStart().startsWith(item.command);
+                    const hinted = slashMode && item.command.startsWith(commandInput.trimStart());
+
+                    return (
+                      <button
+                        key={item.command}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => applyQuickCommand(item.command)}
+                        className={cn(
+                          "rounded-md border px-2.5 py-1 font-mono text-[0.54rem] uppercase tracking-[0.14em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70",
+                          selected || hinted
+                            ? "border-[#ef4444]/44 bg-[#ef4444]/12 text-[#ffd7d3]"
+                            : "border-white/8 bg-white/[0.025] text-[#8f8579] hover:border-[#d6a548]/30 hover:text-[#f4eadc]",
+                        )}
+                        aria-label={`${item.command} ${item.hint}`}
+                      >
+                        <span className="text-[#ef4444]">{item.command}</span>
+                        <span className="ml-1 hidden text-[#756d64] sm:inline">{item.hint}</span>
+                      </button>
+                    );
+                  })}
+                  {commandMode ? (
+                    <span className="ml-auto hidden items-center gap-1.5 font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#45a85d] md:flex">
+                      <span className="size-1.5 rounded-full bg-[#45a85d]" />
+                      {commandMode.module}
+                    </span>
+                  ) : null}
+                </div>
               </form>
 
               <div className="mt-3 flex flex-wrap gap-2">
@@ -1312,11 +1382,15 @@ export function HomeCommandSurface() {
                       key={module.title}
                       type="button"
                       onClick={() => openModule(module.title)}
+                      onMouseEnter={() => setPreviewModule(module)}
+                      onMouseLeave={() => setPreviewModule(null)}
+                      onFocus={() => setPreviewModule(module)}
+                      onBlur={() => setPreviewModule(null)}
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.035, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                       className={cn(
-                        "module-card-signal relative flex min-h-[9.25rem] overflow-hidden rounded-lg border border-[#2a251f] bg-[#14100d]/72 p-3.5 text-left transition hover:-translate-y-0.5 hover:border-[#ef4444]/28 hover:bg-[#18120f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 min-[1920px]:min-h-[9.5rem]",
+                        "module-card-signal group relative flex min-h-[9.25rem] overflow-hidden rounded-lg border border-[#2a251f] bg-[#14100d]/72 p-3.5 text-left transition hover:-translate-y-0.5 hover:border-[#ef4444]/28 hover:bg-[#18120f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 min-[1920px]:min-h-[9.5rem]",
                         armingModule === module.title && "module-route-arming",
                         module.title !== "Story Forge" &&
                           module.title !== "Voice Studio" &&
@@ -1346,11 +1420,29 @@ export function HomeCommandSurface() {
                           </span>
                         </div>
                       </div>
+                      <div className="module-detail-strip absolute inset-x-0 bottom-0 flex h-8 translate-y-full items-center justify-between border-t border-white/8 bg-[#090807]/96 px-3 font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#d8cfc4] transition duration-250 group-hover:translate-y-0 group-focus-visible:translate-y-0">
+                        <span>{module.action === "Coming soon" ? "Runtime required" : module.action}</span>
+                        <ArrowRight className={cn("size-3", accent.text)} />
+                      </div>
                     </motion.button>
                   );
                 })}
             </div>
           </section>
+
+          <div className="recent-output-dock mb-3 hidden shrink-0 items-center gap-2 overflow-hidden rounded-lg border border-[#2a251f] bg-[#0c0a08]/82 px-3 py-2 md:flex 2xl:hidden">
+            <div className="mr-2 shrink-0 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#d6a548]">Output dock</div>
+            {recentOutputs.map((output) => (
+              <button
+                key={output.title}
+                type="button"
+                className="min-w-0 flex-1 rounded-md border border-white/7 bg-white/[0.025] px-3 py-2 text-left transition hover:border-[#45a85d]/24 hover:bg-[#45a85d]/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/70"
+              >
+                <div className="truncate text-xs font-bold text-[#efe6dc]">{output.title}</div>
+                <div className="mt-0.5 truncate font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#756d64]">{output.meta}</div>
+              </button>
+            ))}
+          </div>
 
           <footer className="flex h-10 shrink-0 items-center justify-between border-t border-[#25211b] font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#776f66]">
             <div>MrNine / 2026 / Exp 009</div>
@@ -1365,18 +1457,48 @@ export function HomeCommandSurface() {
 
           <aside className="hidden min-h-0 border-l border-[#25211b] py-5 2xl:flex 2xl:flex-col">
             <div className="mb-4 px-4">
-              <p className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#756d64]">System panel</p>
-              <h2 className="mt-1 text-lg font-bold tracking-[-0.04em] text-[#f4eadc]">Context</h2>
+              <p className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#756d64]">
+                {previewModule ? "Module preview" : "System panel"}
+              </p>
+              <h2 className="mt-1 text-lg font-bold tracking-[-0.04em] text-[#f4eadc]">{previewModule ? previewModule.title : "Context"}</h2>
             </div>
 
-            <div className="space-y-3 px-4">
-              {systemPanelItems.map((item) => (
-                <div key={item.label} className="rounded-lg border border-[#2a251f] bg-[#100d0a]/76 px-3 py-3">
-                  <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">{item.label}</div>
-                  <div className={cn("mt-1 text-sm font-bold", item.tone)}>{item.value}</div>
+            <motion.div
+              key={previewModule?.title ?? "system-context"}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="px-4"
+            >
+              {previewModule ? (
+                <div className="rounded-lg border border-[#2a251f] bg-[#100d0a]/76 p-3">
+                  <div
+                    className={cn(
+                      "mb-3 flex size-10 items-center justify-center rounded-md border",
+                      accentMap[previewModule.accent as keyof typeof accentMap].border,
+                      accentMap[previewModule.accent as keyof typeof accentMap].bg,
+                    )}
+                  >
+                    {PreviewIcon ? <PreviewIcon className={cn("size-5", accentMap[previewModule.accent as keyof typeof accentMap].text)} /> : null}
+                  </div>
+                  <div className="font-mono text-[0.52rem] uppercase tracking-[0.18em] text-[#756d64]">{previewModule.signal}</div>
+                  <p className="mt-2 text-sm leading-6 text-[#d8cfc4]">{previewModule.summary}</p>
+                  <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 font-mono text-[0.54rem] uppercase tracking-[0.16em]">
+                    <span className={accentMap[previewModule.accent as keyof typeof accentMap].text}>{previewModule.number}</span>
+                    <span className="text-[#8f8579]">{previewModule.action === "Coming soon" ? "Runtime required" : "Ready to open"}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
+              ) : (
+                <div className="space-y-3">
+                  {systemPanelItems.map((item) => (
+                    <div key={item.label} className="rounded-lg border border-[#2a251f] bg-[#100d0a]/76 px-3 py-3">
+                      <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">{item.label}</div>
+                      <div className={cn("mt-1 text-sm font-bold", item.tone)}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
 
             <div className="mt-6 px-4">
               <div className="mb-3 flex items-center justify-between">
@@ -1405,6 +1527,26 @@ export function HomeCommandSurface() {
           </aside>
         </div>
       </div>
+
+      <form
+        onSubmit={submitCommand}
+        className="fixed inset-x-3 bottom-3 z-40 flex items-center gap-2 rounded-lg border border-[#45a85d]/24 bg-[#070907]/94 p-2 shadow-[0_18px_58px_rgba(0,0,0,0.55),0_0_32px_rgba(69,168,93,0.12)] backdrop-blur-xl sm:hidden"
+      >
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#45a85d]/30 bg-[#45a85d]/10 text-[#45a85d]">
+          <Send className="size-4" />
+        </span>
+        <input
+          value={commandInput}
+          onFocus={() => setCommandFocused(true)}
+          onBlur={() => setCommandFocused(false)}
+          onChange={(event) => setCommandInput(event.target.value)}
+          placeholder="Ask MrNine..."
+          className="min-w-0 flex-1 bg-transparent text-sm text-[#f4eadc] outline-none placeholder:text-[#6f776d]"
+        />
+        <Button type="submit" size="icon" className="size-9 rounded-md bg-[#45a85d] text-[#061009] hover:bg-[#58c772]" aria-label="Run mobile command">
+          <ArrowRight className="size-4" />
+        </Button>
+      </form>
 
       <AskAnythingChat />
     </main>
