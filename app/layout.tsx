@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, JetBrains_Mono, Oxanium } from "next/font/google";
+import { Be_Vietnam_Pro, JetBrains_Mono, Oxanium, Teko } from "next/font/google";
 import "./globals.css";
 
 const displayFont = Oxanium({
@@ -21,10 +21,16 @@ const monoFont = JetBrains_Mono({
   weight: ["500", "700"],
 });
 
+const numeralFont = Teko({
+  variable: "--font-numeral",
+  subsets: ["latin", "latin-ext"],
+  weight: ["600", "700"],
+});
+
 export const metadata: Metadata = {
-  title: "WebAI | Futuristic AI Control Deck",
+  title: "MrNine | Future AI Control Deck",
   description:
-    "A cinematic AI platform homepage built with procedural Three.js geometry, custom shaders, and a futuristic control-deck interface.",
+    "The future mrnine.net AI control surface for writing, voice, image, video, documents, coding, and creative workflows.",
 };
 
 export default function RootLayout({
@@ -35,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} h-full antialiased`}
+      className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} ${numeralFont.variable} h-full antialiased`}
     >
       <body
         className="min-h-full overflow-x-hidden"
@@ -44,6 +50,7 @@ export default function RootLayout({
             "--font-display-family": displayFont.style.fontFamily,
             "--font-body-family": bodyFont.style.fontFamily,
             "--font-mono-family": monoFont.style.fontFamily,
+            "--font-numeral-family": numeralFont.style.fontFamily,
           } as CSSProperties
         }
       >
