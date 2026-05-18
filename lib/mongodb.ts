@@ -8,7 +8,7 @@ declare global {
 }
 
 const clientPromise = uri
-  ? (global._mrnineMongoClientPromise ?? new MongoClient(uri, options).connect())
+  ? (global._mrnineMongoClientPromise ?? Promise.resolve(new MongoClient(uri, options)))
   : undefined;
 
 if (process.env.NODE_ENV !== "production" && clientPromise) {
