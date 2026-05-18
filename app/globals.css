@@ -246,8 +246,7 @@ a {
     opacity 420ms ease;
 }
 
-.blueprint-layer::before,
-.blueprint-layer::after {
+.blueprint-layer::before {
   position: absolute;
   content: "";
   opacity: 0.42;
@@ -259,18 +258,6 @@ a {
   bottom: 3.85rem;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(244, 234, 220, 0.12) 10%, rgba(239, 68, 68, 0.16) 48%, rgba(69, 168, 93, 0.12) 76%, transparent);
-}
-
-.blueprint-layer::after {
-  right: 18.5rem;
-  top: 5.7rem;
-  width: 8.5rem;
-  height: 8.5rem;
-  border-top: 1px solid rgba(244, 234, 220, 0.09);
-  border-right: 1px solid rgba(244, 234, 220, 0.08);
-  box-shadow:
-    2.25rem 2.25rem 0 -2.2rem rgba(239, 68, 68, 0.42),
-    -1.75rem 7.5rem 0 -1.7rem rgba(214, 165, 72, 0.34);
 }
 
 .command-control-line {
@@ -410,10 +397,6 @@ a {
 }
 
 @media (max-width: 767px) {
-  .blueprint-layer::after {
-    display: none;
-  }
-
   .blueprint-layer::before {
     left: 1rem;
     right: 1rem;
