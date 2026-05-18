@@ -20,7 +20,8 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { languageOptions as appLanguageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
@@ -1307,6 +1308,8 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
 }
 
 export function HomeCommandSurface() {
+  const router = useRouter();
+  const shouldReduceMotion = useReducedMotion();
   const { language, setLanguage } = useLanguage();
   const [interfaceTheme, setInterfaceTheme] = useState<InterfaceTheme>("auto");
   const [armingModule, setArmingModule] = useState("");
@@ -1360,8 +1363,7 @@ export function HomeCommandSurface() {
       return;
     }
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const delay = reduceMotion ? 0 : 240;
+    const delay = shouldReduceMotion ? 0 : 320;
     setArmingModule(title);
 
     window.setTimeout(() => {
@@ -1371,7 +1373,7 @@ export function HomeCommandSurface() {
         return;
       }
 
-      window.location.assign(destination);
+      router.push(destination);
     }, delay);
   }
 
@@ -1653,6 +1655,8 @@ export function HomeCommandSurface() {
                   const Icon = module.icon;
                   const accent = accentMap[module.accent as keyof typeof accentMap];
                   const localizedModule = moduleCopy[language][module.title as keyof typeof moduleCopy.vi] ?? module;
+                  const moduleIsArming = armingModule === module.title;
+                  const moduleIsDimmed = Boolean(armingModule) && !moduleIsArming;
 
                   return (
                     <motion.button
@@ -1664,11 +1668,20 @@ export function HomeCommandSurface() {
                       onFocus={() => setPreviewModule(module)}
                       onBlur={() => setPreviewModule(null)}
                       initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.035, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                      animate={{
+                        opacity: moduleIsDimmed ? 0.36 : 1,
+                        y: moduleIsArming && !shouldReduceMotion ? -4 : moduleIsDimmed && !shouldReduceMotion ? 4 : 0,
+                        scale: moduleIsArming && !shouldReduceMotion ? 1.018 : 1,
+                      }}
+                      transition={{
+                        delay: armingModule ? 0 : index * 0.035,
+                        duration: armingModule ? 0.24 : 0.35,
+                        ease: [0.16, 1, 0.3, 1],
+                      }}
                       className={cn(
                         "module-card-signal group relative flex min-h-[9.25rem] overflow-hidden rounded-lg border border-[#2a251f] bg-[#14100d]/72 p-3.5 text-left transition hover:-translate-y-0.5 hover:border-[#ef4444]/28 hover:bg-[#18120f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 min-[1920px]:min-h-[9.5rem]",
-                        armingModule === module.title && "module-route-arming",
+                        moduleIsArming && "module-route-arming",
+                        moduleIsDimmed && "pointer-events-none blur-[0.4px]",
                         module.title !== "Story Forge" &&
                           module.title !== "Voice Studio" &&
                           module.title !== "AI Playground" &&
@@ -1740,42 +1753,45 @@ export function HomeCommandSurface() {
               <h2 className="mt-1 text-lg font-bold tracking-[-0.04em] text-[#f4eadc]">{previewModule ? moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.title ?? previewModule.title : copy.context}</h2>
             </div>
 
-            <motion.div
-              key={previewModule?.title ?? "system-context"}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="px-4"
-            >
-              {previewModule ? (
-                <div className="rounded-lg border border-[#2a251f] bg-[#100d0a]/76 p-3">
-                  <div
-                    className={cn(
-                      "mb-3 flex size-10 items-center justify-center rounded-md border",
-                      accentMap[previewModule.accent as keyof typeof accentMap].border,
-                      accentMap[previewModule.accent as keyof typeof accentMap].bg,
-                    )}
-                  >
-                    {PreviewIcon ? <PreviewIcon className={cn("size-5", accentMap[previewModule.accent as keyof typeof accentMap].text)} /> : null}
-                  </div>
-                  <div className="font-mono text-[0.52rem] uppercase tracking-[0.18em] text-[#756d64]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.signal ?? previewModule.signal}</div>
-                  <p className="mt-2 text-sm leading-6 text-[#d8cfc4]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.summary ?? previewModule.summary}</p>
-                  <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 font-mono text-[0.54rem] uppercase tracking-[0.16em]">
-                    <span className={accentMap[previewModule.accent as keyof typeof accentMap].text}>{previewModule.number}</span>
-                    <span className="text-[#8f8579]">{previewModule.action === "Coming soon" ? copy.runtimeRequired : copy.readyToOpen}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {systemPanelItems.map((item) => (
-                    <div key={item.label} className="rounded-lg border border-[#2a251f] bg-[#100d0a]/76 px-3 py-3">
-                      <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">{systemPanelCopy[language][item.label as keyof typeof systemPanelCopy.vi]?.label ?? item.label}</div>
-                      <div className={cn("mt-1 text-sm font-bold", item.tone)}>{systemPanelCopy[language][item.label as keyof typeof systemPanelCopy.vi]?.value ?? item.value}</div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={previewModule?.title ?? "system-context"}
+                initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.985 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.99 }}
+                transition={{ duration: shouldReduceMotion ? 0.12 : 0.24, ease: [0.16, 1, 0.3, 1] }}
+                className="px-4"
+              >
+                {previewModule ? (
+                  <div className="rounded-lg border border-[#2a251f] bg-[#100d0a]/76 p-3">
+                    <div
+                      className={cn(
+                        "mb-3 flex size-10 items-center justify-center rounded-md border",
+                        accentMap[previewModule.accent as keyof typeof accentMap].border,
+                        accentMap[previewModule.accent as keyof typeof accentMap].bg,
+                      )}
+                    >
+                      {PreviewIcon ? <PreviewIcon className={cn("size-5", accentMap[previewModule.accent as keyof typeof accentMap].text)} /> : null}
                     </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
+                    <div className="font-mono text-[0.52rem] uppercase tracking-[0.18em] text-[#756d64]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.signal ?? previewModule.signal}</div>
+                    <p className="mt-2 text-sm leading-6 text-[#d8cfc4]">{moduleCopy[language][previewModule.title as keyof typeof moduleCopy.vi]?.summary ?? previewModule.summary}</p>
+                    <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 font-mono text-[0.54rem] uppercase tracking-[0.16em]">
+                      <span className={accentMap[previewModule.accent as keyof typeof accentMap].text}>{previewModule.number}</span>
+                      <span className="text-[#8f8579]">{previewModule.action === "Coming soon" ? copy.runtimeRequired : copy.readyToOpen}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {systemPanelItems.map((item) => (
+                      <div key={item.label} className="rounded-lg border border-[#2a251f] bg-[#100d0a]/76 px-3 py-3">
+                        <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">{systemPanelCopy[language][item.label as keyof typeof systemPanelCopy.vi]?.label ?? item.label}</div>
+                        <div className={cn("mt-1 text-sm font-bold", item.tone)}>{systemPanelCopy[language][item.label as keyof typeof systemPanelCopy.vi]?.value ?? item.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
 
             <div className="mt-6 px-4">
               <div className="mb-3 flex items-center justify-between">
