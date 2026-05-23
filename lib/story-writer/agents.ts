@@ -220,12 +220,12 @@ ${input.composed.selected.particleLedger.slice(0, 800) || "(trống)"}
 }
 
 // ============================================================================
-// 3-PART WRITER — split chapter generation into intro / middle / climax so
-// each LLM call stays well under Vercel's 60s function timeout. Each part
-// targets roughly chapterWords / 3 and is conditioned on the previous parts.
+// 5-PART WRITER — split chapter generation into 5 beats so each LLM call stays
+// well under Vercel's 60s function timeout. Each part targets roughly
+// chapterWords / 5 and is conditioned on every previous part for continuity.
 // ============================================================================
 
-export type WriterPart = 1 | 2 | 3;
+export type WriterPart = 1 | 2 | 3 | 4 | 5;
 
 export async function runWriterPart(input: {
   book: SwBook;
@@ -236,28 +236,40 @@ export async function runWriterPart(input: {
   previousParts: string;
 }): Promise<string> {
   const totalTarget = input.book.chapterWords;
-  const partTarget = Math.round(totalTarget / 3);
-  const partMin = Math.floor(partTarget * 0.85);
-  const partMax = Math.ceil(partTarget * 1.2);
+  const partTarget = Math.round(totalTarget / 5);
+  const partMin = Math.floor(partTarget * 0.8);
+  const partMax = Math.ceil(partTarget * 1.25);
 
   const partSpec: Record<WriterPart, { name: string; mission: string; ending: string }> = {
     1: {
-      name: "Phần 1 / 3 — Mở đầu & dựng cảnh",
+      name: "Phần 1 / 5 — Mở đầu",
       mission:
-        "Mở chương bằng một móc câu cụ thể (hành động, sự kiện, câu thoại có ẩn ý), giới thiệu tình huống đang diễn ra, ổn định không gian + thời gian + cảm xúc trục của nhân vật chính. Đẩy nhẹ ít nhất một hook đang mở.",
-      ending: "Kết phần 1 ở khoảnh khắc một xung đột mới chính thức xuất hiện — không giải quyết.",
+        "Mở chương bằng móc câu cụ thể (hành động, sự kiện, câu thoại có ẩn ý). Ổn định không gian, thời gian, cảm xúc trục của nhân vật chính. Giới thiệu tình huống đang diễn ra.",
+      ending: "Kết phần 1 ở khoảnh khắc một xung đột nhỏ chính thức xuất hiện — chưa phát tán.",
     },
     2: {
-      name: "Phần 2 / 3 — Phát triển & leo thang",
+      name: "Phần 2 / 5 — Dựng cảnh & leo thang sớm",
       mission:
-        "Tiếp nối thẳng từ phần 1, đẩy xung đột tăng cường: nhân vật va chạm với đối thủ, dùng / mất tài nguyên, lộ thêm thông tin, đối thoại có nội dung. Đảm bảo continuity tuyệt đối với phần 1 (vị trí, vật phẩm, ai đã biết gì).",
-      ending: "Kết phần 2 bằng twist hoặc bước ngoặt — đẩy nhân vật vào tình thế bắt buộc phải hành động lớn.",
+        "Tiếp nối thẳng phần 1. Đẩy ngữ cảnh: nhân vật phụ tham gia, đối thoại có nội dung, lộ thêm thông tin nền. Đẩy nhẹ ít nhất một hook đang mở. Đảm bảo continuity tuyệt đối.",
+      ending: "Kết phần 2 bằng tín hiệu rằng xung đột chính sắp ập đến (kẻ thù xuất hiện / quyết định lớn / phát hiện then chốt).",
     },
     3: {
-      name: "Phần 3 / 3 — Cao trào & móc câu",
+      name: "Phần 3 / 5 — Trung điểm & lật bài",
       mission:
-        "Giải quyết xung đột chính của chương theo intent. Cảnh cao trào ngắn gọn nhưng dồn dập. Sau cao trào dành 1-2 đoạn để làm rõ hậu quả + trạng thái mới của nhân vật.",
-      ending: "Kết chương bằng một hook MỚI hoặc câu hỏi mở để dụ độc giả sang chương sau. Tuyệt đối không kết theo kiểu 'tóm lại'.",
+        "Đẩy xung đột tăng cường: nhân vật va chạm trực diện với đối thủ, dùng / mất tài nguyên, lộ bí mật quan trọng. Đây là khúc giữa, quyết định màu sắc của cao trào.",
+      ending: "Kết phần 3 bằng twist hoặc bước ngoặt — đẩy nhân vật vào tình thế bắt buộc phải hành động lớn ở phần sau.",
+    },
+    4: {
+      name: "Phần 4 / 5 — Cao trào",
+      mission:
+        "Cảnh cao trào ngắn gọn nhưng dồn dập theo intent. Câu ngắn, động từ mạnh, ít suy tư. Nhân vật ra quyết định / chiêu thức / lựa chọn quyết định.",
+      ending: "Kết phần 4 ngay sau cao trào, khi kết quả vừa lộ ra (thắng/thua/bất phân) — chưa giải thích hệ quả.",
+    },
+    5: {
+      name: "Phần 5 / 5 — Hậu quả & móc câu",
+      mission:
+        "Làm rõ hậu quả + trạng thái mới của nhân vật sau cao trào. Cập nhật quan hệ / vật phẩm / cảm xúc trong narration. Cài đặt mâu thuẫn cho chương sau.",
+      ending: "Kết chương bằng một hook MỚI hoặc câu hỏi mở để dụ độc giả sang chương sau. Tuyệt đối không kết theo kiểu 'tóm lại' hay 'Hết chương'.",
     },
   };
   const spec = partSpec[input.part];
@@ -310,8 +322,8 @@ ${input.composed.selected.particleLedger.slice(0, 600) || "(trống)"}
 # Tóm tắt các chương gần nhất:
 ${input.composed.selected.recentSummaries.slice(0, 1500) || "(chưa có)"}
 
-# Yêu cầu output cho PHẦN ${input.part} / 3
-- Độ dài phần này: ${partTarget} chữ (chấp nhận ${partMin}–${partMax}). Cả chương sẽ hợp 3 phần đến ~${totalTarget} chữ.
+# Yêu cầu output cho PHẦN ${input.part} / 5
+- Độ dài phần này: ~${partTarget} chữ (chấp nhận ${partMin}–${partMax}). Cả chương sẽ hợp 5 phần đến ~${totalTarget} chữ.
 - ${titleLine}
 - Tránh các từ AI hay dùng (suy cho cùng, không thể phủ nhận, một cách khéo léo, đầy nghệ thuật, không hề ngạc nhiên, đáng kinh ngạc, đầy ấn tượng).
 - Thoại tự nhiên, có khoảng lặng.
@@ -320,15 +332,27 @@ ${input.composed.selected.recentSummaries.slice(0, 1500) || "(chưa có)"}
     },
   ];
 
-  return callLlm(messages, { temperature: 0.85, maxTokens: 4500 }, llmFor(input.book, "writer"));
+  return callLlm(messages, { temperature: 0.85, maxTokens: 3500, timeoutMs: 50_000 }, llmFor(input.book, "writer"));
 }
 
-// Merge 3 part strings into one chapter draft. Strips leading chapter title
-// from parts 2 and 3 if the model accidentally repeats it.
-export function mergeChapterParts(part1: string, part2: string, part3: string): string {
+// Merge 5 part strings into one chapter draft. Strips leading chapter title
+// from parts 2-5 if the model accidentally repeats it.
+export function mergeChapterParts(
+  part1: string,
+  part2: string,
+  part3: string,
+  part4: string,
+  part5: string,
+): string {
   const stripTitle = (s: string) =>
     s.replace(/^##\s*[Cc]hương\s*\d+\s*[:.\-][^\n]*\n+/m, "").trim();
-  const blocks = [part1.trim(), stripTitle(part2 || ""), stripTitle(part3 || "")].filter(Boolean);
+  const blocks = [
+    part1.trim(),
+    stripTitle(part2 || ""),
+    stripTitle(part3 || ""),
+    stripTitle(part4 || ""),
+    stripTitle(part5 || ""),
+  ].filter(Boolean);
   return blocks.join("\n\n");
 }
 

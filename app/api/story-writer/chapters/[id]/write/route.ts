@@ -23,9 +23,9 @@ async function _handler_POST(request: Request, ctx: Ctx) {
 
   const url = new URL(request.url);
   const partParam = (url.searchParams.get("part") || "full").toLowerCase();
-  const part = ["1", "2", "3"].includes(partParam) ? (Number(partParam) as WriterPart) : null;
+  const part = ["1", "2", "3", "4", "5"].includes(partParam) ? (Number(partParam) as WriterPart) : null;
   if (!part && partParam !== "full") {
-    return NextResponse.json({ error: "part phải là 1 | 2 | 3 | full" }, { status: 400 });
+    return NextResponse.json({ error: "part phải là 1 | 2 | 3 | 4 | 5 | full" }, { status: 400 });
   }
 
   const chapters = await chaptersCol();
@@ -50,6 +50,8 @@ async function _handler_POST(request: Request, ctx: Ctx) {
       const prev: string[] = [];
       if (part >= 2 && existing.part1) prev.push(`## (Phần 1)\n${existing.part1}`);
       if (part >= 3 && existing.part2) prev.push(`## (Phần 2)\n${existing.part2}`);
+      if (part >= 4 && existing.part3) prev.push(`## (Phần 3)\n${existing.part3}`);
+      if (part >= 5 && existing.part4) prev.push(`## (Phần 4)\n${existing.part4}`);
 
       // Validate prerequisites
       if (part === 2 && !existing.part1) {
@@ -57,6 +59,12 @@ async function _handler_POST(request: Request, ctx: Ctx) {
       }
       if (part === 3 && (!existing.part1 || !existing.part2)) {
         return NextResponse.json({ error: "Cần viết phần 1 + 2 trước phần 3" }, { status: 412 });
+      }
+      if (part === 4 && (!existing.part1 || !existing.part2 || !existing.part3)) {
+        return NextResponse.json({ error: "Cần viết phần 1-3 trước phần 4" }, { status: 412 });
+      }
+      if (part === 5 && (!existing.part1 || !existing.part2 || !existing.part3 || !existing.part4)) {
+        return NextResponse.json({ error: "Cần viết phần 1-4 trước phần 5" }, { status: 412 });
       }
 
       const segment = await runWriterPart({
@@ -71,17 +79,25 @@ async function _handler_POST(request: Request, ctx: Ctx) {
       const nextParts = { ...existing, [`part${part}`]: segment };
       let draft = ch.draft ?? "";
       let title = ch.title;
-      const allDone = Boolean(nextParts.part1 && nextParts.part2 && nextParts.part3);
+      const allDone = Boolean(
+        nextParts.part1 && nextParts.part2 && nextParts.part3 && nextParts.part4 && nextParts.part5,
+      );
 
       if (allDone) {
-        draft = mergeChapterParts(nextParts.part1!, nextParts.part2!, nextParts.part3!);
+        draft = mergeChapterParts(
+          nextParts.part1!,
+          nextParts.part2!,
+          nextParts.part3!,
+          nextParts.part4!,
+          nextParts.part5!,
+        );
         const titleMatch = draft.match(/^##\s*[Cc]hương\s*\d+\s*[:.\-]\s*(.+)$/m);
         if (titleMatch) title = titleMatch[1].trim().slice(0, 200);
       }
 
       const snapshots = ch.snapshots ?? [];
       if (allDone && draft) {
-        snapshots.unshift({ at: new Date(), text: draft, label: `writer-3part-merged` });
+        snapshots.unshift({ at: new Date(), text: draft, label: `writer-5part-merged` });
       }
 
       await chapters.updateOne(

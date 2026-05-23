@@ -167,10 +167,16 @@ export type SwChapter = {
   ruleStack?: string;
   trace?: unknown;
   draft?: string;
-  /** Sequential 3-part draft segments (intro / middle / climax). The Writer
-   * agent fills these one at a time so each LLM call stays inside the Vercel
-   * function timeout. When all 3 are present they get merged into `draft`. */
-  draftParts?: { part1?: string; part2?: string; part3?: string };
+  /** Sequential 5-part draft segments. The Writer agent fills these one at a
+   * time so each LLM call stays inside Vercel's function timeout. When all
+   * 5 are present they get merged into `draft`. */
+  draftParts?: {
+    part1?: string;
+    part2?: string;
+    part3?: string;
+    part4?: string;
+    part5?: string;
+  };
   finalText?: string;
   auditReport?: {
     overallScore: number;

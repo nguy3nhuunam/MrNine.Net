@@ -765,7 +765,7 @@ export function StoryWriterShell() {
     // Special case: write runs the 3-part flow so each LLM call fits inside
     // Vercel's 60s budget. The route returns nextPart so we keep going.
     if (action === "write") {
-      for (const part of [1, 2, 3] as const) {
+      for (const part of [1, 2, 3, 4, 5] as const) {
         const ok = await safeRun(
           `chapter-write-${part}`,
           async () => {
@@ -776,13 +776,12 @@ export function StoryWriterShell() {
             if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
             return json;
           },
-          `Bản nháp phần ${part} / 3 xong`,
+          `Bản nháp phần ${part} / 5 xong`,
         );
         if (!ok) {
-          log("warn", `Phần ${part} thất bại — bấm 'Viết bản nháp' lại để thử lại từ phần đang dang dở.`);
+          log("warn", `Phần ${part} thất bại — bấm 'Viết bản nháp' lại để thử tiếp từ phần đang dang dở.`);
           break;
         }
-        // Refresh detail between parts so user sees progress
         if (activeChapterId) {
           const reload = await fetch(`/api/story-writer/chapters/${activeChapterId}`);
           if (reload.ok) setChapterDetail(await safeParseJson(reload));
