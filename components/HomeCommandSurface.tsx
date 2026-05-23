@@ -254,11 +254,11 @@ const modules = [
     detail: "Plot · chương · nhân vật",
     summary: "Viết truyện dài có dàn ý, hệ thống nhân vật, chương và bộ nhớ dự án.",
     signal: "Narrative engine",
-    action: "Coming soon",
+    action: "Open Story Writer",
     icon: PenLine,
     accent: "red",
     shortcut: "5",
-    lastUsed: "—",
+    lastUsed: "ready",
   },
   {
     number: "06",
@@ -472,7 +472,7 @@ const moduleCopy = {
       detail: "Plot · chương · nhân vật",
       summary: "Viết truyện dài có dàn ý, hệ thống nhân vật, chương và bộ nhớ dự án.",
       signal: "Máy viết truyện",
-      action: "Sắp ra mắt",
+      action: "Mở Story Writer",
     },
     "Language Tutor": {
       title: "Language Tutor",
@@ -1439,6 +1439,7 @@ export function HomeCommandSurface() {
       "Photo Fix": "/photo-fix",
       "Smart Recap": "/smart-recap",
       "DocSense": "/docsense",
+      "Story Writer": "/story-writer",
     };
     const destination = destinations[title];
 
@@ -1807,6 +1808,7 @@ export function HomeCommandSurface() {
                           module.title !== "Photo Fix" &&
                           module.title !== "Smart Recap" &&
                           module.title !== "DocSense" &&
+                          module.title !== "Story Writer" &&
                           "cursor-default opacity-75",
                       )}
                     >
