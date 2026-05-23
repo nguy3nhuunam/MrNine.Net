@@ -13,12 +13,15 @@ import {
   ImagePlus,
   LoaderCircle,
   PlayCircle,
+  Search,
   Send,
   Sparkles,
   Sliders,
+  Trash2,
   TriangleAlert,
   Upload,
   Wand2,
+  Video,
   X,
 } from "lucide-react";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
@@ -32,6 +35,7 @@ import {
   imageToImageModels,
   textToVideoModels,
   imageToVideoModels,
+  motionControlModels,
 } from "@/lib/fal-models";
 
 type GeneratedAsset = {
@@ -97,6 +101,15 @@ const CAPABILITIES: ReadonlyArray<{
     icon: PlayCircle,
     accent: "lime",
   },
+  {
+    id: "motion-control",
+    shortLabelVi: "Motion Control",
+    shortLabelEn: "Motion",
+    longLabelVi: "Hiệu ứng & camera control",
+    longLabelEn: "Effects & camera control",
+    icon: Video,
+    accent: "amber",
+  },
 ];
 
 const ACCENT_MAP = {
@@ -138,12 +151,17 @@ const playgroundCopy = {
     queuePos: "Vị trí hàng đợi",
     gallery: "Kết quả",
     galleryEmpty: "Chưa có kết quả. Nhập mô tả và bấm tạo để bắt đầu.",
+    historyTitle: "Lịch sử",
+    historyEmpty: "Lịch sử trống. Mỗi lần tạo xong sẽ lưu tại đây.",
+    historyClear: "Xoá lịch sử",
     download: "Tải về",
     copyUrl: "Sao chép URL",
     copied: "Đã chép",
     needPrompt: "Cần nhập mô tả",
     needImage: "Model này cần ảnh đầu vào",
     selectModel: "Chọn model",
+    searchModel: "Tìm theo tên / vendor / hiệu ứng...",
+    noModelMatch: "Không tìm thấy model phù hợp",
     runShortcut: "Ctrl + Enter để chạy",
     uploaded: "Đã tải lên",
     remoteUrl: "Liên kết ngoài",
@@ -179,12 +197,17 @@ const playgroundCopy = {
     queuePos: "Queue position",
     gallery: "Output",
     galleryEmpty: "No outputs yet. Enter a prompt and run to start.",
+    historyTitle: "History",
+    historyEmpty: "History is empty. Every render is saved here.",
+    historyClear: "Clear history",
     download: "Download",
     copyUrl: "Copy URL",
     copied: "Copied",
     needPrompt: "Prompt is required",
     needImage: "This model needs a source image",
     selectModel: "Select model",
+    searchModel: "Search by name, vendor, effect...",
+    noModelMatch: "No matching model",
     runShortcut: "Press Ctrl + Enter to run",
     uploaded: "Uploaded",
     remoteUrl: "Remote URL",
@@ -339,7 +362,9 @@ function ModelDropdown({
   copy: typeof playgroundCopy.vi;
 }>) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     function handleDocClick(event: MouseEvent) {
@@ -351,6 +376,23 @@ function ModelDropdown({
     document.addEventListener("mousedown", handleDocClick);
     return () => document.removeEventListener("mousedown", handleDocClick);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const id = window.requestAnimationFrame(() => searchRef.current?.focus());
+    return () => {
+      window.cancelAnimationFrame(id);
+      setQuery("");
+    };
+  }, [open]);
+
+  const normalized = query.trim().toLowerCase();
+  const filtered = normalized
+    ? models.filter((model) => {
+        const haystack = `${model.label} ${model.vendor} ${model.tagline} ${model.badge ?? ""} ${model.id}`.toLowerCase();
+        return haystack.includes(normalized);
+      })
+    : models;
 
   return (
     <div className="relative" ref={ref}>
@@ -381,10 +423,55 @@ function ModelDropdown({
         <div
           role="listbox"
           aria-label={copy.selectModel}
-          className="playground-dropdown absolute left-0 right-0 top-[calc(100%+0.4rem)] z-30 max-h-[26rem] overflow-y-auto rounded-md border border-[#2a251f] bg-[#0b0a08]/98 p-1.5 shadow-[0_24px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+          className="playground-dropdown absolute left-0 right-0 top-[calc(100%+0.4rem)] z-30 max-h-[28rem] overflow-hidden rounded-md border border-[#2a251f] bg-[#0b0a08]/98 shadow-[0_24px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl"
         >
-          {models.map((model) => {
-            const active = model.id === selected.id;
+          <div className="sticky top-0 z-10 border-b border-white/8 bg-[#0b0a08]/96 p-2">
+            <div className="relative flex items-center">
+              <Search className="pointer-events-none absolute left-2.5 size-3.5 text-[#9a9087]" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    setOpen(false);
+                  }
+                  if (event.key === "Enter" && filtered[0]) {
+                    event.preventDefault();
+                    onSelect(filtered[0].id);
+                    setOpen(false);
+                  }
+                }}
+                placeholder={copy.searchModel}
+                className="h-9 w-full rounded-md border border-[#2a251f] bg-[#0c0a08] pl-8 pr-8 font-mono text-[0.78rem] text-[#f4eadc] outline-none focus:border-[#ef4444]/60"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  aria-label={copy.clearImage}
+                  onClick={() => {
+                    setQuery("");
+                    searchRef.current?.focus();
+                  }}
+                  className="absolute right-2 flex size-5 items-center justify-center rounded text-[#9a9087] transition hover:bg-white/[0.05] hover:text-[#f4eadc]"
+                >
+                  <X className="size-3" />
+                </button>
+              ) : null}
+            </div>
+            <div className="mt-1 px-1 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">
+              {filtered.length} / {models.length}
+            </div>
+          </div>
+          <div className="max-h-[22rem] overflow-y-auto p-1.5">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-6 text-center font-mono text-[0.66rem] uppercase tracking-[0.16em] text-[#9a9087]">
+                {copy.noModelMatch}
+              </div>
+            ) : null}
+            {filtered.map((model) => {
+              const active = model.id === selected.id;
             return (
               <button
                 key={model.id}
@@ -422,6 +509,7 @@ function ModelDropdown({
               </button>
             );
           })}
+          </div>
         </div>
       ) : null}
     </div>
@@ -437,22 +525,31 @@ export function AIPlaygroundShell() {
     "image-to-image": imageToImageModels[0].id,
     "text-to-video": textToVideoModels[0].id,
     "image-to-video": imageToVideoModels[0].id,
+    "motion-control": motionControlModels[0].id,
   });
   const [promptByCapability, setPromptByCapability] = useState<Record<FalCapability, string>>({
     "text-to-image": "",
     "image-to-image": "",
     "text-to-video": "",
     "image-to-video": "",
+    "motion-control": "",
   });
   const [imageByCapability, setImageByCapability] = useState<Record<FalCapability, string>>({
     "text-to-image": "",
     "image-to-image": "",
     "text-to-video": "",
     "image-to-video": "",
+    "motion-control": "",
   });
 
   const allModels = useMemo(
-    () => [...textToImageModels, ...imageToImageModels, ...textToVideoModels, ...imageToVideoModels],
+    () => [
+      ...textToImageModels,
+      ...imageToImageModels,
+      ...textToVideoModels,
+      ...imageToVideoModels,
+      ...motionControlModels,
+    ],
     [],
   );
 
@@ -466,8 +563,57 @@ export function AIPlaygroundShell() {
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  const [assets, setAssets] = useState<GeneratedAsset[]>([]);
-  const [activeAssetId, setActiveAssetId] = useState<string>("");
+  const [assets, setAssets] = useState<GeneratedAsset[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem("mrnine-playground-history");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as GeneratedAsset[];
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter(
+          (item) =>
+            item &&
+            typeof item === "object" &&
+            typeof item.url === "string" &&
+            typeof item.id === "string" &&
+            (item.kind === "image" || item.kind === "video"),
+        )
+        .slice(0, 80);
+    } catch {
+      return [];
+    }
+  });
+  const [activeAssetId, setActiveAssetId] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const raw = window.localStorage.getItem("mrnine-playground-history");
+      if (!raw) return "";
+      const parsed = JSON.parse(raw) as GeneratedAsset[];
+      if (!Array.isArray(parsed) || !parsed[0]) return "";
+      return typeof parsed[0].id === "string" ? parsed[0].id : "";
+    } catch {
+      return "";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("mrnine-playground-history", JSON.stringify(assets.slice(0, 80)));
+    } catch {
+      // ignore
+    }
+  }, [assets]);
+
+  function clearHistory() {
+    setAssets([]);
+    setActiveAssetId("");
+    try {
+      window.localStorage.removeItem("mrnine-playground-history");
+    } catch {
+      // ignore
+    }
+  }
   const [copiedId, setCopiedId] = useState("");
   const [uploadState, setUploadState] = useState<{ uploading: boolean; error: string }>({
     uploading: false,
@@ -585,7 +731,7 @@ export function AIPlaygroundShell() {
         prompt,
         createdAt: Date.now(),
       }));
-      setAssets((current) => [...next, ...current].slice(0, 48));
+      setAssets((current) => [...next, ...current].slice(0, 80));
       setActiveAssetId(next[0]?.id ?? "");
       setStatus({ kind: "idle" });
     } catch (error) {
@@ -693,7 +839,9 @@ export function AIPlaygroundShell() {
         ? copy.submitEdit
         : capability === "text-to-video"
           ? copy.submitVideo
-          : copy.submitAnimate;
+          : capability === "image-to-video"
+            ? copy.submitAnimate
+            : copy.submitVideo;
 
   return (
     <main className="relative flex h-screen flex-col overflow-hidden bg-[#0b0a08] text-[#e8dfd4]">
@@ -1052,7 +1200,7 @@ export function AIPlaygroundShell() {
           </div>
         </aside>
 
-        <section className="flex min-h-0 flex-col overflow-hidden">
+        <section className="grid min-h-0 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
             {activeAsset ? (
               <div className="mx-auto flex h-full max-w-5xl flex-col">
@@ -1180,6 +1328,74 @@ export function AIPlaygroundShell() {
               </div>
             )}
           </div>
+
+          <aside className="hidden min-h-0 flex-col border-l border-[#25211b] bg-[#0a0907]/72 xl:flex">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#25211b] px-4 py-3">
+              <div>
+                <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
+                  {copy.historyTitle}
+                </p>
+                <p className="mt-0.5 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">
+                  {assets.length} / 80
+                </p>
+              </div>
+              {assets.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearHistory}
+                  aria-label={copy.historyClear}
+                  className="flex h-7 items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] px-2 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087] transition hover:border-[#ef4444]/35 hover:bg-[#ef4444]/10 hover:text-[#ffb4ad]"
+                >
+                  <Trash2 className="size-3" />
+                  {copy.historyClear}
+                </button>
+              ) : null}
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {assets.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                  <div className="flex size-10 items-center justify-center rounded-md border border-[#25211b] bg-[#100d0a]/60 text-[#9a9087]">
+                    <Sparkles className="size-4" />
+                  </div>
+                  <p className="px-2 text-[0.7rem] leading-5 text-[#9a9087]">{copy.historyEmpty}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {assets.map((asset) => {
+                    const active = asset.id === (activeAsset?.id ?? "");
+                    return (
+                      <button
+                        key={asset.id}
+                        type="button"
+                        onClick={() => setActiveAssetId(asset.id)}
+                        title={asset.prompt}
+                        className={cn(
+                          "playground-thumb group relative aspect-square overflow-hidden rounded-md border bg-black text-left",
+                          active ? cn(activeAccent.border, "ring-2", activeAccent.ring) : "border-[#25211b] hover:border-white/20",
+                        )}
+                      >
+                        {asset.kind === "video" ? (
+                          <video src={asset.url} muted playsInline className="size-full object-cover" />
+                        ) : (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={asset.url} alt={asset.prompt} className="size-full object-cover" />
+                        )}
+                        <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-3 text-[0.55rem] text-[#cfc4b8]">
+                          {asset.modelLabel}
+                        </span>
+                        {asset.kind === "video" ? (
+                          <span className="absolute right-1 top-1 rounded bg-black/70 px-1 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-white/80">
+                            video
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </aside>
         </section>
       </div>
     </main>

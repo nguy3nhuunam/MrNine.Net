@@ -6,7 +6,8 @@ export type FalCapability =
   | "text-to-image"
   | "image-to-image"
   | "text-to-video"
-  | "image-to-video";
+  | "image-to-video"
+  | "motion-control";
 
 export type FalParamType =
   | "string"
@@ -3221,11 +3222,178 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
   },
 ];
 
+// ============================================================================
+// MOTION CONTROL (image + effect/template → video)
+// ============================================================================
+const KLING_EFFECT_OPTIONS: ReadonlyArray<FalParamOption> = [
+  { value: "squish", label: "Squish" },
+  { value: "expansion", label: "Expansion" },
+  { value: "crush", label: "Crush" },
+  { value: "explode", label: "Explode" },
+  { value: "melt", label: "Melt" },
+  { value: "deflate", label: "Deflate" },
+  { value: "inflate", label: "Inflate" },
+  { value: "vortex", label: "Vortex" },
+  { value: "cake-ify", label: "Cake-ify" },
+  { value: "rotate", label: "Rotate 360°" },
+  { value: "zoom-in", label: "Zoom in" },
+  { value: "zoom-out", label: "Zoom out" },
+];
+
+const PIKAFFECTS_OPTIONS: ReadonlyArray<FalParamOption> = [
+  { value: "Cake-ify", label: "Cake-ify" },
+  { value: "Crumble", label: "Crumble" },
+  { value: "Crush", label: "Crush" },
+  { value: "Decapitate", label: "Decapitate" },
+  { value: "Deflate", label: "Deflate" },
+  { value: "Dissolve", label: "Dissolve" },
+  { value: "Explode", label: "Explode" },
+  { value: "Eye-pop", label: "Eye-pop" },
+  { value: "Inflate", label: "Inflate" },
+  { value: "Levitate", label: "Levitate" },
+  { value: "Melt", label: "Melt" },
+  { value: "Peel", label: "Peel" },
+  { value: "Poke", label: "Poke" },
+  { value: "Squish", label: "Squish" },
+  { value: "Ta-da", label: "Ta-da" },
+  { value: "Tear", label: "Tear" },
+];
+
+export const motionControlModels: ReadonlyArray<FalModel> = [
+  {
+    id: "kling-effects-1-6-pro",
+    endpoint: "fal-ai/kling-video/v1.6/pro/effects",
+    label: "Kling 1.6 Pro · Effects",
+    vendor: "Kuaishou",
+    tagline: "Hiệu ứng motion preset cho ảnh đầu vào",
+    badge: "MOTION",
+    capability: "motion-control",
+    promptKey: "effect_scene",
+    promptLabel: "Hiệu ứng",
+    promptPlaceholder: "Chọn hiệu ứng từ danh sách thông số bên dưới",
+    imageKey: "input_image_urls",
+    imageLabel: "Ảnh đầu vào (URL)",
+    imageIsArray: true,
+    outputKind: "video",
+    params: [
+      { key: "effect_scene", label: "Hiệu ứng", type: "select", default: "squish", options: KLING_EFFECT_OPTIONS },
+      { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
+        { value: "5", label: "5 giây" }, { value: "10", label: "10 giây" },
+      ]},
+      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "16:9", options: [
+        { value: "16:9", label: "16:9" }, { value: "9:16", label: "9:16" }, { value: "1:1", label: "1:1" },
+      ]},
+    ],
+  },
+  {
+    id: "kling-effects-1-6-standard",
+    endpoint: "fal-ai/kling-video/v1.6/standard/effects",
+    label: "Kling 1.6 Std · Effects",
+    vendor: "Kuaishou",
+    tagline: "Effects bản standard, tốc độ ưu tiên",
+    badge: "FAST",
+    capability: "motion-control",
+    promptKey: "effect_scene",
+    promptLabel: "Hiệu ứng",
+    promptPlaceholder: "Chọn hiệu ứng từ danh sách thông số bên dưới",
+    imageKey: "input_image_urls",
+    imageLabel: "Ảnh đầu vào (URL)",
+    imageIsArray: true,
+    outputKind: "video",
+    params: [
+      { key: "effect_scene", label: "Hiệu ứng", type: "select", default: "squish", options: KLING_EFFECT_OPTIONS },
+      { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
+        { value: "5", label: "5 giây" }, { value: "10", label: "10 giây" },
+      ]},
+    ],
+  },
+  {
+    id: "pikaffects",
+    endpoint: "fal-ai/pikaffects",
+    label: "Pikaffects",
+    vendor: "Pika Labs",
+    tagline: "16 hiệu ứng motion siêu vui (squish, melt, explode...)",
+    badge: "FX",
+    capability: "motion-control",
+    promptKey: "pikaffect",
+    promptLabel: "Hiệu ứng",
+    promptPlaceholder: "Chọn hiệu ứng",
+    imageKey: "image_url",
+    imageLabel: "Ảnh đầu vào (URL)",
+    outputKind: "video",
+    params: [
+      { key: "pikaffect", label: "Hiệu ứng", type: "select", default: "Cake-ify", options: PIKAFFECTS_OPTIONS },
+      { key: "negative_prompt", label: "Negative prompt", type: "textarea", default: "", group: "advanced" },
+    ],
+  },
+  {
+    id: "kling-camera-control-pro",
+    endpoint: "fal-ai/kling-video/v1.6/pro/image-to-video/camera-control",
+    label: "Kling 1.6 Pro · Camera Control",
+    vendor: "Kuaishou",
+    tagline: "Điều khiển máy quay (zoom, pan, tilt, rotate)",
+    badge: "CAM",
+    capability: "motion-control",
+    promptKey: "prompt",
+    promptLabel: "Prompt mô tả cảnh",
+    promptPlaceholder: "Mô tả thêm về chủ thể và không khí cảnh",
+    imageKey: "image_url",
+    imageLabel: "Ảnh đầu vào (URL)",
+    outputKind: "video",
+    params: [
+      { key: "movement_type", label: "Hướng máy quay", type: "select", default: "zoom_in", options: [
+        { value: "zoom_in", label: "Zoom in" },
+        { value: "zoom_out", label: "Zoom out" },
+        { value: "pan_left", label: "Pan trái" },
+        { value: "pan_right", label: "Pan phải" },
+        { value: "tilt_up", label: "Tilt lên" },
+        { value: "tilt_down", label: "Tilt xuống" },
+        { value: "rotate_clockwise", label: "Xoay phải" },
+        { value: "rotate_counterclockwise", label: "Xoay trái" },
+      ]},
+      { key: "movement_value", label: "Cường độ", type: "number", default: 5, min: 0, max: 10, step: 1 },
+      { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
+        { value: "5", label: "5 giây" }, { value: "10", label: "10 giây" },
+      ]},
+      { key: "negative_prompt", label: "Negative prompt", type: "textarea", default: "blur, distort, low quality", group: "advanced" },
+    ],
+  },
+  {
+    id: "luma-ray-2-camera",
+    endpoint: "fal-ai/luma-dream-machine/ray-2/image-to-video",
+    label: "Luma Ray 2 · Camera Motion",
+    vendor: "Luma Labs",
+    tagline: "Ray 2 với camera motion preset",
+    badge: "CAM",
+    capability: "motion-control",
+    promptKey: "prompt",
+    promptLabel: "Prompt mô tả cảnh",
+    promptPlaceholder: "Ví dụ: nhân vật bước về phía camera khi sương mù bao phủ...",
+    imageKey: "image_url",
+    imageLabel: "Ảnh đầu vào (URL)",
+    outputKind: "video",
+    params: [
+      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "16:9", options: [
+        { value: "16:9", label: "16:9" }, { value: "9:16", label: "9:16" }, { value: "1:1", label: "1:1" },
+        { value: "4:3", label: "4:3" }, { value: "3:4", label: "3:4" },
+      ]},
+      { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
+        { value: "540p", label: "540p" }, { value: "720p", label: "720p" }, { value: "1080p", label: "1080p" },
+      ]},
+      { key: "duration", label: "Độ dài", type: "select", default: "5s", options: [
+        { value: "5s", label: "5 giây" }, { value: "9s", label: "9 giây" },
+      ]},
+      { key: "loop", label: "Loop video", type: "boolean", default: false, group: "advanced" },
+    ],
+  },
+];
+
 export const allModels: ReadonlyArray<FalModel> = [
   ...textToImageModels,
   ...imageToImageModels,
   ...textToVideoModels,
   ...imageToVideoModels,
+  ...motionControlModels,
 ];
 
 export function getModelById(id: string): FalModel | undefined {
@@ -3242,5 +3410,7 @@ export function getModelsByCapability(capability: FalCapability): ReadonlyArray<
       return textToVideoModels;
     case "image-to-video":
       return imageToVideoModels;
+    case "motion-control":
+      return motionControlModels;
   }
 }
