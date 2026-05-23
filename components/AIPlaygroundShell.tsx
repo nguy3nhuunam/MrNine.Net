@@ -17,7 +17,9 @@ import {
   Sparkles,
   Sliders,
   TriangleAlert,
+  Upload,
   Wand2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
@@ -118,7 +120,12 @@ const playgroundCopy = {
     advancedHide: "Ẩn",
     promptHint: "Mô tả càng cụ thể, kết quả càng đẹp",
     sourceImage: "Ảnh đầu vào",
-    sourceImageHint: "Dán URL ảnh công khai (jpg/png/webp)",
+    sourceImageHint: "Dán URL hoặc tải ảnh từ máy (jpg/png/webp, tối đa 32MB)",
+    pasteUrl: "Dán URL ảnh",
+    uploadFromDevice: "Tải từ máy",
+    uploading: "Đang tải lên...",
+    uploadFailed: "Tải file lên thất bại",
+    clearImage: "Bỏ ảnh đã chọn",
     submitImage: "Tạo ảnh",
     submitVideo: "Render video",
     submitEdit: "Chạy chỉnh sửa",
@@ -152,7 +159,12 @@ const playgroundCopy = {
     advancedHide: "Hide",
     promptHint: "The more specific your prompt, the better the result",
     sourceImage: "Source image",
-    sourceImageHint: "Paste a public image URL (jpg/png/webp)",
+    sourceImageHint: "Paste a URL or upload from your device (jpg/png/webp, up to 32MB)",
+    pasteUrl: "Paste image URL",
+    uploadFromDevice: "Upload from device",
+    uploading: "Uploading...",
+    uploadFailed: "Upload failed",
+    clearImage: "Remove image",
     submitImage: "Generate image",
     submitVideo: "Render video",
     submitEdit: "Run edit",
@@ -348,7 +360,12 @@ export function AIPlaygroundShell() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [assets, setAssets] = useState<GeneratedAsset[]>([]);
   const [copiedId, setCopiedId] = useState("");
+  const [uploadState, setUploadState] = useState<{ uploading: boolean; error: string }>({
+    uploading: false,
+    error: "",
+  });
   const pollRef = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const capabilityModels = getModelsByCapability(capability);
   const activeModelId = modelByCapability[capability];
@@ -507,6 +524,37 @@ export function AIPlaygroundShell() {
     void navigator.clipboard.writeText(asset.url);
     setCopiedId(asset.id);
     window.setTimeout(() => setCopiedId(""), 1500);
+  }
+
+  async function handleUploadFile(file: File) {
+    setUploadState({ uploading: true, error: "" });
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/ai-playground/upload", {
+        method: "POST",
+        body: form,
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.url) {
+        throw new Error(json?.error || `${copy.uploadFailed} (HTTP ${res.status})`);
+      }
+      setImageByCapability((current) => ({ ...current, [capability]: json.url as string }));
+      setUploadState({ uploading: false, error: "" });
+    } catch (error) {
+      setUploadState({
+        uploading: false,
+        error: error instanceof Error ? error.message : copy.uploadFailed,
+      });
+    }
+  }
+
+  function clearSourceImage() {
+    setImageByCapability((current) => ({ ...current, [capability]: "" }));
+    setUploadState({ uploading: false, error: "" });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
   const isWorking = status.kind === "submitting" || status.kind === "queued" || status.kind === "running";
@@ -784,18 +832,90 @@ export function AIPlaygroundShell() {
 
               {activeModel.imageKey ? (
                 <div className="mt-3">
-                  <label className="mb-1 block font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-                    {activeModel.imageLabel ?? copy.sourceImage}
-                  </label>
-                  <input
-                    type="url"
-                    value={sourceImage}
-                    onChange={(event) =>
-                      setImageByCapability((current) => ({ ...current, [capability]: event.target.value }))
-                    }
-                    placeholder="https://..."
-                    className="w-full rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 font-mono text-[0.78rem] text-[#f4eadc] outline-none transition focus:border-[#ef4444]/60"
-                  />
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="block font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
+                      {activeModel.imageLabel ?? copy.sourceImage}
+                    </label>
+                    {sourceImage ? (
+                      <button
+                        type="button"
+                        onClick={clearSourceImage}
+                        className="flex items-center gap-1 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087] transition hover:text-[#ffb4ad]"
+                      >
+                        <X className="size-3" />
+                        {copy.clearImage}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                    <input
+                      type="url"
+                      value={sourceImage}
+                      onChange={(event) =>
+                        setImageByCapability((current) => ({ ...current, [capability]: event.target.value }))
+                      }
+                      placeholder={copy.pasteUrl}
+                      className="min-w-0 flex-1 rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 font-mono text-[0.78rem] text-[#f4eadc] outline-none transition focus:border-[#ef4444]/60"
+                    />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          void handleUploadFile(file);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadState.uploading}
+                      className={cn(
+                        "flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border px-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition",
+                        uploadState.uploading
+                          ? "border-[#d6a548]/45 bg-[#d6a548]/10 text-[#f0c86d]"
+                          : "border-[#45a85d]/35 bg-[#45a85d]/10 text-[#dff8e4] hover:border-[#45a85d]/60 hover:bg-[#45a85d]/16",
+                      )}
+                    >
+                      {uploadState.uploading ? (
+                        <LoaderCircle className="size-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="size-3.5" />
+                      )}
+                      {uploadState.uploading ? copy.uploading : copy.uploadFromDevice}
+                    </button>
+                  </div>
+
+                  {uploadState.error ? (
+                    <div className="mt-2 flex items-start gap-2 rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-2 py-2 text-[0.7rem] leading-5 text-[#ffb4ad]">
+                      <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+                      <span>{uploadState.error}</span>
+                    </div>
+                  ) : null}
+
+                  {sourceImage ? (
+                    <div className="mt-2 flex items-center gap-3 rounded-md border border-[#25211b] bg-[#0c0a08] p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={sourceImage}
+                        alt="source preview"
+                        className="size-16 shrink-0 rounded border border-white/8 bg-black object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-mono text-[0.6rem] text-[#cfc4b8]">{sourceImage}</div>
+                        <div className="mt-1 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">
+                          {sourceImage.startsWith("https://v3.fal.media")
+                            ? "uploaded · fal storage"
+                            : "remote url"}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
                   <p className="mt-1 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
                     {copy.sourceImageHint}
                   </p>
