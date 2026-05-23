@@ -10,8 +10,9 @@ const DEFAULT_BASE_URL = "https://yunwu.ai/v1";
 const DEFAULT_MODEL = "gpt-5.5";
 // A faster fallback for short structured-JSON tasks where gpt-5.5's high
 // latency causes Vercel function timeouts. Architect / Suggest / short tools
-// pass `model: "fast"` to opt into this.
-const FAST_MODEL = "gpt-4o-mini";
+// pass `tier: "fast"` to opt into this. Probed with curl on 2026-05-23:
+// gpt-3.5-turbo ≈ 6s for 200-token output, gpt-4o-mini ≈ 13s, gpt-5.5 ≈ 40s.
+const FAST_MODEL = "gpt-3.5-turbo";
 
 type ChatMessage = {
   role: "system" | "user" | "assistant";
