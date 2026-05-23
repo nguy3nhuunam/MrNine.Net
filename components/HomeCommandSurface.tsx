@@ -218,11 +218,11 @@ const modules = [
     detail: "Tách nền · làm nét · đổi nền",
     summary: "Tách nền, làm nét ảnh, restore ảnh cũ, đổi backdrop và sửa khuôn mặt cho ảnh có sẵn.",
     signal: "Photo desk",
-    action: "Coming soon",
+    action: "Open photo fix",
     icon: ImageDown,
     accent: "amber",
     shortcut: "2",
-    lastUsed: "—",
+    lastUsed: "ready",
   },
   {
     number: "03",
@@ -230,11 +230,11 @@ const modules = [
     detail: "YouTube · video · PDF · web",
     summary: "Paste link YouTube, upload video, PDF dài hay URL bài web — nhận tóm tắt 1 phút.",
     signal: "Recap engine",
-    action: "Coming soon",
+    action: "Open recap",
     icon: FileSearch,
     accent: "lime",
     shortcut: "3",
-    lastUsed: "—",
+    lastUsed: "ready",
   },
   {
     number: "04",
@@ -242,11 +242,11 @@ const modules = [
     detail: "OCR · dịch giữ định dạng",
     summary: "OCR ảnh / PDF rồi dịch chuyên nghiệp, giữ nguyên bố cục, bảng và hình ảnh.",
     signal: "Doc pipe",
-    action: "Coming soon",
+    action: "Open docsense",
     icon: Languages,
     accent: "cyan",
     shortcut: "4",
-    lastUsed: "—",
+    lastUsed: "ready",
   },
   {
     number: "05",
@@ -451,21 +451,21 @@ const moduleCopy = {
       detail: "Tách nền · làm nét · đổi nền",
       summary: "Tách nền, làm nét ảnh, restore ảnh cũ, đổi backdrop và sửa khuôn mặt cho ảnh có sẵn.",
       signal: "Bàn ảnh",
-      action: "Sắp ra mắt",
+      action: "Mở Photo Fix",
     },
     "Smart Recap": {
       title: "Smart Recap",
       detail: "YouTube · video · PDF · web",
       summary: "Paste link YouTube, upload video, PDF dài hay URL bài web — nhận tóm tắt 1 phút.",
       signal: "Bộ tóm tắt",
-      action: "Sắp ra mắt",
+      action: "Mở Smart Recap",
     },
     "DocSense": {
       title: "DocSense",
       detail: "OCR · dịch giữ định dạng",
       summary: "OCR ảnh / PDF rồi dịch chuyên nghiệp, giữ nguyên bố cục, bảng và hình ảnh.",
       signal: "Tài liệu",
-      action: "Sắp ra mắt",
+      action: "Mở DocSense",
     },
     "Story Writer": {
       title: "Story Writer",
@@ -1436,6 +1436,9 @@ export function HomeCommandSurface() {
   function openModule(title: string) {
     const destinations: Record<string, string> = {
       "AI Playground": "/ai-playground",
+      "Photo Fix": "/photo-fix",
+      "Smart Recap": "/smart-recap",
+      "DocSense": "/docsense",
     };
     const destination = destinations[title];
 
@@ -1801,6 +1804,9 @@ export function HomeCommandSurface() {
                         moduleIsArming && "module-route-arming",
                         moduleIsDimmed && "pointer-events-none blur-[0.4px]",
                         module.title !== "AI Playground" &&
+                          module.title !== "Photo Fix" &&
+                          module.title !== "Smart Recap" &&
+                          module.title !== "DocSense" &&
                           "cursor-default opacity-75",
                       )}
                     >
