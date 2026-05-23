@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,7 +25,7 @@ function isAllowedUrl(raw: string): boolean {
   }
 }
 
-export async function GET(request: Request) {
+async function _handler_GET(request: Request) {
   const blocked = await requireAuth();
   if (blocked) return blocked;
 
@@ -72,3 +73,5 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ mode, data: parsed });
 }
+
+export const GET = safeJsonRoute(_handler_GET);

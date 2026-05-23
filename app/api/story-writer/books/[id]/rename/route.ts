@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { booksCol, chaptersCol, toId, truthCol, TRUTH_KINDS } from "@/lib/story-writer/store";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,7 +12,7 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export async function POST(request: Request, ctx: Ctx) {
+async function _handler_POST(request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
@@ -104,3 +105,5 @@ export async function POST(request: Request, ctx: Ctx) {
     chaptersScanned: allChapters.length,
   });
 }
+
+export const POST = safeJsonRoute(_handler_POST);

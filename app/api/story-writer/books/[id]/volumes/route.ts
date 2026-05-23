@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { booksCol, toId, type SwVolume } from "@/lib/story-writer/store";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,7 +15,7 @@ function nextId(existing: ReadonlyArray<{ id: string; number: number }>): { id: 
   return { id: `v${number}`, number };
 }
 
-export async function GET(_request: Request, ctx: Ctx) {
+async function _handler_GET(_request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
@@ -23,7 +24,7 @@ export async function GET(_request: Request, ctx: Ctx) {
   return NextResponse.json({ volumes: book.volumes ?? [] });
 }
 
-export async function POST(request: Request, ctx: Ctx) {
+async function _handler_POST(request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
@@ -88,3 +89,7 @@ export async function POST(request: Request, ctx: Ctx) {
   );
   return NextResponse.json({ volumes });
 }
+
+export const GET = safeJsonRoute(_handler_GET);
+
+export const POST = safeJsonRoute(_handler_POST);

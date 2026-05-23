@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
+import { safeParseJson } from "@/lib/fetch-json";
 
 type Op = "remove-bg" | "sharpen" | "replace-bg" | "face-fix";
 
@@ -263,7 +264,7 @@ export function PhotoFixShell() {
       const form = new FormData();
       form.append("file", file);
       const res = await fetch("/api/ai-playground/upload", { method: "POST", body: form });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok || !json?.url) throw new Error(json?.error || copy.uploadFailed);
       setSourceImage(json.url as string);
       setStatus({ kind: "idle" });
@@ -277,7 +278,7 @@ export function PhotoFixShell() {
     pollRef.current = window.setInterval(async () => {
       try {
         const res = await fetch(`/api/ai-playground/status?url=${encodeURIComponent(statusUrl)}&mode=status`, { cache: "no-store" });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         const queueStatus = String(json.data?.status ?? "").toUpperCase();
         if (queueStatus === "COMPLETED") {
@@ -306,7 +307,7 @@ export function PhotoFixShell() {
   async function loadResult(responseUrl: string) {
     try {
       const res = await fetch(`/api/ai-playground/status?url=${encodeURIComponent(responseUrl)}&mode=result`, { cache: "no-store" });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       const found = extractAssets(json.data);
       if (!found.length) {
@@ -364,7 +365,7 @@ export function PhotoFixShell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ modelId: activeOp.modelId, payload }),
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       const statusUrl = json.statusUrl as string | undefined;
       const responseUrl = json.responseUrl as string | undefined;

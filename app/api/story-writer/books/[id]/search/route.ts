@@ -8,13 +8,14 @@ import {
   truthCol,
   type TruthKind,
 } from "@/lib/story-writer/store";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(request: Request, ctx: Ctx) {
+async function _handler_GET(request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
@@ -94,3 +95,5 @@ export async function GET(request: Request, ctx: Ctx) {
     totalChapters: chapters.length,
   });
 }
+
+export const GET = safeJsonRoute(_handler_GET);

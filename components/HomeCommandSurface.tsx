@@ -28,6 +28,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { languageOptions as appLanguageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
+import { safeParseJson } from "@/lib/fetch-json";
 
 type InterfaceTheme = "auto" | "crimson" | "signal" | "gold" | "frost";
 type AskMessage = {
@@ -1217,7 +1218,7 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: nextMessages }),
       });
-      const data = await response.json();
+      const data = await safeParseJson(response);
 
       if (!response.ok) {
         throw new Error(data?.error || copy.failed);

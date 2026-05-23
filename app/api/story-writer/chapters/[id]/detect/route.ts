@@ -4,6 +4,7 @@ import { detectAiTellHeuristic } from "@/lib/story-writer/agents";
 import { callLlmJson, type ChatMessage } from "@/lib/story-writer/llm";
 import { loadBookForUser } from "@/lib/story-writer/pipeline";
 import { chaptersCol, toId } from "@/lib/story-writer/store";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,7 +22,7 @@ type DetectReport = {
   recommendation: string;
 };
 
-export async function POST(_request: Request, ctx: Ctx) {
+async function _handler_POST(_request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
@@ -73,3 +74,5 @@ Tập trung vào: từ AI hay dùng (suy cho cùng, không thể phủ nhận, m
     );
   }
 }
+
+export const POST = safeJsonRoute(_handler_POST);

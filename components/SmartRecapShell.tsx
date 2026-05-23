@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
+import { safeParseJson } from "@/lib/fetch-json";
 
 type SourceMode = "auto" | "youtube" | "url" | "pdf" | "text";
 
@@ -290,7 +291,7 @@ export function SmartRecapShell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input: trimmed, language }),
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
 
       const entry: RecapEntry = {

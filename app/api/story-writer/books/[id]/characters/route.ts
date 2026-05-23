@@ -6,6 +6,7 @@ import {
   type SwCharacter,
   type SwRelationship,
 } from "@/lib/story-writer/store";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,7 +24,7 @@ function nextId(prefix: string, existing: ReadonlyArray<{ id: string }>): string
   return `${prefix}${max + 1}`;
 }
 
-export async function GET(_request: Request, ctx: Ctx) {
+async function _handler_GET(_request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
@@ -35,7 +36,7 @@ export async function GET(_request: Request, ctx: Ctx) {
   });
 }
 
-export async function POST(request: Request, ctx: Ctx) {
+async function _handler_POST(request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
@@ -133,3 +134,7 @@ export async function POST(request: Request, ctx: Ctx) {
 
   return NextResponse.json({ characters, relationships });
 }
+
+export const GET = safeJsonRoute(_handler_GET);
+
+export const POST = safeJsonRoute(_handler_POST);

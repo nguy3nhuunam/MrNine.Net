@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -72,7 +73,7 @@ async function callChat(apiKey: string, messages: unknown[], temperature = 0.2, 
   return data.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
-export async function POST(request: Request) {
+async function _handler_POST(request: Request) {
   const blocked = await requireAuth();
   if (blocked) return blocked;
 
@@ -175,3 +176,5 @@ export async function POST(request: Request) {
     truncated: extractedText.length > MAX_INPUT_CHARS,
   });
 }
+
+export const POST = safeJsonRoute(_handler_POST);

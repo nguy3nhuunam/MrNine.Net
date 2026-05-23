@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
+import { safeParseJson } from "@/lib/fetch-json";
 import {
   getModelsByCapability,
   type FalCapability,
@@ -663,7 +664,7 @@ export function AIPlaygroundShell() {
           `/api/ai-playground/status?url=${encodeURIComponent(statusUrl)}&mode=status`,
           { cache: "no-store" },
         );
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
 
         const data = json.data ?? {};
@@ -712,7 +713,7 @@ export function AIPlaygroundShell() {
         `/api/ai-playground/status?url=${encodeURIComponent(responseUrl)}&mode=result`,
         { cache: "no-store" },
       );
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
 
       const found = extractAssets(json.data);
@@ -770,7 +771,7 @@ export function AIPlaygroundShell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ modelId: activeModel.id, payload }),
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       const requestId = json.requestId as string;
       const statusUrl = json.statusUrl as string | undefined;
@@ -800,7 +801,7 @@ export function AIPlaygroundShell() {
         method: "POST",
         body: form,
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok || !json?.url) {
         throw new Error(json?.error || `${copy.uploadFailed} (HTTP ${res.status})`);
       }

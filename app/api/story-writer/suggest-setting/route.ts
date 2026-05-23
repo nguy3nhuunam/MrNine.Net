@@ -3,12 +3,13 @@ import { auth } from "@/auth";
 import { suggestBookSetting } from "@/lib/story-writer/architect";
 import { getGenre } from "@/lib/story-writer/genres";
 import type { LlmConfig } from "@/lib/story-writer/store";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function POST(request: Request) {
+async function _handler_POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
 
@@ -31,3 +32,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST = safeJsonRoute(_handler_POST);

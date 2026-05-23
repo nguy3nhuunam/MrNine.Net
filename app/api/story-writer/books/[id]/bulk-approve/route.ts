@@ -15,6 +15,7 @@ import {
   loadRecentSummaries,
   loadTruthMap,
 } from "@/lib/story-writer/pipeline";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,7 +23,7 @@ export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function POST(_request: Request, ctx: Ctx) {
+async function _handler_POST(_request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
@@ -85,3 +86,5 @@ export async function POST(_request: Request, ctx: Ctx) {
   void runReviser;
   void detectAiTellHeuristic;
 }
+
+export const POST = safeJsonRoute(_handler_POST);

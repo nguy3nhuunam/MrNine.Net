@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
+import { safeParseJson } from "@/lib/fetch-json";
 
 type Mode = "image" | "text";
 
@@ -196,7 +197,7 @@ export function DocSenseShell() {
       const form = new FormData();
       form.append("file", file);
       const res = await fetch("/api/ai-playground/upload", { method: "POST", body: form });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok || !json?.url) throw new Error(json?.error || copy.uploadFailed);
       setImageUrl(json.url as string);
       setStatus({ kind: "idle" });
@@ -226,7 +227,7 @@ export function DocSenseShell() {
           ui: language,
         }),
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
 
       const extracted = String(json.extracted ?? "");

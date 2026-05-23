@@ -12,12 +12,13 @@ import {
   type TruthKind,
   TRUTH_KINDS,
 } from "@/lib/story-writer/store";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function GET(request: Request) {
+async function _handler_GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const url = new URL(request.url);
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
   });
 }
 
-export async function POST(request: Request) {
+async function _handler_POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const userId = session.user.id;
@@ -231,3 +232,7 @@ export async function POST(request: Request) {
     characters: architectResult.characters,
   });
 }
+
+export const GET = safeJsonRoute(_handler_GET);
+
+export const POST = safeJsonRoute(_handler_POST);

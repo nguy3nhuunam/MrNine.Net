@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getModelById } from "@/lib/fal-models";
 import { requireAuth } from "@/lib/require-auth";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,7 +26,7 @@ function coerceNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-export async function POST(request: Request) {
+async function _handler_POST(request: Request) {
   const blocked = await requireAuth();
   if (blocked) return blocked;
 
@@ -145,3 +146,5 @@ export async function POST(request: Request) {
     cancelUrl: data.cancel_url,
   });
 }
+
+export const POST = safeJsonRoute(_handler_POST);

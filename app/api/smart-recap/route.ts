@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -128,7 +129,7 @@ function clip(text: string): string {
   return `${text.slice(0, MAX_INPUT_CHARS)}\n\n[truncated]`;
 }
 
-export async function POST(request: Request) {
+async function _handler_POST(request: Request) {
   const blocked = await requireAuth();
   if (blocked) return blocked;
 
@@ -240,3 +241,5 @@ ${clip(sourceText)}
     truncated: sourceText.length > MAX_INPUT_CHARS,
   });
 }
+
+export const POST = safeJsonRoute(_handler_POST);

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
+import { safeParseJson } from "@/lib/fetch-json";
 
 type Tab = "books" | "write" | "cast" | "truth" | "stats" | "search" | "tools";
 
@@ -425,8 +426,8 @@ export function StoryWriterShell() {
           fetch("/api/story-writer/genres"),
           fetch("/api/story-writer/projects"),
         ]);
-        const gJson = await gRes.json();
-        const pJson = await pRes.json();
+        const gJson = await safeParseJson(gRes);
+        const pJson = await safeParseJson(pRes);
         if (gRes.ok) setGenres(gJson.genres ?? []);
         if (pRes.ok) {
           const list = (pJson.projects ?? []) as ProjectSummary[];
@@ -449,7 +450,7 @@ export function StoryWriterShell() {
     void (async () => {
       try {
         const res = await fetch(`/api/story-writer/books?projectId=${activeProjectId}`);
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         setBooks(json.books ?? []);
         if ((json.books ?? []).length && !activeBookId) {
@@ -485,7 +486,7 @@ export function StoryWriterShell() {
     void (async () => {
       try {
         const res = await fetch(`/api/story-writer/chapters/${activeChapterId}`);
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         setChapterDetail(json);
       } catch (err) {
@@ -501,9 +502,9 @@ export function StoryWriterShell() {
         fetch(`/api/story-writer/books/${id}/truth`),
         fetch(`/api/story-writer/chapters?bookId=${id}`),
       ]);
-      const bJson = await bRes.json();
-      const tJson = await tRes.json();
-      const cJson = await cRes.json();
+      const bJson = await safeParseJson(bRes);
+      const tJson = await safeParseJson(tRes);
+      const cJson = await safeParseJson(cRes);
       if (!bRes.ok) throw new Error(bJson?.error || `HTTP ${bRes.status}`);
       setBookDetail(bJson);
       setTruth(tJson.truth ?? null);
@@ -541,7 +542,7 @@ export function StoryWriterShell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newProjectName.trim() }),
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return json as ProjectSummary;
     }, `Tạo dự án "${newProjectName.trim()}"`);
@@ -564,7 +565,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json as { id: string; title: string };
       },
@@ -597,7 +598,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ bookId: activeBookId, contextBrief: newChapter.contextBrief.trim() }),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json as { id: string; number: number; title: string; status: ChapterSummary["status"] };
       },
@@ -640,7 +641,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: action === "full" ? JSON.stringify({ autoApprove: false, reviseRetries: 1 }) : "{}",
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json;
       },
@@ -651,10 +652,10 @@ export function StoryWriterShell() {
     }
     if (r && activeChapterId) {
       const reload = await fetch(`/api/story-writer/chapters/${activeChapterId}`);
-      if (reload.ok) setChapterDetail(await reload.json());
+      if (reload.ok) setChapterDetail(await safeParseJson(reload));
       // refresh chapter list status
       const list = await fetch(`/api/story-writer/chapters?bookId=${activeBookId}`);
-      if (list.ok) setChapters((await list.json()).chapters ?? []);
+      if (list.ok) setChapters((await safeParseJson(list)).chapters ?? []);
       // refresh truth in case of approve / full+autoApprove
       if (action === "approve" || action === "full") {
         const t = await fetch(`/api/story-writer/books/${activeBookId}/truth`);
@@ -672,7 +673,7 @@ export function StoryWriterShell() {
           `/api/story-writer/chapters/${activeChapterId}/snapshots/${index}/restore`,
           { method: "POST" },
         );
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json;
       },
@@ -680,7 +681,7 @@ export function StoryWriterShell() {
     );
     if (r && activeChapterId) {
       const reload = await fetch(`/api/story-writer/chapters/${activeChapterId}`);
-      if (reload.ok) setChapterDetail(await reload.json());
+      if (reload.ok) setChapterDetail(await safeParseJson(reload));
     }
   }
 
@@ -689,7 +690,7 @@ export function StoryWriterShell() {
     if (!window.confirm("Xoá chương này? Không thể khôi phục.")) return;
     const r = await safeRun("delete-chapter", async () => {
       const res = await fetch(`/api/story-writer/chapters/${id}`, { method: "DELETE" });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return json;
     }, "Đã xoá chương");
@@ -707,7 +708,7 @@ export function StoryWriterShell() {
     if (!window.confirm("Xoá toàn bộ sách (chương, truth, snapshot) — không thể khôi phục?")) return;
     const r = await safeRun("delete-book", async () => {
       const res = await fetch(`/api/story-writer/books/${id}`, { method: "DELETE" });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return json;
     }, "Đã xoá sách");
@@ -722,7 +723,7 @@ export function StoryWriterShell() {
     if (!window.confirm("Xoá toàn bộ dự án (mọi sách bên trong)?")) return;
     const r = await safeRun("delete-project", async () => {
       const res = await fetch(`/api/story-writer/projects/${id}`, { method: "DELETE" });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return json;
     }, "Đã xoá dự án");
@@ -736,7 +737,7 @@ export function StoryWriterShell() {
     if (!activeBookId) return;
     try {
       const res = await fetch(`/api/story-writer/books/${activeBookId}/stats`);
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (res.ok) setStats(json as StatsData);
     } catch (err) {
       log("err", err instanceof Error ? err.message : "Tải stats thất bại");
@@ -747,7 +748,7 @@ export function StoryWriterShell() {
     if (!activeBookId || !searchQ.trim()) return;
     const r = await safeRun("search", async () => {
       const res = await fetch(`/api/story-writer/books/${activeBookId}/search?q=${encodeURIComponent(searchQ.trim())}`);
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return json as SearchHit;
     });
@@ -765,7 +766,7 @@ export function StoryWriterShell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return json;
     }, successMessage);
@@ -809,13 +810,13 @@ export function StoryWriterShell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "anti-detect" }),
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return json;
     }, "Anti-detect rewrite xong");
     if (activeChapterId) {
       const reload = await fetch(`/api/story-writer/chapters/${activeChapterId}`);
-      if (reload.ok) setChapterDetail(await reload.json());
+      if (reload.ok) setChapterDetail(await safeParseJson(reload));
     }
   }
 
@@ -827,7 +828,7 @@ export function StoryWriterShell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: coverPrompt.trim(), aspectRatio: "3:4" }),
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return json as { url: string };
     }, "Cover đã render");
@@ -867,7 +868,7 @@ export function StoryWriterShell() {
     )) as { id?: string } | null;
     if (r?.id) {
       const list = await fetch(`/api/story-writer/books?projectId=${activeProjectId}`);
-      if (list.ok) setBooks((await list.json()).books ?? []);
+      if (list.ok) setBooks((await safeParseJson(list)).books ?? []);
       setActiveBookId(r.id);
     }
   }
@@ -880,7 +881,7 @@ export function StoryWriterShell() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes }),
       });
-      const json = await res.json();
+      const json = await safeParseJson(res);
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       return json;
     }, "Đã lưu ghi chú");
@@ -904,7 +905,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ topic, genre }),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json as { title: string; authorIntent: string; currentFocus: string; briefDraft: string };
       },
@@ -942,7 +943,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ llm: config }),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json;
       },
@@ -966,7 +967,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ kind: activeTruthKind, content: current.content }),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json;
       },
@@ -992,7 +993,7 @@ export function StoryWriterShell() {
             volumeOutline: bookDetail.volumeOutline,
           }),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json;
       },
@@ -1010,7 +1011,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sample: styleSample.trim(), saveAsBookStyle: true }),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json;
       },
@@ -1028,7 +1029,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: importText.trim(), reflect: true }),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json as { inserted: Array<{ id: string }>; skipped: number };
       },
@@ -1037,7 +1038,7 @@ export function StoryWriterShell() {
       log("ok", `Import ${r.inserted.length} chương (skipped ${r.skipped})`);
       setImportText("");
       const list = await fetch(`/api/story-writer/chapters?bookId=${activeBookId}`);
-      if (list.ok) setChapters((await list.json()).chapters ?? []);
+      if (list.ok) setChapters((await safeParseJson(list)).chapters ?? []);
     }
   }
 
@@ -1051,7 +1052,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ from: renameFrom.trim(), to: renameTo.trim() }),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json as { bookHits: number; truthHits: number; chapterHits: number };
       },
@@ -1077,7 +1078,7 @@ export function StoryWriterShell() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(shortInput),
         });
-        const json = await res.json();
+        const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         return json as typeof shortResult;
       },

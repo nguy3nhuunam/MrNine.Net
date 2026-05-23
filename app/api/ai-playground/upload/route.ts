@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,7 +13,7 @@ function getKey() {
   return process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
 }
 
-export async function POST(request: Request) {
+async function _handler_POST(request: Request) {
   const blocked = await requireAuth();
   if (blocked) return blocked;
 
@@ -91,3 +92,5 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ url: data.file_url, contentType, size: file.size });
 }
+
+export const POST = safeJsonRoute(_handler_POST);

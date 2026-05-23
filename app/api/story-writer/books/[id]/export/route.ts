@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { booksCol, chaptersCol, toId } from "@/lib/story-writer/store";
 import { buildEpub, type EpubChapter } from "@/lib/story-writer/epub";
+import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,7 +21,7 @@ function safeFileName(name: string): string {
   );
 }
 
-export async function GET(request: Request, ctx: Ctx) {
+async function _handler_GET(request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
@@ -93,3 +94,5 @@ export async function GET(request: Request, ctx: Ctx) {
 
   return NextResponse.json({ error: "Định dạng không hỗ trợ (txt | md | epub)" }, { status: 400 });
 }
+
+export const GET = safeJsonRoute(_handler_GET);
