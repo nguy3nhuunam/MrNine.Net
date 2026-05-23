@@ -21,6 +21,65 @@ export type LlmConfig = {
   apiKey?: string;
 };
 
+export type SwCharacter = {
+  id: string;
+  name: string;
+  role: string; // protagonist / ally / rival / love-interest / mentor / villain / support
+  profile: string;
+  aliases?: string[];
+};
+
+export type SwRelationship = {
+  id: string;
+  fromCharacterId: string;
+  toCharacterId: string;
+  kind:
+    | "knows"
+    | "loves"
+    | "hates"
+    | "rivals"
+    | "parent_of"
+    | "child_of"
+    | "sibling"
+    | "mentor_of"
+    | "ally"
+    | "owes"
+    | "secret_with"
+    | "betrayed_by"
+    | "custom";
+  label?: string;
+  note?: string;
+};
+
+export type SwForeshadow = {
+  id: string;
+  summary: string;
+  status: "open" | "progressing" | "deferred" | "resolved";
+  reoIntroducedAtChapter?: number;
+  lastAdvancedChapter?: number;
+  expectedResolutionChapter?: number;
+};
+
+export type SwVolume = {
+  id: string;
+  number: number;
+  title: string;
+  summary: string;
+  startChapter: number;
+  endChapter?: number;
+  status: "planned" | "writing" | "completed";
+};
+
+export type SwAgentRole =
+  | "architect"
+  | "planner"
+  | "composer"
+  | "writer"
+  | "auditor"
+  | "reviser"
+  | "reflector"
+  | "detector";
+
 export type SwBook = {
   _id?: ObjectId;
   projectId: ObjectId;
@@ -45,11 +104,20 @@ export type SwBook = {
   };
   styleGuide?: string;
   llm?: LlmConfig;
-  characters?: Array<{
-    name: string;
-    role: string;
-    profile: string;
-  }>;
+  agentLlm?: Partial<Record<SwAgentRole, LlmConfig>>;
+  characters?: SwCharacter[];
+  relationships?: SwRelationship[];
+  foreshadows?: SwForeshadow[];
+  volumes?: SwVolume[];
+  aiTellHistory?: Array<{ chapter: number; rate: number; at: Date }>;
+  wordCountHistory?: Array<{ at: Date; total: number; chapter: number }>;
+  customGenre?: {
+    parentGenre?: string;
+    beats: string[];
+    bannedCliche: string[];
+    styleGuide: string;
+    audience: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 };
@@ -93,6 +161,7 @@ export type SwChapter = {
   title: string;
   status: ChapterStatus;
   contextBrief?: string;
+  notes?: string;
   intent?: string;
   context?: unknown;
   ruleStack?: string;

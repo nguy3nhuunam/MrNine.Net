@@ -102,6 +102,80 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
+  // Persist Architect output as structured entities.
+  const charById = new Map<string, string>();
+  const characters = (architectResult.characters ?? []).map((c, idx) => {
+    const id = `c${idx + 1}`;
+    charById.set(c.name.trim().toLowerCase(), id);
+    return {
+      id,
+      name: c.name.trim(),
+      role: c.role,
+      profile: c.profile,
+      aliases: c.aliases ?? [],
+    };
+  });
+  const relationships = (architectResult.relationships ?? [])
+    .map((rel, idx) => {
+      const fromId = charById.get(rel.fromName?.trim?.().toLowerCase?.() ?? "");
+      const toId = charById.get(rel.toName?.trim?.().toLowerCase?.() ?? "");
+      if (!fromId || !toId) return null;
+      const safeKind = [
+        "knows",
+        "loves",
+        "hates",
+        "rivals",
+        "parent_of",
+        "child_of",
+        "sibling",
+        "mentor_of",
+        "ally",
+        "owes",
+        "secret_with",
+        "betrayed_by",
+        "custom",
+      ].includes(rel.kind)
+        ? (rel.kind as
+            | "knows"
+            | "loves"
+            | "hates"
+            | "rivals"
+            | "parent_of"
+            | "child_of"
+            | "sibling"
+            | "mentor_of"
+            | "ally"
+            | "owes"
+            | "secret_with"
+            | "betrayed_by"
+            | "custom")
+        : "custom";
+      return {
+        id: `r${idx + 1}`,
+        fromCharacterId: fromId,
+        toCharacterId: toId,
+        kind: safeKind,
+        label: rel.label,
+        note: rel.note,
+      };
+    })
+    .filter((rel): rel is NonNullable<typeof rel> => rel !== null);
+  const foreshadows = (architectResult.foreshadows ?? []).map((f, idx) => ({
+    id: `f${idx + 1}`,
+    summary: f.summary,
+    status: "open" as const,
+    expectedResolutionChapter: f.expectedResolutionChapter,
+  }));
+  const volumes = (architectResult.volumes ?? []).map((v) => ({
+    id: `v${v.number}`,
+    number: v.number,
+    title: v.title,
+    summary: v.summary,
+    startChapter: v.startChapter,
+    endChapter: v.endChapter,
+    status: "planned" as const,
+  }));
+
   const book: SwBook = {
     projectId: toId(projectId),
     userId,
@@ -119,7 +193,12 @@ export async function POST(request: Request) {
     volumeOutline: architectResult.volumeOutline,
     styleGuide: genreSpec.styleGuide,
     llm: body.llm ?? undefined,
-    characters: architectResult.characters,
+    characters,
+    relationships,
+    foreshadows,
+    volumes,
+    aiTellHistory: [],
+    wordCountHistory: [],
     createdAt: now,
     updatedAt: now,
   };

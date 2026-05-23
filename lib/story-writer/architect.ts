@@ -10,7 +10,22 @@ export type ArchitectResult = {
   storyBible: string;
   bookRules: string;
   volumeOutline: string;
-  characters: Array<{ name: string; role: string; profile: string }>;
+  characters: Array<{
+    id?: string;
+    name: string;
+    role: string;
+    profile: string;
+    aliases?: string[];
+  }>;
+  relationships?: Array<{
+    fromName: string;
+    toName: string;
+    kind: string;
+    label?: string;
+    note?: string;
+  }>;
+  foreshadows?: Array<{ summary: string; expectedResolutionChapter?: number }>;
+  volumes?: Array<{ number: number; title: string; summary: string; startChapter: number; endChapter?: number }>;
   truthSeeds: Record<
     | "current_state"
     | "particle_ledger"
@@ -79,7 +94,10 @@ YÊU CẦU TRẢ VỀ JSON với các field:
   "storyBible": string (Markdown 600–900 chữ: thế giới, hệ thống quyền lực, địa lý, thời đại, quy luật, danh từ riêng quan trọng),
   "bookRules": string (Markdown gồm các phần: Hard rules — Setup nhân vật chính — Trần cảnh giới/sức mạnh/level cap — Cấm trong truyện này — Khoảng tự do),
   "volumeOutline": string (Markdown chia 3–5 quyển, mỗi quyển 5–10 arc, ghi rõ kết quả mong đợi cuối quyển),
-  "characters": Array<{ "name": string, "role": string ("protagonist" | "ally" | "rival" | "love-interest" | "mentor" | "villain" | "support"), "profile": string (200–350 chữ: ngoại hình, tính cách, mục tiêu, mâu thuẫn nội tâm) }> 5–8 nhân vật khởi điểm,
+  "characters": Array<{ "name": string, "role": string ("protagonist" | "ally" | "rival" | "love-interest" | "mentor" | "villain" | "support"), "profile": string (200–350 chữ: ngoại hình, tính cách, mục tiêu, mâu thuẫn nội tâm), "aliases"?: string[] (biệt danh / nickname trong truyện) }> 5–8 nhân vật khởi điểm,
+  "relationships": Array<{ "fromName": string (tên trong characters[]), "toName": string (tên trong characters[]), "kind": "knows"|"loves"|"hates"|"rivals"|"parent_of"|"child_of"|"sibling"|"mentor_of"|"ally"|"owes"|"secret_with"|"betrayed_by"|"custom", "label"?: string (chú thích ngắn), "note"?: string }> các quan hệ ban đầu giữa các nhân vật ở trên,
+  "foreshadows": Array<{ "summary": string, "expectedResolutionChapter"?: number }> 3–6 foreshadow chính sẽ trải khắp truyện,
+  "volumes": Array<{ "number": number, "title": string, "summary": string (~150 chữ), "startChapter": number, "endChapter"?: number }> chia thành đúng các quyển trong volumeOutline,
   "truthSeeds": {
     "current_state": Markdown (vị trí hiện tại NVC, mối quan hệ ban đầu, cảm xúc trục, info NVC biết / không biết),
     "particle_ledger": Markdown (tài sản, vật phẩm, công năng, nguồn lực ban đầu — có thể trống),

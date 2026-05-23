@@ -3,7 +3,13 @@
 
 import { callLlm, callLlmJson, type ChatMessage } from "@/lib/story-writer/llm";
 import { getGenre } from "@/lib/story-writer/genres";
-import type { LlmConfig, SwBook, SwChapter, SwTruthFile, TruthKind } from "@/lib/story-writer/store";
+import type { LlmConfig, SwAgentRole, SwBook, SwChapter, SwTruthFile, TruthKind } from "@/lib/story-writer/store";
+
+function llmFor(book: SwBook, role: SwAgentRole): LlmConfig | null | undefined {
+  const override = book.agentLlm?.[role];
+  if (override) return override;
+  return book.llm ?? null;
+}
 
 // ============================================================================
 // PLANNER — emit intent.md (must-keep, must-avoid, conflict resolution)
@@ -57,7 +63,7 @@ Trả về Markdown duy nhất, các phần:
 ## Mục tiêu word count — ${input.book.chapterWords} chữ ± 10%`,
     },
   ];
-  return callLlm(messages, { temperature: 0.6, maxTokens: 1500 }, input.book.llm);
+  return callLlm(messages, { temperature: 0.6, maxTokens: 1500 }, llmFor(input.book, "planner"));
 }
 
 // ============================================================================
@@ -210,7 +216,7 @@ ${input.composed.selected.particleLedger.slice(0, 800) || "(trống)"}
     },
   ];
 
-  return callLlm(messages, { temperature: 0.85, maxTokens: 8000 }, input.book.llm);
+  return callLlm(messages, { temperature: 0.85, maxTokens: 8000 }, llmFor(input.book, "writer"));
 }
 
 // ============================================================================
@@ -331,7 +337,7 @@ Quy tắc:
   const result = await callLlmJson<AuditReport>(
     messages,
     { temperature: 0.2, maxTokens: 3000 },
-    input.book.llm,
+    llmFor(input.book, "auditor"),
   );
   if (typeof result.overallScore !== "number") result.overallScore = 70;
   if (typeof result.aiTellRate !== "number") result.aiTellRate = 0;
@@ -384,7 +390,7 @@ Yêu cầu:
     },
   ];
 
-  return callLlm(messages, { temperature: 0.7, maxTokens: 8000 }, input.book.llm);
+  return callLlm(messages, { temperature: 0.7, maxTokens: 8000 }, llmFor(input.book, "reviser"));
 }
 
 // ============================================================================
@@ -453,7 +459,7 @@ Chỉ trả về truth file nào có thay đổi do chương mới này gây ra.
   return callLlmJson<TruthDelta>(
     messages,
     { temperature: 0.4, maxTokens: 4000 },
-    input.book.llm,
+    llmFor(input.book, "reflector"),
   );
 }
 
