@@ -761,6 +761,38 @@ export function StoryWriterShell() {
 
   async function runChapterAction(action: "plan" | "compose" | "write" | "audit" | "revise" | "approve" | "full" | "detect") {
     if (!activeChapterId) return;
+
+    // Special case: write runs the 3-part flow so each LLM call fits inside
+    // Vercel's 60s budget. The route returns nextPart so we keep going.
+    if (action === "write") {
+      for (const part of [1, 2, 3] as const) {
+        const ok = await safeRun(
+          `chapter-write-${part}`,
+          async () => {
+            const res = await fetch(`/api/story-writer/chapters/${activeChapterId}/write?part=${part}`, {
+              method: "POST",
+            });
+            const json = await safeParseJson(res);
+            if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+            return json;
+          },
+          `Bản nháp phần ${part} / 3 xong`,
+        );
+        if (!ok) {
+          log("warn", `Phần ${part} thất bại — bấm 'Viết bản nháp' lại để thử lại từ phần đang dang dở.`);
+          break;
+        }
+        // Refresh detail between parts so user sees progress
+        if (activeChapterId) {
+          const reload = await fetch(`/api/story-writer/chapters/${activeChapterId}`);
+          if (reload.ok) setChapterDetail(await safeParseJson(reload));
+        }
+      }
+      const list = await fetch(`/api/story-writer/chapters?bookId=${activeBookId}`);
+      if (list.ok) setChapters((await safeParseJson(list))?.chapters ?? []);
+      return;
+    }
+
     const path =
       action === "full"
         ? `/api/story-writer/chapters/${activeChapterId}/full`

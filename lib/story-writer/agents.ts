@@ -220,6 +220,119 @@ ${input.composed.selected.particleLedger.slice(0, 800) || "(trống)"}
 }
 
 // ============================================================================
+// 3-PART WRITER — split chapter generation into intro / middle / climax so
+// each LLM call stays well under Vercel's 60s function timeout. Each part
+// targets roughly chapterWords / 3 and is conditioned on the previous parts.
+// ============================================================================
+
+export type WriterPart = 1 | 2 | 3;
+
+export async function runWriterPart(input: {
+  book: SwBook;
+  chapterNumber: number;
+  intent: string;
+  composed: ComposedContext;
+  part: WriterPart;
+  previousParts: string;
+}): Promise<string> {
+  const totalTarget = input.book.chapterWords;
+  const partTarget = Math.round(totalTarget / 3);
+  const partMin = Math.floor(partTarget * 0.85);
+  const partMax = Math.ceil(partTarget * 1.2);
+
+  const partSpec: Record<WriterPart, { name: string; mission: string; ending: string }> = {
+    1: {
+      name: "Phần 1 / 3 — Mở đầu & dựng cảnh",
+      mission:
+        "Mở chương bằng một móc câu cụ thể (hành động, sự kiện, câu thoại có ẩn ý), giới thiệu tình huống đang diễn ra, ổn định không gian + thời gian + cảm xúc trục của nhân vật chính. Đẩy nhẹ ít nhất một hook đang mở.",
+      ending: "Kết phần 1 ở khoảnh khắc một xung đột mới chính thức xuất hiện — không giải quyết.",
+    },
+    2: {
+      name: "Phần 2 / 3 — Phát triển & leo thang",
+      mission:
+        "Tiếp nối thẳng từ phần 1, đẩy xung đột tăng cường: nhân vật va chạm với đối thủ, dùng / mất tài nguyên, lộ thêm thông tin, đối thoại có nội dung. Đảm bảo continuity tuyệt đối với phần 1 (vị trí, vật phẩm, ai đã biết gì).",
+      ending: "Kết phần 2 bằng twist hoặc bước ngoặt — đẩy nhân vật vào tình thế bắt buộc phải hành động lớn.",
+    },
+    3: {
+      name: "Phần 3 / 3 — Cao trào & móc câu",
+      mission:
+        "Giải quyết xung đột chính của chương theo intent. Cảnh cao trào ngắn gọn nhưng dồn dập. Sau cao trào dành 1-2 đoạn để làm rõ hậu quả + trạng thái mới của nhân vật.",
+      ending: "Kết chương bằng một hook MỚI hoặc câu hỏi mở để dụ độc giả sang chương sau. Tuyệt đối không kết theo kiểu 'tóm lại'.",
+    },
+  };
+  const spec = partSpec[input.part];
+
+  const previousBlock = input.previousParts.trim()
+    ? `# CÁC PHẦN ĐÃ VIẾT TRƯỚC (giữ continuity tuyệt đối):\n${input.previousParts.trim()}`
+    : "(Đây là phần đầu tiên — chưa có phần nào trước.)";
+
+  const titleLine = input.part === 1
+    ? `Đặt tiêu đề chương ở dòng đầu, dạng "## Chương ${input.chapterNumber}: <tiêu đề con>" rồi xuống dòng và bắt đầu phần 1.`
+    : `KHÔNG lặp lại tiêu đề chương. Bắt đầu thẳng vào nội dung phần ${input.part}, ăn nhịp tự nhiên với phần trước (xuống dòng phù hợp).`;
+
+  const messages: ChatMessage[] = [
+    {
+      role: "system",
+      content:
+        "Bạn là Writer chuyên viết tiểu thuyết Việt Nam, thuần Việt, không thuần dịch. Trả MỘT khối Markdown chỉ chứa nội dung phần này, không thêm chú thích / metadata / 'Phần X' tiêu đề thừa. Không nhắc bạn là AI.",
+    },
+    {
+      role: "user",
+      content: `Truyện: "${input.book.title}" — Chương ${input.chapterNumber}.
+
+# ${spec.name}
+Nhiệm vụ phần này: ${spec.mission}
+Cách kết phần này: ${spec.ending}
+
+${previousBlock}
+
+# Intent của cả chương (Planner đã viết — BÁM SÁT):
+${input.intent}
+
+# Story bible:
+${input.composed.selected.storyBible.slice(0, 1500)}
+
+# Rule stack:
+${input.composed.ruleStack.slice(0, 1500)}
+
+# Trạng thái thế giới hiện tại:
+${input.composed.selected.currentState.slice(0, 1200) || "(trống)"}
+
+# Hooks đang mở:
+${input.composed.selected.pendingHooks.slice(0, 800) || "(trống)"}
+
+# Cảm xúc trục:
+${input.composed.selected.emotionalArcs.slice(0, 600) || "(trống)"}
+
+# Tài sản / vật phẩm hiện có:
+${input.composed.selected.particleLedger.slice(0, 600) || "(trống)"}
+
+# Tóm tắt các chương gần nhất:
+${input.composed.selected.recentSummaries.slice(0, 1500) || "(chưa có)"}
+
+# Yêu cầu output cho PHẦN ${input.part} / 3
+- Độ dài phần này: ${partTarget} chữ (chấp nhận ${partMin}–${partMax}). Cả chương sẽ hợp 3 phần đến ~${totalTarget} chữ.
+- ${titleLine}
+- Tránh các từ AI hay dùng (suy cho cùng, không thể phủ nhận, một cách khéo léo, đầy nghệ thuật, không hề ngạc nhiên, đáng kinh ngạc, đầy ấn tượng).
+- Thoại tự nhiên, có khoảng lặng.
+- Tuyệt đối không gọi tên độc giả, không break the fourth wall, không xưng "tôi/AI".
+- KHÔNG kết phần này bằng câu kiểu "Hết phần X" hay "Tiếp phần Y" — viết liền mạch để gộp được.`,
+    },
+  ];
+
+  return callLlm(messages, { temperature: 0.85, maxTokens: 4500 }, llmFor(input.book, "writer"));
+}
+
+// Merge 3 part strings into one chapter draft. Strips leading chapter title
+// from parts 2 and 3 if the model accidentally repeats it.
+export function mergeChapterParts(part1: string, part2: string, part3: string): string {
+  const stripTitle = (s: string) =>
+    s.replace(/^##\s*[Cc]hương\s*\d+\s*[:.\-][^\n]*\n+/m, "").trim();
+  const blocks = [part1.trim(), stripTitle(part2 || ""), stripTitle(part3 || "")].filter(Boolean);
+  return blocks.join("\n\n");
+}
+
+// ============================================================================
 // AUDITOR — 33-dim continuity check returning structured JSON.
 // ============================================================================
 
