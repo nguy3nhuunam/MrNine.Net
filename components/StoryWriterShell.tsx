@@ -90,6 +90,12 @@ type BookDetail = {
   volumeOutline: string;
   styleGuide?: string;
   characters?: Array<{ name: string; role: string; profile: string }>;
+  llm?: {
+    provider: "yunwu" | "custom";
+    baseUrl?: string;
+    model?: string;
+    apiKey?: string;
+  } | null;
 };
 
 type TruthMap = Record<
@@ -297,6 +303,24 @@ export function StoryWriterShell() {
   const [projectModal, setProjectModal] = useState(false);
   const [bookModal, setBookModal] = useState(false);
   const [chapterModal, setChapterModal] = useState(false);
+  const [llmModal, setLlmModal] = useState(false);
+  const [detectResult, setDetectResult] = useState<{
+    heuristic: { matches: Array<{ label: string; count: number }>; ratePer1000: number };
+    llm: {
+      rate: number;
+      flagged: Array<{ sentence: string; reason: string; severity: "low" | "medium" | "high" }>;
+      recommendation: string;
+    };
+    wordCount: number;
+  } | null>(null);
+  const [snapshotsOpen, setSnapshotsOpen] = useState(false);
+
+  const [llmDraft, setLlmDraft] = useState<{
+    provider: "yunwu" | "custom";
+    baseUrl: string;
+    model: string;
+    apiKey: string;
+  }>({ provider: "yunwu", baseUrl: "", model: "", apiKey: "" });
 
   const [newProjectName, setNewProjectName] = useState("");
   const [newBook, setNewBook] = useState({
@@ -562,17 +586,149 @@ export function StoryWriterShell() {
       },
       successMessage,
     );
+    if (action === "detect" && r) {
+      setDetectResult(r as typeof detectResult);
+    }
     if (r && activeChapterId) {
       const reload = await fetch(`/api/story-writer/chapters/${activeChapterId}`);
       if (reload.ok) setChapterDetail(await reload.json());
       // refresh chapter list status
       const list = await fetch(`/api/story-writer/chapters?bookId=${activeBookId}`);
       if (list.ok) setChapters((await list.json()).chapters ?? []);
-      // refresh truth in case of approve
+      // refresh truth in case of approve / full+autoApprove
       if (action === "approve" || action === "full") {
         const t = await fetch(`/api/story-writer/books/${activeBookId}/truth`);
         if (t.ok) setTruth((await t.json()).truth ?? null);
       }
+    }
+  }
+
+  async function restoreSnapshot(index: number) {
+    if (!activeChapterId) return;
+    const r = await safeRun(
+      "restore-snapshot",
+      async () => {
+        const res = await fetch(
+          `/api/story-writer/chapters/${activeChapterId}/snapshots/${index}/restore`,
+          { method: "POST" },
+        );
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+        return json;
+      },
+      `Khôi phục snapshot #${index + 1}`,
+    );
+    if (r && activeChapterId) {
+      const reload = await fetch(`/api/story-writer/chapters/${activeChapterId}`);
+      if (reload.ok) setChapterDetail(await reload.json());
+    }
+  }
+
+  async function deleteChapter(id: string) {
+    if (!id) return;
+    if (!window.confirm("Xoá chương này? Không thể khôi phục.")) return;
+    const r = await safeRun("delete-chapter", async () => {
+      const res = await fetch(`/api/story-writer/chapters/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+      return json;
+    }, "Đã xoá chương");
+    if (r) {
+      setChapters((cur) => cur.filter((c) => c.id !== id));
+      if (activeChapterId === id) {
+        setActiveChapterId("");
+        setChapterDetail(null);
+      }
+    }
+  }
+
+  async function deleteBook(id: string) {
+    if (!id) return;
+    if (!window.confirm("Xoá toàn bộ sách (chương, truth, snapshot) — không thể khôi phục?")) return;
+    const r = await safeRun("delete-book", async () => {
+      const res = await fetch(`/api/story-writer/books/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+      return json;
+    }, "Đã xoá sách");
+    if (r) {
+      setBooks((cur) => cur.filter((b) => b.id !== id));
+      if (activeBookId === id) setActiveBookId("");
+    }
+  }
+
+  async function deleteProject(id: string) {
+    if (!id) return;
+    if (!window.confirm("Xoá toàn bộ dự án (mọi sách bên trong)?")) return;
+    const r = await safeRun("delete-project", async () => {
+      const res = await fetch(`/api/story-writer/projects/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+      return json;
+    }, "Đã xoá dự án");
+    if (r) {
+      setProjects((cur) => cur.filter((p) => p.id !== id));
+      if (activeProjectId === id) setActiveProjectId("");
+    }
+  }
+
+  async function suggestBookSetting(topic: string, genre: string) {
+    if (!topic.trim() || !genre) return;
+    const r = await safeRun(
+      "suggest",
+      async () => {
+        const res = await fetch("/api/story-writer/suggest-setting", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic, genre }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+        return json as { title: string; authorIntent: string; currentFocus: string; briefDraft: string };
+      },
+      "Đã đề xuất setting",
+    );
+    if (r) {
+      setNewBook((cur) => ({
+        ...cur,
+        title: cur.title || r.title,
+        authorIntent: r.authorIntent,
+        currentFocus: r.currentFocus,
+        brief: cur.brief || r.briefDraft,
+      }));
+    }
+  }
+
+  async function saveLlmConfig() {
+    if (!activeBookId) return;
+    const config =
+      llmDraft.provider === "custom"
+        ? llmDraft.baseUrl.trim() && llmDraft.model.trim() && llmDraft.apiKey.trim()
+          ? {
+              provider: "custom" as const,
+              baseUrl: llmDraft.baseUrl.trim(),
+              model: llmDraft.model.trim(),
+              apiKey: llmDraft.apiKey.trim(),
+            }
+          : null
+        : null;
+    const r = await safeRun(
+      "save-llm",
+      async () => {
+        const res = await fetch(`/api/story-writer/books/${activeBookId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ llm: config }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+        return json;
+      },
+      config ? "Đã đổi sang provider tuỳ chỉnh" : "Đã reset về Yunwu mặc định",
+    );
+    if (r) {
+      void loadBook(activeBookId);
+      setLlmModal(false);
     }
   }
 
@@ -842,13 +998,23 @@ export function StoryWriterShell() {
                 <select
                   value={activeProjectId}
                   onChange={(event) => setActiveProjectId(event.target.value)}
-                  className="w-full appearance-none rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 pr-8 font-mono text-[0.78rem] text-[#f4eadc] outline-none focus:border-[#ef4444]/60"
+                  className="w-full appearance-none rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 pr-16 font-mono text-[0.78rem] text-[#f4eadc] outline-none focus:border-[#ef4444]/60"
                 >
                   <option value="">—</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+                {activeProjectId ? (
+                  <button
+                    type="button"
+                    onClick={() => deleteProject(activeProjectId)}
+                    aria-label="Xoá dự án"
+                    className="absolute right-7 top-1/2 -translate-y-1/2 text-[#9a9087] transition hover:text-[#ffb4ad]"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                ) : null}
                 <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-[#9a9087]" />
               </div>
             </div>
@@ -870,13 +1036,45 @@ export function StoryWriterShell() {
                 <select
                   value={activeBookId}
                   onChange={(event) => setActiveBookId(event.target.value)}
-                  className="w-full appearance-none rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 pr-8 font-mono text-[0.78rem] text-[#f4eadc] outline-none focus:border-[#ef4444]/60"
+                  className="w-full appearance-none rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 pr-24 font-mono text-[0.78rem] text-[#f4eadc] outline-none focus:border-[#ef4444]/60"
                 >
                   <option value="">{copy.pickBook}</option>
                   {books.map((b) => (
                     <option key={b.id} value={b.id}>{b.title} · {b.genre}</option>
                   ))}
                 </select>
+                {activeBookId ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (bookDetail?.llm) {
+                          setLlmDraft({
+                            provider: bookDetail.llm.provider as "yunwu" | "custom",
+                            baseUrl: bookDetail.llm.baseUrl ?? "",
+                            model: bookDetail.llm.model ?? "",
+                            apiKey: bookDetail.llm.apiKey ?? "",
+                          });
+                        } else {
+                          setLlmDraft({ provider: "yunwu", baseUrl: "", model: "", apiKey: "" });
+                        }
+                        setLlmModal(true);
+                      }}
+                      aria-label="LLM provider"
+                      className="absolute right-12 top-1/2 -translate-y-1/2 text-[#9a9087] transition hover:text-[#cdf3fb]"
+                    >
+                      <Wrench className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteBook(activeBookId)}
+                      aria-label="Xoá sách"
+                      className="absolute right-7 top-1/2 -translate-y-1/2 text-[#9a9087] transition hover:text-[#ffb4ad]"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </>
+                ) : null}
                 <ChevronDown className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-[#9a9087]" />
               </div>
             </div>
@@ -978,6 +1176,11 @@ export function StoryWriterShell() {
                 isBusy={isBusy}
                 busyKey={busyKey}
                 onAction={runChapterAction}
+                onRestoreSnapshot={restoreSnapshot}
+                onDelete={deleteChapter}
+                detectResult={detectResult}
+                snapshotsOpen={snapshotsOpen}
+                setSnapshotsOpen={setSnapshotsOpen}
               />
             ) : tab === "truth" ? (
               <TruthEditor
@@ -1105,6 +1308,149 @@ export function StoryWriterShell() {
         </section>
       </div>
 
+      {detectResult ? (
+        <Modal
+          title="AI-tell detection"
+          onClose={() => setDetectResult(null)}
+          confirmLabel={copy.confirm}
+          onConfirm={() => setDetectResult(null)}
+          wide
+          copy={copy}
+        >
+          <div className="space-y-3 text-[0.78rem] leading-6 text-[#cfc4b8]">
+            <div className="grid grid-cols-3 gap-2 rounded-md border border-[#25211b] bg-[#0c0a08] p-3 text-center">
+              <div>
+                <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#d6a548]">Heuristic / 1k từ</p>
+                <p className="mt-1 text-base font-bold text-[#f4eadc]">{detectResult.heuristic.ratePer1000.toFixed(1)}</p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#d6a548]">LLM rate</p>
+                <p className="mt-1 text-base font-bold text-[#f0c86d]">{Math.round(detectResult.llm.rate * 100)}%</p>
+              </div>
+              <div>
+                <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#d6a548]">Tổng từ</p>
+                <p className="mt-1 text-base font-bold text-[#dff8e4]">{detectResult.wordCount}</p>
+              </div>
+            </div>
+
+            {detectResult.heuristic.matches.length ? (
+              <div>
+                <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#9a9087]">Pattern bắt được</p>
+                <ul className="mt-1 flex flex-wrap gap-1.5">
+                  {detectResult.heuristic.matches.map((m) => (
+                    <li
+                      key={m.label}
+                      className="rounded border border-[#d6a548]/30 bg-[#d6a548]/8 px-2 py-0.5 font-mono text-[0.6rem] text-[#f0c86d]"
+                    >
+                      {m.label} × {m.count}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {detectResult.llm.flagged.length ? (
+              <div>
+                <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#9a9087]">Câu nghi AI</p>
+                <ul className="mt-1 max-h-72 space-y-1.5 overflow-y-auto">
+                  {detectResult.llm.flagged.map((f, idx) => (
+                    <li
+                      key={idx}
+                      className={cn(
+                        "rounded border px-2 py-1.5 text-[0.74rem]",
+                        f.severity === "high" && "border-[#ef4444]/35 bg-[#ef4444]/10 text-[#ffb4ad]",
+                        f.severity === "medium" && "border-[#d6a548]/35 bg-[#d6a548]/10 text-[#f0c86d]",
+                        f.severity === "low" && "border-white/10 bg-white/[0.03] text-[#cfc4b8]",
+                      )}
+                    >
+                      <p>“{f.sentence}”</p>
+                      <p className="mt-0.5 italic opacity-85">→ {f.reason}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {detectResult.llm.recommendation ? (
+              <div className="rounded-md border border-[#45a85d]/30 bg-[#45a85d]/8 p-3 text-[#dff8e4]">
+                <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#dff8e4]">Gợi ý</p>
+                <p className="mt-1 text-[0.76rem] leading-6">{detectResult.llm.recommendation}</p>
+              </div>
+            ) : null}
+          </div>
+        </Modal>
+      ) : null}
+
+      {llmModal ? (
+        <Modal
+          title="LLM provider cho sách"
+          onClose={() => setLlmModal(false)}
+          confirmLabel={copy.save}
+          onConfirm={saveLlmConfig}
+          confirmDisabled={
+            busyKey === "save-llm" ||
+            (llmDraft.provider === "custom" && (!llmDraft.baseUrl.trim() || !llmDraft.model.trim() || !llmDraft.apiKey.trim()))
+          }
+          loading={busyKey === "save-llm"}
+          copy={copy}
+        >
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setLlmDraft({ ...llmDraft, provider: "yunwu" })}
+                className={cn(
+                  "flex-1 rounded-md border px-3 py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition",
+                  llmDraft.provider === "yunwu" ? "border-[#ef4444]/50 bg-[#ef4444]/10 text-[#ffd7d3]" : "border-[#25211b] text-[#9a9087]",
+                )}
+              >
+                Yunwu (mặc định)
+              </button>
+              <button
+                type="button"
+                onClick={() => setLlmDraft({ ...llmDraft, provider: "custom" })}
+                className={cn(
+                  "flex-1 rounded-md border px-3 py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition",
+                  llmDraft.provider === "custom" ? "border-[#47c9d9]/50 bg-[#47c9d9]/10 text-[#cdf3fb]" : "border-[#25211b] text-[#9a9087]",
+                )}
+              >
+                Custom (OpenAI-compatible)
+              </button>
+            </div>
+            {llmDraft.provider === "custom" ? (
+              <div className="space-y-2">
+                <input
+                  value={llmDraft.baseUrl}
+                  onChange={(event) => setLlmDraft({ ...llmDraft, baseUrl: event.target.value })}
+                  placeholder="Base URL (vd: https://api.openai.com/v1)"
+                  className="w-full rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 font-mono text-[0.78rem] text-[#f4eadc] outline-none focus:border-[#47c9d9]/60"
+                />
+                <input
+                  value={llmDraft.model}
+                  onChange={(event) => setLlmDraft({ ...llmDraft, model: event.target.value })}
+                  placeholder="Model (vd: gpt-4o)"
+                  className="w-full rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 font-mono text-[0.78rem] text-[#f4eadc] outline-none focus:border-[#47c9d9]/60"
+                />
+                <input
+                  value={llmDraft.apiKey}
+                  onChange={(event) => setLlmDraft({ ...llmDraft, apiKey: event.target.value })}
+                  placeholder="API key"
+                  type="password"
+                  className="w-full rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 font-mono text-[0.78rem] text-[#f4eadc] outline-none focus:border-[#47c9d9]/60"
+                />
+                <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
+                  Key chỉ áp dụng cho sách này, lưu vào MongoDB.
+                </p>
+              </div>
+            ) : (
+              <p className="text-[0.74rem] leading-5 text-[#9a9087]">
+                Mọi agent (Architect, Planner, Writer, Auditor, Reviser, Reflector, Detect) sẽ dùng Yunwu/gpt-5.5 từ env mặc định.
+              </p>
+            )}
+          </div>
+        </Modal>
+      ) : null}
+
       {projectModal ? (
         <Modal
           title={copy.addProject}
@@ -1186,6 +1532,15 @@ export function StoryWriterShell() {
               rows={4}
               className="w-full resize-y rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 text-sm text-[#f4eadc] outline-none focus:border-[#ef4444]/60"
             />
+            <button
+              type="button"
+              onClick={() => suggestBookSetting(newBook.brief || newBook.title, newBook.genre)}
+              disabled={(!newBook.brief.trim() && !newBook.title.trim()) || !newBook.genre || busyKey === "suggest"}
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-md border border-[#d6a548]/35 bg-[#d6a548]/10 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#f0c86d] transition hover:bg-[#d6a548]/16 disabled:opacity-60"
+            >
+              {busyKey === "suggest" ? <LoaderCircle className="size-3.5 animate-spin" /> : <Wand2 className="size-3.5" />}
+              {language === "vi" ? "Gợi ý setting từ ý tưởng" : "Suggest setting from idea"}
+            </button>
             <textarea
               value={newBook.authorIntent}
               onChange={(event) => setNewBook({ ...newBook, authorIntent: event.target.value })}
@@ -1380,6 +1735,11 @@ function ChapterEditor({
   isBusy,
   busyKey,
   onAction,
+  onRestoreSnapshot,
+  onDelete,
+  detectResult,
+  snapshotsOpen,
+  setSnapshotsOpen,
 }: Readonly<{
   copy: typeof swCopy.vi;
   language: WebLanguage;
@@ -1387,6 +1747,15 @@ function ChapterEditor({
   isBusy: boolean;
   busyKey: string;
   onAction: (action: "plan" | "compose" | "write" | "audit" | "revise" | "approve" | "full" | "detect") => void;
+  onRestoreSnapshot: (index: number) => void;
+  onDelete: (id: string) => void;
+  detectResult: null | {
+    heuristic: { matches: Array<{ label: string; count: number }>; ratePer1000: number };
+    llm: { rate: number; flagged: Array<{ sentence: string }>; recommendation: string };
+    wordCount: number;
+  };
+  snapshotsOpen: boolean;
+  setSnapshotsOpen: (v: boolean) => void;
 }>) {
   if (!chapter) {
     return (
@@ -1413,6 +1782,7 @@ function ChapterEditor({
   ] as const;
 
   void language;
+  void detectResult;
 
   return (
     <div className="mx-auto flex h-full max-w-5xl flex-col gap-3">
@@ -1437,6 +1807,23 @@ function ChapterEditor({
               {act.label}
             </button>
           ))}
+          {chapter.snapshots && chapter.snapshots.length ? (
+            <button
+              type="button"
+              onClick={() => setSnapshotsOpen(!snapshotsOpen)}
+              className="flex h-9 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-3 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#cfc4b8] transition hover:bg-white/[0.06]"
+            >
+              <RefreshCw className="size-3.5" />
+              {copy.snapshots} ({chapter.snapshots.length})
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => onDelete(chapter.id)}
+            className="flex h-9 items-center gap-1.5 rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#ffb4ad] transition hover:bg-[#ef4444]/16"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
         </div>
       </div>
 
@@ -1445,6 +1832,35 @@ function ChapterEditor({
           <summary className="cursor-pointer font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#d6a548]">{copy.intent}</summary>
           <pre className="mt-2 whitespace-pre-wrap text-[0.78rem] leading-6 text-[#cfc4b8]">{chapter.intent}</pre>
         </details>
+      ) : null}
+
+      {snapshotsOpen && chapter.snapshots?.length ? (
+        <div className="rounded-md border border-[#25211b] bg-[#0d0b08]/82 p-3">
+          <p className="font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#d6a548]">{copy.snapshots}</p>
+          <ul className="mt-2 space-y-1.5">
+            {chapter.snapshots.map((snap) => (
+              <li
+                key={snap.index}
+                className="flex items-start justify-between gap-3 rounded-md border border-[#25211b] bg-[#0c0a08] px-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#9a9087]">
+                    #{snap.index + 1} · {new Date(snap.at).toLocaleString()} · {snap.label || "snapshot"}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-[0.74rem] leading-5 text-[#cfc4b8]">{snap.preview}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRestoreSnapshot(snap.index)}
+                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-[#45a85d]/35 bg-[#45a85d]/10 px-3 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#dff8e4] transition hover:bg-[#45a85d]/16"
+                >
+                  <RefreshCw className="size-3" />
+                  {copy.restore}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
 
       <div className="flex-1 overflow-y-auto rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-5">
