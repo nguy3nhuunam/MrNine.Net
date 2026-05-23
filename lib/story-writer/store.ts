@@ -107,7 +107,7 @@ export type SwChapter = {
       message: string;
       suggestion?: string;
     }>;
-    aiTellRate?: number;
+    aiTellRate: number;
   };
   wordCount?: number;
   snapshots?: Array<{ at: Date; text: string; label?: string }>;
