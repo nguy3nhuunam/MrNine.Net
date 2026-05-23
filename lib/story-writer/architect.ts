@@ -100,7 +100,7 @@ Tuyệt đối không text ngoài JSON.`,
 
   const result = await callLlmJson<ArchitectCore>(
     messages,
-    { temperature: 0.85, maxTokens: 2500 },
+    { temperature: 0.85, maxTokens: 2500, tier: "fast", timeoutMs: 45_000 },
     input.llm,
   );
   if (!result.storyBible || !result.bookRules || !result.volumeOutline) {
@@ -151,7 +151,7 @@ JSON:
 
   const result = await callLlmJson<ArchitectCast>(
     messages,
-    { temperature: 0.85, maxTokens: 2200 },
+    { temperature: 0.85, maxTokens: 2200, tier: "fast", timeoutMs: 45_000 },
     input.llm,
   );
   if (!Array.isArray(result.characters) || result.characters.length === 0) {
@@ -194,7 +194,7 @@ JSON:
 
   return callLlmJson<ArchitectPlot>(
     messages,
-    { temperature: 0.8, maxTokens: 1800 },
+    { temperature: 0.8, maxTokens: 1800, tier: "fast", timeoutMs: 40_000 },
     input.llm,
   );
 }
@@ -238,7 +238,7 @@ ${charLine}
 
   const result = await callLlmJson<ArchitectTruth>(
     messages,
-    { temperature: 0.6, maxTokens: 2800 },
+    { temperature: 0.6, maxTokens: 2800, tier: "fast", timeoutMs: 45_000 },
     input.llm,
   );
   if (!result.current_state) throw new Error("Stage 4 (truth) thiếu current_state");
@@ -291,7 +291,7 @@ JSON:
 }`,
     },
   ];
-  return callLlmJson(messages, { temperature: 0.9, maxTokens: 1800 }, input.llm);
+  return callLlmJson(messages, { temperature: 0.9, maxTokens: 1800, tier: "fast", timeoutMs: 35_000 }, input.llm);
 }
 
 void callLlm;

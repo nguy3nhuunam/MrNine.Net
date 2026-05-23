@@ -336,7 +336,7 @@ Quy tắc:
 
   const result = await callLlmJson<AuditReport>(
     messages,
-    { temperature: 0.2, maxTokens: 3000 },
+    { temperature: 0.2, maxTokens: 3000, tier: "fast", timeoutMs: 50_000 },
     llmFor(input.book, "auditor"),
   );
   if (typeof result.overallScore !== "number") result.overallScore = 70;
@@ -458,7 +458,7 @@ Chỉ trả về truth file nào có thay đổi do chương mới này gây ra.
 
   return callLlmJson<TruthDelta>(
     messages,
-    { temperature: 0.4, maxTokens: 4000 },
+    { temperature: 0.4, maxTokens: 4000, tier: "fast", timeoutMs: 50_000 },
     llmFor(input.book, "reflector"),
   );
 }
