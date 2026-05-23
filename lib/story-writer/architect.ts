@@ -1,13 +1,20 @@
-// Architect agent — split into TWO stages so each fits inside Vercel's 60s
-// function budget. Stage 1 builds the structural skeleton (bible, rules,
-// outline, characters, relationships, foreshadows, volumes). Stage 2 takes
-// that skeleton and emits the 7 truth-file seeds.
+// Architect agent — split into FOUR small stages so each one fits comfortably
+// inside Vercel's 60s function budget even when the upstream LLM is slow.
+//
+// Stage 1 (skeleton-core): bible + rules + outline                     ~1 LLM call, <2.5k tokens
+// Stage 2 (cast):           characters + relationships                  ~1 LLM call, <2k tokens
+// Stage 3 (plot):           foreshadows + volumes                       ~1 LLM call, <1.5k tokens
+// Stage 4 (truth):          all 7 truth-file seeds                      ~1 LLM call, <3k tokens
+//
+// The shell calls them sequentially with progress feedback. If Yunwu ever
+// stalls on a single call, only that stage fails — the user can retry it
+// from the UI without losing the work that already landed.
 
 import { callLlm, callLlmJson, type ChatMessage } from "@/lib/story-writer/llm";
 import { getGenre } from "@/lib/story-writer/genres";
 import type { LlmConfig, TruthKind } from "@/lib/story-writer/store";
 
-export type ArchitectSkeletonInput = {
+export type ArchitectInput = {
   title: string;
   genreId: string;
   brief?: string;
@@ -18,12 +25,18 @@ export type ArchitectSkeletonInput = {
   llm?: LlmConfig | null;
 };
 
-export type ArchitectSkeleton = {
+export type ArchitectCore = {
   storyBible: string;
   bookRules: string;
   volumeOutline: string;
+};
+
+export type ArchitectCast = {
   characters: Array<{ name: string; role: string; profile: string; aliases?: string[] }>;
   relationships?: Array<{ fromName: string; toName: string; kind: string; label?: string; note?: string }>;
+};
+
+export type ArchitectPlot = {
   foreshadows?: Array<{ summary: string; expectedResolutionChapter?: number }>;
   volumes?: Array<{ number: number; title: string; summary: string; startChapter: number; endChapter?: number }>;
 };
@@ -36,79 +49,158 @@ export type ArchitectTruth = Record<
   string
 >;
 
+export type ArchitectSkeleton = ArchitectCore & ArchitectCast & ArchitectPlot;
 export type ArchitectResult = ArchitectSkeleton & { truthSeeds: ArchitectTruth };
 
-// ---------------------------------------------------------------------------
-// Stage 1 — skeleton (no truth seeds). Smaller prompt + smaller maxTokens.
-// ---------------------------------------------------------------------------
-export async function runArchitectSkeleton(input: ArchitectSkeletonInput): Promise<ArchitectSkeleton> {
-  const genre = getGenre(input.genreId);
-  if (!genre) throw new Error(`Genre không hợp lệ: ${input.genreId}`);
+function genreContext(genreId: string) {
+  const genre = getGenre(genreId);
+  if (!genre) throw new Error(`Genre không hợp lệ: ${genreId}`);
+  return {
+    genre,
+    beats: genre.beats.slice(0, 5).map((b, i) => `${i + 1}. ${b}`).join("\n"),
+    banned: genre.bannedCliche.slice(0, 4).map((b) => `- ${b}`).join("\n"),
+  };
+}
 
-  const beats = genre.beats.map((b, i) => `${i + 1}. ${b}`).join("\n");
-  const banned = genre.bannedCliche.map((b) => `- ${b}`).join("\n");
-
+// ---------------------------------------------------------------------------
+// Stage 1: storyBible + bookRules + volumeOutline
+// ---------------------------------------------------------------------------
+export async function runArchitectCore(input: ArchitectInput): Promise<ArchitectCore> {
+  const { genre, beats, banned } = genreContext(input.genreId);
   const briefBlock = input.brief
-    ? `Brief / đề cương từ tác giả (BÁM SÁT, không bịa setting trái ngược):\n${input.brief.trim().slice(0, 3000)}`
-    : "Tác giả không cung cấp brief; tự đề xuất setting hợp lý theo thể loại + ý đồ.";
+    ? `Brief từ tác giả (BÁM SÁT):\n${input.brief.trim().slice(0, 2000)}`
+    : "Tác giả không cung cấp brief; tự đề xuất setting hợp lý.";
 
   const messages: ChatMessage[] = [
-    {
-      role: "system",
-      content:
-        "Bạn là Architect, dựng KHUNG truyện trước khi viết. Trả DUY NHẤT JSON theo schema yêu cầu. Tiếng Việt, không dịch máy.",
-    },
+    { role: "system", content: "Architect stage 1. Trả DUY NHẤT JSON. Tiếng Việt." },
     {
       role: "user",
-      content: `Tựa: ${input.title}
-Thể loại: ${genre.labelVi} · Đối tượng: ${genre.audienceVi}
+      content: `Tựa: ${input.title} · Thể loại: ${genre.labelVi} · Đối tượng: ${genre.audienceVi}
 Style: ${genre.styleGuide}
-Beat thể loại:
+Beat:
 ${beats}
-Cliché tránh:
+Tránh:
 ${banned}
-
-Ý đồ tác giả:
-${input.authorIntent || "(trống)"}
-
-Trọng tâm 1–3 chương đầu:
-${input.currentFocus || "(trống)"}
-
+Ý đồ: ${input.authorIntent || "(trống)"}
+Focus 1–3 chương đầu: ${input.currentFocus || "(trống)"}
 Mục tiêu: ${input.targetChapters} chương · ~${input.chapterWords} chữ/chương.
 
 ${briefBlock}
 
-JSON cần trả:
+JSON:
 {
-  "storyBible": string (Markdown 400–600 chữ — thế giới, hệ thống quyền lực, địa lý, thời đại, danh từ riêng cốt lõi),
-  "bookRules": string (Markdown 200–400 chữ: Hard rules, setup NVC, trần sức mạnh, cấm, khoảng tự do),
-  "volumeOutline": string (Markdown 250–400 chữ — 3 quyển, mỗi quyển 1 đoạn ngắn nêu kết quả mong đợi),
-  "characters": Array<{ "name": string, "role": "protagonist"|"ally"|"rival"|"love-interest"|"mentor"|"villain"|"support", "profile": string (150–250 chữ), "aliases"?: string[] }> 5–7 nhân vật,
-  "relationships": Array<{ "fromName": string, "toName": string, "kind": "knows"|"loves"|"hates"|"rivals"|"parent_of"|"child_of"|"sibling"|"mentor_of"|"ally"|"owes"|"secret_with"|"betrayed_by"|"custom", "label"?: string, "note"?: string }> 4–8 quan hệ,
-  "foreshadows": Array<{ "summary": string, "expectedResolutionChapter"?: number }> 3–5 hook,
-  "volumes": Array<{ "number": number, "title": string, "summary": string (~80 chữ), "startChapter": number, "endChapter"?: number }> 3 quyển
+  "storyBible": string (Markdown 350–500 chữ — thế giới, hệ thống, danh từ riêng cốt lõi),
+  "bookRules": string (Markdown 200–300 chữ: hard rules, setup NVC, trần sức mạnh, cấm),
+  "volumeOutline": string (Markdown 250–400 chữ — 3 quyển ngắn gọn)
 }
 
-Tuyệt đối không thêm field hay text ngoài JSON.`,
+Tuyệt đối không text ngoài JSON.`,
     },
   ];
 
-  const result = await callLlmJson<ArchitectSkeleton>(
+  const result = await callLlmJson<ArchitectCore>(
     messages,
-    { temperature: 0.85, maxTokens: 4000 },
+    { temperature: 0.85, maxTokens: 2500 },
     input.llm,
   );
   if (!result.storyBible || !result.bookRules || !result.volumeOutline) {
-    throw new Error("Architect skeleton thiếu storyBible/bookRules/volumeOutline");
-  }
-  if (!Array.isArray(result.characters) || result.characters.length === 0) {
-    throw new Error("Architect skeleton thiếu danh sách nhân vật");
+    throw new Error("Stage 1 (skeleton-core) thiếu field");
   }
   return result;
 }
 
 // ---------------------------------------------------------------------------
-// Stage 2 — truth seeds. Reads the skeleton so it stays consistent.
+// Stage 2: characters + relationships, conditioned on the core.
+// ---------------------------------------------------------------------------
+export async function runArchitectCast(
+  input: ArchitectInput & { core: ArchitectCore },
+): Promise<ArchitectCast> {
+  const { genre } = genreContext(input.genreId);
+
+  const messages: ChatMessage[] = [
+    { role: "system", content: "Architect stage 2. Trả DUY NHẤT JSON. Tiếng Việt." },
+    {
+      role: "user",
+      content: `Tựa: ${input.title} · Thể loại: ${genre.labelVi}
+Story bible (đã chốt):
+${input.core.storyBible.slice(0, 1200)}
+
+Book rules (đã chốt):
+${input.core.bookRules.slice(0, 700)}
+
+Cần 5–7 nhân vật khởi điểm + 4–8 quan hệ giữa họ.
+
+JSON:
+{
+  "characters": Array<{
+    "name": string,
+    "role": "protagonist"|"ally"|"rival"|"love-interest"|"mentor"|"villain"|"support",
+    "profile": string (120–200 chữ: ngoại hình, tính cách, mục tiêu, mâu thuẫn nội tâm),
+    "aliases"?: string[]
+  }>,
+  "relationships": Array<{
+    "fromName": string,
+    "toName": string,
+    "kind": "knows"|"loves"|"hates"|"rivals"|"parent_of"|"child_of"|"sibling"|"mentor_of"|"ally"|"owes"|"secret_with"|"betrayed_by"|"custom",
+    "label"?: string,
+    "note"?: string
+  }>
+}`,
+    },
+  ];
+
+  const result = await callLlmJson<ArchitectCast>(
+    messages,
+    { temperature: 0.85, maxTokens: 2200 },
+    input.llm,
+  );
+  if (!Array.isArray(result.characters) || result.characters.length === 0) {
+    throw new Error("Stage 2 (cast) thiếu nhân vật");
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Stage 3: foreshadows + volumes, conditioned on core + cast.
+// ---------------------------------------------------------------------------
+export async function runArchitectPlot(
+  input: ArchitectInput & { core: ArchitectCore; cast: ArchitectCast },
+): Promise<ArchitectPlot> {
+  const charLine = input.cast.characters.map((c) => `- ${c.name} (${c.role})`).join("\n");
+
+  const messages: ChatMessage[] = [
+    { role: "system", content: "Architect stage 3. Trả DUY NHẤT JSON. Tiếng Việt." },
+    {
+      role: "user",
+      content: `Tựa: ${input.title}
+Story bible:
+${input.core.storyBible.slice(0, 1000)}
+
+Cast:
+${charLine}
+
+Volume outline (đã chốt):
+${input.core.volumeOutline.slice(0, 1000)}
+
+Cần 3–5 foreshadow chính và 3 quyển có cấu trúc rõ.
+
+JSON:
+{
+  "foreshadows": Array<{ "summary": string, "expectedResolutionChapter"?: number }>,
+  "volumes": Array<{ "number": number, "title": string, "summary": string (60–100 chữ), "startChapter": number, "endChapter"?: number }>
+}`,
+    },
+  ];
+
+  return callLlmJson<ArchitectPlot>(
+    messages,
+    { temperature: 0.8, maxTokens: 1800 },
+    input.llm,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Stage 4: 7 truth-file seeds, reads the assembled skeleton.
 // ---------------------------------------------------------------------------
 export async function runArchitectTruth(input: {
   title: string;
@@ -116,60 +208,51 @@ export async function runArchitectTruth(input: {
   skeleton: ArchitectSkeleton;
   llm?: LlmConfig | null;
 }): Promise<ArchitectTruth> {
-  const genre = getGenre(input.genreId);
-  if (!genre) throw new Error(`Genre không hợp lệ: ${input.genreId}`);
-
-  const charLine = input.skeleton.characters
-    .map((c) => `- ${c.name} (${c.role})`)
-    .join("\n");
+  const { genre } = genreContext(input.genreId);
+  const charLine = input.skeleton.characters.map((c) => `- ${c.name} (${c.role})`).join("\n");
 
   const messages: ChatMessage[] = [
-    {
-      role: "system",
-      content:
-        "Bạn là Architect, đang dựng TRUTH FILES khởi điểm cho truyện sau khi đã có skeleton. Trả DUY NHẤT JSON theo schema. Tiếng Việt.",
-    },
+    { role: "system", content: "Architect stage 4. Trả DUY NHẤT JSON. Tiếng Việt." },
     {
       role: "user",
       content: `Tựa: ${input.title} · Thể loại: ${genre.labelVi}
 
-Story bible (đã chốt):
-${input.skeleton.storyBible.slice(0, 1500)}
-
-Book rules:
-${input.skeleton.bookRules.slice(0, 1000)}
+Story bible:
+${input.skeleton.storyBible.slice(0, 1200)}
 
 Cast:
 ${charLine}
 
-JSON cần trả (mỗi field là Markdown ngắn 80–250 chữ, đừng nói thêm gì khác):
+7 truth-file seeds (Markdown ngắn 80–200 chữ mỗi cái):
 {
-  "current_state": string (vị trí hiện tại NVC, mối quan hệ ban đầu, info NVC biết / không biết),
-  "particle_ledger": string (tài sản, vật phẩm, công năng ban đầu — có thể trống),
-  "pending_hooks": string (3–5 foreshadow đã reo bằng setting, mỗi hook có status "open"),
+  "current_state": string,
+  "particle_ledger": string,
+  "pending_hooks": string (3–5 hook, mỗi hook có status "open"),
   "chapter_summaries": string (giữ tiêu đề "## Chapter Summaries" và 1 dòng "(updated after each chapter)"),
-  "subplot_board": string (3 subplot A/B/C: tên, mô tả, status "active"|"dormant"),
-  "emotional_arcs": string (mỗi nhân vật chính 1 khối: trạng thái khởi điểm, hướng dự kiến),
-  "character_matrix": string (ma trận: ai biết gì về ai, ai đã gặp ai)
+  "subplot_board": string (3 subplot A/B/C),
+  "emotional_arcs": string,
+  "character_matrix": string (ma trận: ai biết gì về ai)
 }`,
     },
   ];
 
   const result = await callLlmJson<ArchitectTruth>(
     messages,
-    { temperature: 0.6, maxTokens: 3500 },
+    { temperature: 0.6, maxTokens: 2800 },
     input.llm,
   );
-  if (!result.current_state) {
-    throw new Error("Architect truth thiếu current_state");
-  }
+  if (!result.current_state) throw new Error("Stage 4 (truth) thiếu current_state");
   return result;
 }
 
-// Legacy entry — calls both stages back to back. Kept for older callers.
-// Splits the work into 2 LLM calls so each fits ~30–40s.
-export async function runArchitect(input: ArchitectSkeletonInput): Promise<ArchitectResult> {
-  const skeleton = await runArchitectSkeleton(input);
+// Convenience full run — sequential 4 stages. Long total wall-clock; use only
+// when the caller is fine waiting (CLI-style). The web flow now calls each
+// stage from the UI with its own request.
+export async function runArchitect(input: ArchitectInput): Promise<ArchitectResult> {
+  const core = await runArchitectCore(input);
+  const cast = await runArchitectCast({ ...input, core });
+  const plot = await runArchitectPlot({ ...input, core, cast });
+  const skeleton: ArchitectSkeleton = { ...core, ...cast, ...plot };
   const truthSeeds = await runArchitectTruth({
     title: input.title,
     genreId: input.genreId,
@@ -179,24 +262,26 @@ export async function runArchitect(input: ArchitectSkeletonInput): Promise<Archi
   return { ...skeleton, truthSeeds };
 }
 
+// Older single-stage entry kept for compatibility — alias to core+cast+plot.
+export async function runArchitectSkeleton(input: ArchitectInput): Promise<ArchitectSkeleton> {
+  const core = await runArchitectCore(input);
+  const cast = await runArchitectCast({ ...input, core });
+  const plot = await runArchitectPlot({ ...input, core, cast });
+  return { ...core, ...cast, ...plot };
+}
+
 export async function suggestBookSetting(input: {
   topic: string;
   genreId: string;
   llm?: LlmConfig | null;
 }): Promise<{ title: string; authorIntent: string; currentFocus: string; briefDraft: string }> {
-  const genre = getGenre(input.genreId);
-  if (!genre) throw new Error(`Genre không hợp lệ: ${input.genreId}`);
+  const { genre } = genreContext(input.genreId);
   const messages: ChatMessage[] = [
-    {
-      role: "system",
-      content: "Bạn là cố vấn cốt truyện. Trả DUY NHẤT JSON. Tiếng Việt, hấp dẫn cho độc giả Việt.",
-    },
+    { role: "system", content: "Cố vấn cốt truyện. Trả DUY NHẤT JSON tiếng Việt." },
     {
       role: "user",
-      content: `Ý tưởng: "${input.topic.trim().slice(0, 1200)}"
+      content: `Ý tưởng: "${input.topic.trim().slice(0, 1000)}"
 Thể loại: ${genre.labelVi}
-Đối tượng: ${genre.audienceVi}
-
 JSON:
 {
   "title": string (4–10 chữ có móc câu),

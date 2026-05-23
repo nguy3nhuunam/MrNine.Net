@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { runArchitectSkeleton, runArchitectTruth } from "@/lib/story-writer/architect";
+import {
+  runArchitectCore,
+  runArchitectCast,
+  runArchitectPlot,
+  runArchitectTruth,
+  type ArchitectSkeleton,
+} from "@/lib/story-writer/architect";
 import { applyTruthDelta } from "@/lib/story-writer/pipeline";
 import { booksCol, toId, truthCol, TRUTH_KINDS } from "@/lib/story-writer/store";
 import { safeJsonRoute } from "@/lib/safe-json-route";
@@ -11,9 +17,11 @@ export const maxDuration = 50;
 
 type Ctx = { params: Promise<{ id: string }> };
 
-// stage=skeleton  -> only generate bible/rules/outline/cast/relationships/foreshadows/volumes
-// stage=truth     -> only generate the 7 truth file seeds (skeleton must already exist)
-// stage=all       -> default; runs both stages back to back. Use when split fits inside 60s.
+// stage=core   -> bible + rules + outline
+// stage=cast   -> characters + relationships
+// stage=plot   -> foreshadows + volumes
+// stage=truth  -> 7 truth-file seeds (requires core + cast)
+// stage=all    -> sequential 1→2→3→4 (slow; legacy)
 async function _handler_POST(request: Request, ctx: Ctx) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
@@ -21,9 +29,9 @@ async function _handler_POST(request: Request, ctx: Ctx) {
   const userId = session.user.id;
 
   const url = new URL(request.url);
-  const stage = (url.searchParams.get("stage") || "all").toLowerCase();
-  if (!["skeleton", "truth", "all"].includes(stage)) {
-    return NextResponse.json({ error: "stage phải là skeleton | truth | all" }, { status: 400 });
+  const stage = (url.searchParams.get("stage") || "core").toLowerCase();
+  if (!["core", "cast", "plot", "truth", "all", "skeleton"].includes(stage)) {
+    return NextResponse.json({ error: "stage không hợp lệ" }, { status: 400 });
   }
 
   const bookId = toId(id);
@@ -31,21 +39,45 @@ async function _handler_POST(request: Request, ctx: Ctx) {
   const book = await col.findOne({ _id: bookId, userId });
   if (!book) return NextResponse.json({ error: "Không tìm thấy book" }, { status: 404 });
 
+  const baseInput = {
+    title: book.title,
+    genreId: book.genre,
+    brief: book.brief,
+    authorIntent: book.authorIntent,
+    currentFocus: book.currentFocus,
+    chapterWords: book.chapterWords,
+    targetChapters: book.targetChapters,
+    llm: book.llm ?? null,
+  };
+
   try {
-    if (stage === "skeleton" || stage === "all") {
-      const skeleton = await runArchitectSkeleton({
-        title: book.title,
-        genreId: book.genre,
-        brief: book.brief,
-        authorIntent: book.authorIntent,
-        currentFocus: book.currentFocus,
-        chapterWords: book.chapterWords,
-        targetChapters: book.targetChapters,
-        llm: book.llm ?? null,
+    if (stage === "core") {
+      const core = await runArchitectCore(baseInput);
+      await col.updateOne(
+        { _id: bookId, userId },
+        {
+          $set: {
+            storyBible: core.storyBible,
+            bookRules: core.bookRules,
+            volumeOutline: core.volumeOutline,
+            updatedAt: new Date(),
+          },
+        },
+      );
+      return NextResponse.json({ ok: true, stage, ...core });
+    }
+
+    if (stage === "cast") {
+      if (!book.storyBible) {
+        return NextResponse.json({ error: "Cần stage=core trước stage=cast" }, { status: 412 });
+      }
+      const cast = await runArchitectCast({
+        ...baseInput,
+        core: { storyBible: book.storyBible, bookRules: book.bookRules, volumeOutline: book.volumeOutline },
       });
 
       const charById = new Map<string, string>();
-      const characters = (skeleton.characters ?? []).map((c, idx) => {
+      const characters = (cast.characters ?? []).map((c, idx) => {
         const cid = `c${idx + 1}`;
         charById.set(c.name.trim().toLowerCase(), cid);
         return {
@@ -56,7 +88,7 @@ async function _handler_POST(request: Request, ctx: Ctx) {
           aliases: c.aliases ?? [],
         };
       });
-      const relationships = (skeleton.relationships ?? [])
+      const relationships = (cast.relationships ?? [])
         .map((rel, idx) => {
           const fromId = charById.get(rel.fromName?.trim?.().toLowerCase?.() ?? "");
           const toId2 = charById.get(rel.toName?.trim?.().toLowerCase?.() ?? "");
@@ -84,13 +116,38 @@ async function _handler_POST(request: Request, ctx: Ctx) {
           };
         })
         .filter((r): r is NonNullable<typeof r> => r !== null);
-      const foreshadows = (skeleton.foreshadows ?? []).map((f, idx) => ({
+
+      await col.updateOne(
+        { _id: bookId, userId },
+        { $set: { characters, relationships, updatedAt: new Date() } },
+      );
+      return NextResponse.json({ ok: true, stage, characters, relationships });
+    }
+
+    if (stage === "plot") {
+      if (!book.characters?.length) {
+        return NextResponse.json({ error: "Cần stage=cast trước stage=plot" }, { status: 412 });
+      }
+      const plot = await runArchitectPlot({
+        ...baseInput,
+        core: { storyBible: book.storyBible, bookRules: book.bookRules, volumeOutline: book.volumeOutline },
+        cast: {
+          characters: (book.characters ?? []).map((c) => ({
+            name: c.name,
+            role: c.role,
+            profile: c.profile,
+            aliases: c.aliases,
+          })),
+        },
+      });
+
+      const foreshadows = (plot.foreshadows ?? []).map((f, idx) => ({
         id: `f${idx + 1}`,
         summary: f.summary,
         status: "open" as const,
         expectedResolutionChapter: f.expectedResolutionChapter,
       }));
-      const volumes = (skeleton.volumes ?? []).map((v) => ({
+      const volumes = (plot.volumes ?? []).map((v) => ({
         id: `v${v.number}`,
         number: v.number,
         title: v.title,
@@ -99,57 +156,37 @@ async function _handler_POST(request: Request, ctx: Ctx) {
         endChapter: v.endChapter,
         status: "planned" as const,
       }));
-
       await col.updateOne(
         { _id: bookId, userId },
-        {
-          $set: {
-            storyBible: skeleton.storyBible,
-            bookRules: skeleton.bookRules,
-            volumeOutline: skeleton.volumeOutline,
-            characters,
-            relationships,
-            foreshadows,
-            volumes,
-            updatedAt: new Date(),
-          },
-        },
+        { $set: { foreshadows, volumes, updatedAt: new Date() } },
       );
-
-      if (stage === "skeleton") {
-        return NextResponse.json({ ok: true, stage: "skeleton", characters, relationships, foreshadows, volumes });
-      }
+      return NextResponse.json({ ok: true, stage, foreshadows, volumes });
     }
 
-    if (stage === "truth" || stage === "all") {
-      const refreshed = await col.findOne({ _id: bookId, userId });
-      if (!refreshed) return NextResponse.json({ error: "Không tìm thấy book" }, { status: 404 });
-      if (!refreshed.storyBible) {
-        return NextResponse.json(
-          { error: "Cần chạy stage=skeleton trước khi sinh truth seeds" },
-          { status: 412 },
-        );
+    if (stage === "truth") {
+      if (!book.storyBible || !book.characters?.length) {
+        return NextResponse.json({ error: "Cần core + cast trước truth" }, { status: 412 });
       }
+      const skeleton: ArchitectSkeleton = {
+        storyBible: book.storyBible,
+        bookRules: book.bookRules,
+        volumeOutline: book.volumeOutline,
+        characters: (book.characters ?? []).map((c) => ({
+          name: c.name,
+          role: c.role,
+          profile: c.profile,
+          aliases: c.aliases,
+        })),
+        relationships: [],
+        foreshadows: [],
+        volumes: [],
+      };
       const truthSeeds = await runArchitectTruth({
-        title: refreshed.title,
-        genreId: refreshed.genre,
-        skeleton: {
-          storyBible: refreshed.storyBible,
-          bookRules: refreshed.bookRules,
-          volumeOutline: refreshed.volumeOutline,
-          characters: (refreshed.characters ?? []).map((c) => ({
-            name: c.name,
-            role: c.role,
-            profile: c.profile,
-            aliases: c.aliases,
-          })),
-          relationships: [],
-          foreshadows: [],
-          volumes: [],
-        },
-        llm: refreshed.llm ?? null,
+        title: book.title,
+        genreId: book.genre,
+        skeleton,
+        llm: book.llm ?? null,
       });
-
       const truth = await truthCol();
       const docs = await truth.find({ bookId, userId }).toArray();
       for (const kind of TRUTH_KINDS) {
@@ -161,8 +198,30 @@ async function _handler_POST(request: Request, ctx: Ctx) {
           await applyTruthDelta(bookId, userId, { [kind]: seed });
         }
       }
-
       return NextResponse.json({ ok: true, stage });
+    }
+
+    // stage=all / skeleton -> deprecated; just run core to nudge user toward
+    // the per-stage flow. Returning early avoids a 60s+ chain.
+    if (stage === "all" || stage === "skeleton") {
+      const core = await runArchitectCore(baseInput);
+      await col.updateOne(
+        { _id: bookId, userId },
+        {
+          $set: {
+            storyBible: core.storyBible,
+            bookRules: core.bookRules,
+            volumeOutline: core.volumeOutline,
+            updatedAt: new Date(),
+          },
+        },
+      );
+      return NextResponse.json({
+        ok: true,
+        stage,
+        ...core,
+        nextStages: ["cast", "plot", "truth"],
+      });
     }
 
     return NextResponse.json({ ok: true, stage });

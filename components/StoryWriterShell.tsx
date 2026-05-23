@@ -587,32 +587,27 @@ export function StoryWriterShell() {
       setTab("books");
 
       if (r.needsArchitect) {
-        log("info", "Architect đang dựng khung truyện (1/2)...");
-        await safeRun(
-          "architect-skeleton",
-          async () => {
-            const res2 = await fetch(`/api/story-writer/books/${r.id}/architect-rerun?stage=skeleton`, {
+        const stages = [
+          { id: "core", label: "khung truyện (1/4)" },
+          { id: "cast", label: "nhân vật (2/4)" },
+          { id: "plot", label: "foreshadow + quyển (3/4)" },
+          { id: "truth", label: "truth files (4/4)" },
+        ];
+        for (const stage of stages) {
+          log("info", `Architect đang dựng ${stage.label}...`);
+          const ok = await safeRun(`architect-${stage.id}`, async () => {
+            const res2 = await fetch(`/api/story-writer/books/${r.id}/architect-rerun?stage=${stage.id}`, {
               method: "POST",
             });
             const json2 = await safeParseJson(res2);
             if (!res2.ok) throw new Error(json2?.error || `HTTP ${res2.status}`);
             return json2;
-          },
-          "Architect khung xong",
-        );
-        log("info", "Architect đang reo hook truyện (2/2)...");
-        await safeRun(
-          "architect-truth",
-          async () => {
-            const res3 = await fetch(`/api/story-writer/books/${r.id}/architect-rerun?stage=truth`, {
-              method: "POST",
-            });
-            const json3 = await safeParseJson(res3);
-            if (!res3.ok) throw new Error(json3?.error || `HTTP ${res3.status}`);
-            return json3;
-          },
-          "Architect truth xong",
-        );
+          }, `Architect ${stage.label} xong`);
+          if (!ok) {
+            log("warn", `Stage ${stage.id} thất bại — bạn có thể thử lại từ tab Tools → Architect re-run.`);
+            break;
+          }
+        }
         await loadBook(r.id);
       }
       setTab("write");
@@ -868,13 +863,29 @@ export function StoryWriterShell() {
 
   async function architectRerun() {
     if (!activeBookId) return;
-    if (!window.confirm("Chạy lại Architect sẽ ghi đè story bible / book rules / outline / characters / foreshadow / volumes. Tiếp tục?")) return;
-    const r = await patchEntity(
-      `/api/story-writer/books/${activeBookId}/architect-rerun`,
-      {},
-      "Architect re-run xong",
-    );
-    if (r && activeBookId) void loadBook(activeBookId);
+    if (!window.confirm("Chạy lại Architect 4 stage (core → cast → plot → truth) sẽ ghi đè khung truyện. Tiếp tục?")) return;
+    const stages = [
+      { id: "core", label: "khung truyện (1/4)" },
+      { id: "cast", label: "nhân vật (2/4)" },
+      { id: "plot", label: "foreshadow + quyển (3/4)" },
+      { id: "truth", label: "truth files (4/4)" },
+    ];
+    for (const stage of stages) {
+      log("info", `Architect đang dựng ${stage.label}...`);
+      const ok = await safeRun(`architect-${stage.id}`, async () => {
+        const res = await fetch(`/api/story-writer/books/${activeBookId}/architect-rerun?stage=${stage.id}`, {
+          method: "POST",
+        });
+        const json = await safeParseJson(res);
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+        return json;
+      }, `Architect ${stage.label} xong`);
+      if (!ok) {
+        log("warn", `Stage ${stage.id} thất bại — bấm Architect re-run lại để retry từ đầu.`);
+        break;
+      }
+    }
+    await loadBook(activeBookId);
   }
 
   async function bulkApprove() {
