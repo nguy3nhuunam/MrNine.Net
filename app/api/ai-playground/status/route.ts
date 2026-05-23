@@ -5,9 +5,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const FAL_QUEUE_BASE = "https://queue.fal.run";
+const EMBEDDED_FAL_KEY = "d3ed1c4c-b8aa-40aa-926e-4b82ba599ae6:cae3e2004fd04235f9805226a5f96464";
 
 function getKey() {
-  const key = process.env.FAL_KEY || process.env.FAL_API_KEY;
+  const key = process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
   if (!key) {
     throw new Error("FAL_KEY chưa được cấu hình");
   }

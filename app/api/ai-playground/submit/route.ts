@@ -5,11 +5,12 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const FAL_QUEUE_BASE = "https://queue.fal.run";
+const EMBEDDED_FAL_KEY = "d3ed1c4c-b8aa-40aa-926e-4b82ba599ae6:cae3e2004fd04235f9805226a5f96464";
 
 function getKey() {
-  const key = process.env.FAL_KEY || process.env.FAL_API_KEY;
+  const key = process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
   if (!key) {
-    throw new Error("FAL_KEY chưa được cấu hình trong .env.local");
+    throw new Error("FAL_KEY chưa được cấu hình");
   }
   return key;
 }
@@ -47,20 +48,22 @@ export async function POST(request: Request) {
 
   const input: Record<string, unknown> = {};
 
-  if (model.needsImage && model.imageKey) {
+  if (model.imageKey) {
     const raw = payload[model.imageKey];
-    const url = typeof raw === "string" ? raw.trim() : "";
+    const url = typeof raw === "string" ? raw.trim() : Array.isArray(raw) && typeof raw[0] === "string" ? raw[0].trim() : "";
     if (!url) {
       return NextResponse.json({ error: "Model này cần ảnh đầu vào (URL)" }, { status: 400 });
     }
-    if (model.imageKey === "image_urls") {
+    if (model.imageIsArray) {
       input[model.imageKey] = [url];
     } else {
       input[model.imageKey] = url;
     }
   }
 
-  input[model.promptKey] = promptValue;
+  if (model.promptKey !== model.imageKey) {
+    input[model.promptKey] = promptValue;
+  }
 
   for (const spec of model.params) {
     if (!(spec.key in payload)) continue;

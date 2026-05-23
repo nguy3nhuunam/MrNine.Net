@@ -8,25 +8,30 @@ import {
   Clapperboard,
   Copy,
   Download,
-  ImageIcon,
+  Image as ImageLucide,
+  ImagePlus,
   Layers,
   LoaderCircle,
+  PlayCircle,
   Send,
   Sparkles,
   Sliders,
   TriangleAlert,
+  Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
 import {
-  imageModels,
-  videoModels,
+  getModelsByCapability,
+  type FalCapability,
   type FalModel,
   type FalParamSpec,
+  textToImageModels,
+  imageToImageModels,
+  textToVideoModels,
+  imageToVideoModels,
 } from "@/lib/fal-models";
-
-type Tab = "image" | "video";
 
 type GeneratedAsset = {
   id: string;
@@ -46,89 +51,135 @@ type Status =
   | { kind: "running"; requestId: string; logs: string[] }
   | { kind: "error"; message: string };
 
+const CAPABILITIES: ReadonlyArray<{
+  id: FalCapability;
+  shortLabelVi: string;
+  shortLabelEn: string;
+  longLabelVi: string;
+  longLabelEn: string;
+  icon: typeof ImageLucide;
+  accent: "red" | "amber" | "cyan" | "lime";
+}> = [
+  {
+    id: "text-to-image",
+    shortLabelVi: "Text → Ảnh",
+    shortLabelEn: "Text → Image",
+    longLabelVi: "Tạo ảnh từ prompt",
+    longLabelEn: "Generate image from prompt",
+    icon: ImageLucide,
+    accent: "red",
+  },
+  {
+    id: "image-to-image",
+    shortLabelVi: "Ảnh → Ảnh",
+    shortLabelEn: "Image → Image",
+    longLabelVi: "Edit / re-imagine / upscale ảnh",
+    longLabelEn: "Edit / re-imagine / upscale image",
+    icon: ImagePlus,
+    accent: "amber",
+  },
+  {
+    id: "text-to-video",
+    shortLabelVi: "Text → Video",
+    shortLabelEn: "Text → Video",
+    longLabelVi: "Render video từ prompt",
+    longLabelEn: "Render video from prompt",
+    icon: Clapperboard,
+    accent: "cyan",
+  },
+  {
+    id: "image-to-video",
+    shortLabelVi: "Ảnh → Video",
+    shortLabelEn: "Image → Video",
+    longLabelVi: "Animate ảnh tĩnh thành cảnh quay",
+    longLabelEn: "Animate a still image",
+    icon: PlayCircle,
+    accent: "lime",
+  },
+];
+
+const ACCENT_MAP = {
+  red: { text: "text-[#ef4444]", bg: "bg-[#ef4444]/10", border: "border-[#ef4444]/35", dot: "bg-[#ef4444]", solid: "bg-[#ef4444]", solidText: "text-[#090807]", hover: "hover:bg-[#ff5b55]" },
+  amber: { text: "text-[#d6a548]", bg: "bg-[#d6a548]/10", border: "border-[#d6a548]/35", dot: "bg-[#d6a548]", solid: "bg-[#d6a548]", solidText: "text-[#100b04]", hover: "hover:bg-[#e8b859]" },
+  cyan: { text: "text-[#47c9d9]", bg: "bg-[#47c9d9]/10", border: "border-[#47c9d9]/35", dot: "bg-[#47c9d9]", solid: "bg-[#47c9d9]", solidText: "text-[#04141a]", hover: "hover:bg-[#5fd6e4]" },
+  lime: { text: "text-[#45a85d]", bg: "bg-[#45a85d]/10", border: "border-[#45a85d]/35", dot: "bg-[#45a85d]", solid: "bg-[#45a85d]", solidText: "text-[#061009]", hover: "hover:bg-[#58c772]" },
+} as const;
+
 const playgroundCopy = {
   vi: {
     back: "Quay lại trang chủ",
     title: "AI Playground",
     subtitle: "Tạo ảnh và video bằng các model mới nhất của FAL.AI",
-    image: "Tạo ảnh",
-    video: "Tạo video",
     modelHeader: "Chọn model",
-    modelHint: "Chỉ hiển thị các model nổi bật và mới nhất",
+    modelHint: "Curated, chỉ các model nổi và mới nhất",
     paramsHeader: "Thông số",
     advanced: "Nâng cao",
     advancedShow: "Hiện",
     advancedHide: "Ẩn",
-    promptLabel: "Mô tả chi tiết, càng cụ thể càng tốt",
+    promptHint: "Mô tả càng cụ thể, kết quả càng đẹp",
     sourceImage: "Ảnh đầu vào",
     sourceImageHint: "Dán URL ảnh công khai (jpg/png/webp)",
-    submit: "Bắt đầu render",
     submitImage: "Tạo ảnh",
     submitVideo: "Render video",
-    cancel: "Huỷ",
+    submitEdit: "Chạy chỉnh sửa",
+    submitAnimate: "Animate ảnh",
     queue: "Hàng đợi FAL",
     statusIdle: "Sẵn sàng nhận lệnh",
     statusSubmitting: "Đang gửi job...",
-    statusQueued: "Đang chờ trong hàng đợi FAL",
+    statusQueued: "Đang chờ trong hàng đợi",
     statusRunning: "FAL đang xử lý",
     statusError: "Có lỗi xảy ra",
     requestId: "Request ID",
     queuePos: "Vị trí",
     gallery: "Kết quả",
-    galleryEmpty: "Chưa có kết quả nào. Mỗi job sẽ được lưu ở đây trong phiên hiện tại.",
+    galleryEmpty: "Chưa có kết quả nào trong phiên này.",
     download: "Tải về",
-    open: "Mở",
     copyUrl: "Sao chép URL",
     copied: "Đã chép",
     needPrompt: "Cần nhập prompt",
-    needImage: "Model này yêu cầu URL ảnh nguồn",
-    yes: "Bật",
-    no: "Tắt",
+    needImage: "Model này cần URL ảnh nguồn",
+    selectedModel: "Model đang chọn",
   },
   en: {
     back: "Back to home",
     title: "AI Playground",
     subtitle: "Generate images and video with the latest FAL.AI models",
-    image: "Image",
-    video: "Video",
     modelHeader: "Pick a model",
-    modelHint: "Curated, latest and most popular models only",
+    modelHint: "Curated — latest and most popular only",
     paramsHeader: "Parameters",
     advanced: "Advanced",
     advancedShow: "Show",
     advancedHide: "Hide",
-    promptLabel: "Describe what you want — be specific",
+    promptHint: "The more specific your prompt, the better the result",
     sourceImage: "Source image",
     sourceImageHint: "Paste a public image URL (jpg/png/webp)",
-    submit: "Start render",
     submitImage: "Generate image",
     submitVideo: "Render video",
-    cancel: "Cancel",
+    submitEdit: "Run edit",
+    submitAnimate: "Animate image",
     queue: "FAL queue",
-    statusIdle: "Idle, ready for command",
+    statusIdle: "Idle, ready",
     statusSubmitting: "Submitting job...",
-    statusQueued: "Waiting in FAL queue",
+    statusQueued: "Waiting in queue",
     statusRunning: "FAL is processing",
     statusError: "Something went wrong",
     requestId: "Request ID",
     queuePos: "Position",
     gallery: "Output",
-    galleryEmpty: "No outputs yet. Every job is saved here for this session.",
+    galleryEmpty: "No outputs in this session yet.",
     download: "Download",
-    open: "Open",
     copyUrl: "Copy URL",
     copied: "Copied",
     needPrompt: "Prompt is required",
-    needImage: "This model needs a source image URL",
-    yes: "On",
-    no: "Off",
+    needImage: "This model requires a source image URL",
+    selectedModel: "Selected model",
   },
 } satisfies Record<WebLanguage, Record<string, string>>;
 
 function buildDefaults(model: FalModel): ParamValues {
   const values: ParamValues = {};
   for (const spec of model.params) {
-    if (spec.default !== undefined) {
+    if (spec.default !== undefined && spec.default !== "") {
       values[spec.key] = spec.default;
     } else if (spec.type === "boolean") {
       values[spec.key] = false;
@@ -148,7 +199,6 @@ function extractAssets(payload: unknown): { url: string; contentType?: string }[
     const v = data.video as { url?: string; content_type?: string };
     if (v.url) assets.push({ url: v.url, contentType: v.content_type });
   }
-
   if (Array.isArray(data.images)) {
     for (const img of data.images) {
       if (img && typeof img === "object") {
@@ -157,12 +207,10 @@ function extractAssets(payload: unknown): { url: string; contentType?: string }[
       }
     }
   }
-
   if (data.image && typeof data.image === "object") {
     const i = data.image as { url?: string; content_type?: string };
     if (i.url) assets.push({ url: i.url, contentType: i.content_type });
   }
-
   return assets;
 }
 
@@ -194,12 +242,7 @@ function ParamControl({
         )}
       >
         <span>{spec.label}</span>
-        <span
-          className={cn(
-            "rounded-full px-2 py-0.5 text-[0.58rem]",
-            on ? "bg-[#45a85d]/22 text-[#dff8e4]" : "bg-white/5 text-[#9a9087]",
-          )}
-        >
+        <span className={cn("rounded-full px-2 py-0.5 text-[0.58rem]", on ? "bg-[#45a85d]/22 text-[#dff8e4]" : "bg-white/5 text-[#9a9087]")}>
           {on ? "ON" : "OFF"}
         </span>
       </button>
@@ -238,6 +281,7 @@ function ParamControl({
           onChange(v === "" ? "" : Number(v));
         }}
         className={inputClasses}
+        placeholder={spec.default !== undefined ? String(spec.default) : ""}
       />
     );
   }
@@ -259,6 +303,7 @@ function ParamControl({
       value={String(value ?? "")}
       onChange={(event) => onChange(event.target.value)}
       className={inputClasses}
+      placeholder={spec.hint ?? ""}
     />
   );
 }
@@ -266,30 +311,52 @@ function ParamControl({
 export function AIPlaygroundShell() {
   const { language, setLanguage } = useLanguage();
   const copy = playgroundCopy[language];
-  const [tab, setTab] = useState<Tab>("image");
-  const [imageModelId, setImageModelId] = useState(imageModels[0].id);
-  const [videoModelId, setVideoModelId] = useState(videoModels[0].id);
-  const [prompt, setPrompt] = useState("");
-  const [sourceImage, setSourceImage] = useState("");
+  const [capability, setCapability] = useState<FalCapability>("text-to-image");
+  const [modelByCapability, setModelByCapability] = useState<Record<FalCapability, string>>({
+    "text-to-image": textToImageModels[0].id,
+    "image-to-image": imageToImageModels[0].id,
+    "text-to-video": textToVideoModels[0].id,
+    "image-to-video": imageToVideoModels[0].id,
+  });
+  const [promptByCapability, setPromptByCapability] = useState<Record<FalCapability, string>>({
+    "text-to-image": "",
+    "image-to-image": "",
+    "text-to-video": "",
+    "image-to-video": "",
+  });
+  const [imageByCapability, setImageByCapability] = useState<Record<FalCapability, string>>({
+    "text-to-image": "",
+    "image-to-image": "",
+    "text-to-video": "",
+    "image-to-video": "",
+  });
+
+  const allModels = useMemo(
+    () => [...textToImageModels, ...imageToImageModels, ...textToVideoModels, ...imageToVideoModels],
+    [],
+  );
+
   const [paramsByModel, setParamsByModel] = useState<Record<string, ParamValues>>(() => {
     const map: Record<string, ParamValues> = {};
-    for (const model of [...imageModels, ...videoModels]) {
+    for (const model of allModels) {
       map[model.id] = buildDefaults(model);
     }
     return map;
   });
+
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [assets, setAssets] = useState<GeneratedAsset[]>([]);
   const [copiedId, setCopiedId] = useState("");
   const pollRef = useRef<number | null>(null);
 
-  const activeModelId = tab === "image" ? imageModelId : videoModelId;
-  const activeModel = useMemo(() => {
-    const list = tab === "image" ? imageModels : videoModels;
-    return list.find((model) => model.id === activeModelId) ?? list[0];
-  }, [tab, activeModelId]);
+  const capabilityModels = getModelsByCapability(capability);
+  const activeModelId = modelByCapability[capability];
+  const activeModel = capabilityModels.find((m) => m.id === activeModelId) ?? capabilityModels[0];
+  const activeAccent = ACCENT_MAP[CAPABILITIES.find((c) => c.id === capability)?.accent ?? "red"];
   const activeParams = paramsByModel[activeModel.id] ?? buildDefaults(activeModel);
+  const prompt = promptByCapability[capability];
+  const sourceImage = imageByCapability[capability];
 
   useEffect(() => {
     return () => {
@@ -314,7 +381,6 @@ export function AIPlaygroundShell() {
     if (pollRef.current) {
       window.clearInterval(pollRef.current);
     }
-
     pollRef.current = window.setInterval(async () => {
       try {
         const res = await fetch(
@@ -322,9 +388,7 @@ export function AIPlaygroundShell() {
           { cache: "no-store" },
         );
         const json = await res.json();
-        if (!res.ok) {
-          throw new Error(json?.error || `HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
 
         const data = json.data ?? {};
         const queueStatus = String(data.status ?? "").toUpperCase();
@@ -348,7 +412,6 @@ export function AIPlaygroundShell() {
           await loadResult(modelId, requestId);
           return;
         }
-
         if (queueStatus === "IN_PROGRESS") {
           setStatus({ kind: "running", requestId, logs });
         } else {
@@ -374,18 +437,13 @@ export function AIPlaygroundShell() {
         { cache: "no-store" },
       );
       const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.error || `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
 
       const found = extractAssets(json.data);
-      const model = [...imageModels, ...videoModels].find((m) => m.id === modelId) ?? activeModel;
+      const model = allModels.find((m) => m.id === modelId) ?? activeModel;
 
       if (!found.length) {
-        setStatus({
-          kind: "error",
-          message: "FAL trả về nhưng không có file media nào",
-        });
+        setStatus({ kind: "error", message: "FAL trả về nhưng không có file media" });
         return;
       }
 
@@ -397,14 +455,10 @@ export function AIPlaygroundShell() {
         prompt,
         createdAt: Date.now(),
       }));
-
-      setAssets((current) => [...next, ...current].slice(0, 24));
+      setAssets((current) => [...next, ...current].slice(0, 32));
       setStatus({ kind: "idle" });
     } catch (error) {
-      setStatus({
-        kind: "error",
-        message: error instanceof Error ? error.message : "Không lấy được kết quả",
-      });
+      setStatus({ kind: "error", message: error instanceof Error ? error.message : "Không lấy được kết quả" });
     }
   }
 
@@ -414,8 +468,7 @@ export function AIPlaygroundShell() {
       setStatus({ kind: "error", message: copy.needPrompt });
       return;
     }
-
-    if (activeModel.needsImage && !sourceImage.trim()) {
+    if (activeModel.imageKey && !sourceImage.trim()) {
       setStatus({ kind: "error", message: copy.needImage });
       return;
     }
@@ -423,7 +476,7 @@ export function AIPlaygroundShell() {
     const payload: Record<string, unknown> = {
       [activeModel.promptKey]: trimmed,
     };
-    if (activeModel.needsImage && activeModel.imageKey) {
+    if (activeModel.imageKey) {
       payload[activeModel.imageKey] = sourceImage.trim();
     }
     for (const spec of activeModel.params) {
@@ -441,34 +494,32 @@ export function AIPlaygroundShell() {
         body: JSON.stringify({ modelId: activeModel.id, payload }),
       });
       const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.error || `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       const requestId = json.requestId as string;
       setStatus({ kind: "queued", requestId, logs: [] });
       startPolling(activeModel.id, requestId);
     } catch (error) {
-      setStatus({
-        kind: "error",
-        message: error instanceof Error ? error.message : "Submit thất bại",
-      });
+      setStatus({ kind: "error", message: error instanceof Error ? error.message : "Submit thất bại" });
     }
   }
-
-  const isWorking = status.kind === "submitting" || status.kind === "queued" || status.kind === "running";
-  const accent =
-    activeModel.outputKind === "video"
-      ? { text: "text-[#47c9d9]", bg: "bg-[#47c9d9]/10", border: "border-[#47c9d9]/30", dot: "bg-[#47c9d9]" }
-      : { text: "text-[#ef4444]", bg: "bg-[#ef4444]/10", border: "border-[#ef4444]/30", dot: "bg-[#ef4444]" };
-
-  const coreParams = activeModel.params.filter((p) => p.group !== "advanced");
-  const advancedParams = activeModel.params.filter((p) => p.group === "advanced");
 
   function copyUrl(asset: GeneratedAsset) {
     void navigator.clipboard.writeText(asset.url);
     setCopiedId(asset.id);
     window.setTimeout(() => setCopiedId(""), 1500);
   }
+
+  const isWorking = status.kind === "submitting" || status.kind === "queued" || status.kind === "running";
+  const coreParams = activeModel.params.filter((p) => p.group !== "advanced");
+  const advancedParams = activeModel.params.filter((p) => p.group === "advanced");
+  const submitLabel =
+    capability === "text-to-image"
+      ? copy.submitImage
+      : capability === "image-to-image"
+        ? copy.submitEdit
+        : capability === "text-to-video"
+          ? copy.submitVideo
+          : copy.submitAnimate;
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#0b0a08] pb-12 text-[#e8dfd4]">
@@ -500,23 +551,16 @@ export function AIPlaygroundShell() {
             <Sparkles className="size-4" />
           </div>
           <div className="min-w-0">
-            <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-[#ef4444]">
-              MrNine / FAL.AI
-            </p>
+            <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-[#ef4444]">MrNine / FAL.AI</p>
             <h1 className="truncate text-lg font-black tracking-[-0.04em] text-[#f4eadc]">{copy.title}</h1>
           </div>
         </div>
-
         <div className="ml-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#9f968b] sm:flex">
             <span
               className={cn(
                 "size-1.5 rounded-full",
-                status.kind === "error"
-                  ? "bg-[#ef4444]"
-                  : isWorking
-                    ? "bg-[#d6a548] animate-pulse"
-                    : "bg-[#45a85d]",
+                status.kind === "error" ? "bg-[#ef4444]" : isWorking ? "bg-[#d6a548] animate-pulse" : "bg-[#45a85d]",
               )}
             />
             {status.kind === "error"
@@ -549,81 +593,93 @@ export function AIPlaygroundShell() {
         </div>
       </header>
 
-      <div className="relative z-10 mx-auto max-w-[88rem] px-4 pt-6 sm:px-6 lg:px-8">
-        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">{copy.title}</p>
-            <h2 className="mt-1 max-w-2xl text-2xl font-black leading-tight tracking-[-0.04em] text-[#f4eadc] sm:text-3xl">
-              {copy.subtitle}
-            </h2>
-          </div>
-          <div className="flex rounded-md border border-[#25211b] bg-[#0d0b08]/82 p-1 font-mono text-[0.62rem] uppercase tracking-[0.16em]">
-            <button
-              type="button"
-              onClick={() => setTab("image")}
-              className={cn(
-                "flex items-center gap-2 rounded px-3 py-2 transition",
-                tab === "image"
-                  ? "bg-[#ef4444]/12 text-[#ffd7d3] shadow-[0_0_0_1px_rgba(239,68,68,0.4)_inset]"
-                  : "text-[#9a9087] hover:text-[#f4eadc]",
-              )}
-            >
-              <ImageIcon className="size-3.5" />
-              {copy.image}
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("video")}
-              className={cn(
-                "flex items-center gap-2 rounded px-3 py-2 transition",
-                tab === "video"
-                  ? "bg-[#47c9d9]/12 text-[#cdf3fb] shadow-[0_0_0_1px_rgba(71,201,217,0.4)_inset]"
-                  : "text-[#9a9087] hover:text-[#f4eadc]",
-              )}
-            >
-              <Clapperboard className="size-3.5" />
-              {copy.video}
-            </button>
-          </div>
+      <div className="relative z-10 mx-auto max-w-[92rem] px-4 pt-6 sm:px-6 lg:px-8">
+        <div className="mb-4">
+          <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">{copy.title}</p>
+          <h2 className="mt-1 max-w-2xl text-2xl font-black leading-tight tracking-[-0.04em] text-[#f4eadc] sm:text-3xl">
+            {copy.subtitle}
+          </h2>
         </div>
+
+        <nav className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {CAPABILITIES.map((cap) => {
+            const Icon = cap.icon;
+            const active = capability === cap.id;
+            const accent = ACCENT_MAP[cap.accent];
+            return (
+              <button
+                key={cap.id}
+                type="button"
+                onClick={() => setCapability(cap.id)}
+                className={cn(
+                  "group flex flex-col items-start gap-2 rounded-lg border px-3 py-2.5 text-left transition",
+                  active
+                    ? cn(accent.border, accent.bg, "shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]")
+                    : "border-[#25211b] bg-[#0d0b08]/82 hover:border-white/20",
+                )}
+              >
+                <div className="flex w-full items-center justify-between">
+                  <div className={cn("flex size-7 items-center justify-center rounded-md border", accent.border, accent.bg)}>
+                    <Icon className={cn("size-3.5", accent.text)} />
+                  </div>
+                  <span
+                    className={cn(
+                      "font-mono text-[0.5rem] uppercase tracking-[0.18em]",
+                      active ? accent.text : "text-[#756d64]",
+                    )}
+                  >
+                    {getModelsByCapability(cap.id).length} models
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <div className={cn("text-[0.84rem] font-bold leading-tight", active ? "text-[#f4eadc]" : "text-[#cfc4b8]")}>
+                    {language === "vi" ? cap.shortLabelVi : cap.shortLabelEn}
+                  </div>
+                  <p className="mt-0.5 text-[0.68rem] leading-4 text-[#9a9087]">
+                    {language === "vi" ? cap.longLabelVi : cap.longLabelEn}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </nav>
 
         <div className="grid gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
           <aside className="space-y-3">
             <div className="rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-3">
               <div className="mb-2 flex items-center justify-between">
-                <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
+                <p className={cn("font-mono text-[0.58rem] uppercase tracking-[0.2em]", activeAccent.text)}>
                   {copy.modelHeader}
                 </p>
                 <Layers className="size-3.5 text-[#9a9087]" />
               </div>
               <p className="mb-3 text-[0.7rem] leading-5 text-[#9a9087]">{copy.modelHint}</p>
-              <div className="space-y-1.5">
-                {(tab === "image" ? imageModels : videoModels).map((model) => {
+              <div className="max-h-[60vh] space-y-1.5 overflow-y-auto pr-1">
+                {capabilityModels.map((model) => {
                   const selected = activeModel.id === model.id;
                   return (
                     <button
                       key={model.id}
                       type="button"
-                      onClick={() => {
-                        if (tab === "image") setImageModelId(model.id);
-                        else setVideoModelId(model.id);
-                      }}
+                      onClick={() =>
+                        setModelByCapability((current) => ({ ...current, [capability]: model.id }))
+                      }
                       className={cn(
                         "group w-full rounded-md border px-3 py-2.5 text-left transition",
                         selected
-                          ? cn("bg-[#14100d]", accent.border)
+                          ? cn("bg-[#14100d]", activeAccent.border)
                           : "border-[#25211b] hover:border-white/20 hover:bg-white/[0.03]",
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="truncate text-[0.86rem] font-bold text-[#f4eadc]">{model.label}</span>
+                            <span className="truncate text-[0.84rem] font-bold text-[#f4eadc]">{model.label}</span>
                             {model.badge ? (
                               <span
                                 className={cn(
                                   "rounded border px-1.5 py-0.5 font-mono text-[0.5rem] tracking-[0.18em]",
-                                  selected ? cn(accent.text, accent.border) : "border-white/10 text-[#9a9087]",
+                                  selected ? cn(activeAccent.text, activeAccent.border) : "border-white/10 text-[#9a9087]",
                                 )}
                               >
                                 {model.badge}
@@ -638,7 +694,7 @@ export function AIPlaygroundShell() {
                         <span
                           className={cn(
                             "mt-1 size-2 shrink-0 rounded-full",
-                            selected ? accent.dot : "bg-[#3a322a]",
+                            selected ? activeAccent.dot : "bg-[#3a322a]",
                           )}
                         />
                       </div>
@@ -694,8 +750,8 @@ export function AIPlaygroundShell() {
             <div className="rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <div>
-                  <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
-                    {activeModel.label}
+                  <p className={cn("font-mono text-[0.58rem] uppercase tracking-[0.2em]", activeAccent.text)}>
+                    {copy.selectedModel} · {activeModel.label}
                   </p>
                   <h3 className="mt-1 text-base font-bold tracking-[-0.02em] text-[#f4eadc]">
                     {activeModel.promptLabel}
@@ -704,27 +760,29 @@ export function AIPlaygroundShell() {
                 <span
                   className={cn(
                     "rounded-md border px-2 py-1 font-mono text-[0.55rem] uppercase tracking-[0.16em]",
-                    accent.border,
-                    accent.text,
-                    accent.bg,
+                    activeAccent.border,
+                    activeAccent.text,
+                    activeAccent.bg,
                   )}
                 >
-                  {activeModel.outputKind === "video" ? "video" : "image"}
+                  {activeModel.outputKind}
                 </span>
               </div>
 
               <textarea
                 value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
+                onChange={(event) =>
+                  setPromptByCapability((current) => ({ ...current, [capability]: event.target.value }))
+                }
                 placeholder={activeModel.promptPlaceholder}
                 rows={4}
                 className="min-h-[6rem] w-full resize-y rounded-md border border-[#2a251f] bg-[#0c0a08] p-3 text-sm leading-6 text-[#f4eadc] outline-none transition focus:border-[#ef4444]/60 focus:bg-[#120c09]"
               />
               <p className="mt-1.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
-                {copy.promptLabel}
+                {copy.promptHint}
               </p>
 
-              {activeModel.needsImage ? (
+              {activeModel.imageKey ? (
                 <div className="mt-3">
                   <label className="mb-1 block font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
                     {activeModel.imageLabel ?? copy.sourceImage}
@@ -732,7 +790,9 @@ export function AIPlaygroundShell() {
                   <input
                     type="url"
                     value={sourceImage}
-                    onChange={(event) => setSourceImage(event.target.value)}
+                    onChange={(event) =>
+                      setImageByCapability((current) => ({ ...current, [capability]: event.target.value }))
+                    }
                     placeholder="https://..."
                     className="w-full rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 font-mono text-[0.78rem] text-[#f4eadc] outline-none transition focus:border-[#ef4444]/60"
                   />
@@ -807,13 +867,13 @@ export function AIPlaygroundShell() {
                   disabled={isWorking}
                   className={cn(
                     "h-11 rounded-md px-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.18em]",
-                    activeModel.outputKind === "video"
-                      ? "bg-[#47c9d9] text-[#04141a] hover:bg-[#5fd6e4]"
-                      : "bg-[#ef4444] text-[#090807] hover:bg-[#ff5b55]",
+                    activeAccent.solid,
+                    activeAccent.solidText,
+                    activeAccent.hover,
                   )}
                 >
-                  {isWorking ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
-                  {activeModel.outputKind === "video" ? copy.submitVideo : copy.submitImage}
+                  {isWorking ? <LoaderCircle className="size-4 animate-spin" /> : capability.includes("image") && !capability.includes("video") ? <Wand2 className="size-4" /> : <Send className="size-4" />}
+                  {submitLabel}
                 </Button>
               </div>
             </div>
@@ -821,9 +881,7 @@ export function AIPlaygroundShell() {
             <div className="rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#45a85d]">{copy.gallery}</p>
-                <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
-                  {assets.length}
-                </span>
+                <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">{assets.length}</span>
               </div>
               {assets.length === 0 ? (
                 <div className="rounded-md border border-dashed border-[#2a251f] bg-[#100d0a]/40 px-3 py-10 text-center">
@@ -832,26 +890,14 @@ export function AIPlaygroundShell() {
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {assets.map((asset) => (
-                    <div
-                      key={asset.id}
-                      className="group overflow-hidden rounded-lg border border-[#25211b] bg-[#0c0a08]"
-                    >
+                    <div key={asset.id} className="group overflow-hidden rounded-lg border border-[#25211b] bg-[#0c0a08]">
                       <div className="relative aspect-video bg-black">
                         {asset.kind === "video" ? (
-                          <video
-                            src={asset.url}
-                            controls
-                            playsInline
-                            className="h-full w-full bg-black object-contain"
-                          />
+                          <video src={asset.url} controls playsInline className="h-full w-full bg-black object-contain" />
                         ) : (
                           <a href={asset.url} target="_blank" rel="noreferrer">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={asset.url}
-                              alt={asset.prompt}
-                              className="h-full w-full bg-black object-contain"
-                            />
+                            <img src={asset.url} alt={asset.prompt} className="h-full w-full bg-black object-contain" />
                           </a>
                         )}
                       </div>
