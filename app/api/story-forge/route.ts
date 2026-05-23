@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { requireAuth } from "@/lib/require-auth";
 
 const PROJECT_ROOT = process.cwd();
 const INKOS_PROJECT_DIR = join(PROJECT_ROOT, ".webai-inkos");
@@ -291,6 +292,9 @@ function parseInkosJson(stdout: string): StoryForgeResponse {
 }
 
 export async function POST(request: Request) {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   if (!existsSync(INKOS_CLI)) {
     return Response.json(
       {

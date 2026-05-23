@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { languageOptions as appLanguageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
@@ -1342,6 +1342,8 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
 
 export function HomeCommandSurface() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { status: sessionStatus } = useSession();
   const shouldReduceMotion = useReducedMotion();
   const { language, setLanguage } = useLanguage();
   const [interfaceTheme, setInterfaceTheme] = useState<InterfaceTheme>("auto");
@@ -1349,6 +1351,8 @@ export function HomeCommandSurface() {
   const [commandInput, setCommandInput] = useState("");
   const [commandFocused, setCommandFocused] = useState(false);
   const [previewModule, setPreviewModule] = useState<ModuleCard | null>(null);
+  const [authPromptDismissed, setAuthPromptDismissed] = useState(false);
+  const [authPromptForced, setAuthPromptForced] = useState(false);
   const heroRef = useRef<HTMLElement | null>(null);
   const commandInputRef = useRef<HTMLInputElement | null>(null);
   const activeTheme = interfaceThemes.find((theme) => theme.value === interfaceTheme) ?? interfaceThemes[0];
@@ -1357,6 +1361,27 @@ export function HomeCommandSurface() {
   const slashMode = commandInput.trimStart().startsWith("/");
   const PreviewIcon = previewModule?.icon;
   const copy = homeCopy[language];
+  const authPromptCopy = language === "vi"
+    ? "Vui lòng đăng nhập để sử dụng các tính năng MrNine."
+    : "Please sign in to use MrNine features.";
+  const loginRequested = searchParams?.get("login") === "1";
+  const authPromptVisible =
+    sessionStatus !== "authenticated" && !authPromptDismissed && (authPromptForced || loginRequested);
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated") {
+      return;
+    }
+    if (!searchParams?.has("login") && !searchParams?.has("from")) {
+      return;
+    }
+    const next = searchParams.get("from");
+    if (next && next.startsWith("/") && !next.startsWith("/api")) {
+      router.replace(next);
+    } else {
+      router.replace("/");
+    }
+  }, [sessionStatus, searchParams, router]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1419,6 +1444,12 @@ export function HomeCommandSurface() {
       return;
     }
 
+    if (sessionStatus !== "authenticated") {
+      setAuthPromptForced(true);
+      setAuthPromptDismissed(false);
+      return;
+    }
+
     if (armingModule) {
       return;
     }
@@ -1433,6 +1464,11 @@ export function HomeCommandSurface() {
 
   function submitCommand(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (sessionStatus !== "authenticated") {
+      setAuthPromptForced(true);
+      setAuthPromptDismissed(false);
+      return;
+    }
     const prompt = commandInput.trim();
 
     window.dispatchEvent(new CustomEvent("mrnine-open-chat", { detail: { prompt } }));
@@ -1465,6 +1501,32 @@ export function HomeCommandSurface() {
       <a href="#main-content" className="skip-link focus:left-4 focus:top-4">
         {copy.skip}
       </a>
+
+      {authPromptVisible ? (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center px-3 pt-3">
+          <div className="pointer-events-auto flex max-w-xl items-start gap-3 rounded-lg border border-[#ef4444]/40 bg-[#0d0805]/96 px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+            <Lock className="mt-0.5 size-4 shrink-0 text-[#ef4444]" />
+            <div className="flex-1 text-[0.78rem] leading-5 text-[#f4eadc]">{authPromptCopy}</div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => void signIn("google")}
+                className="rounded-md border border-[#ef4444]/45 bg-[#ef4444]/12 px-2.5 py-1 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#ffe9e5] transition hover:bg-[#ef4444]/20"
+              >
+                {language === "vi" ? "Đăng nhập" : "Sign in"}
+              </button>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setAuthPromptDismissed(true)}
+                className="flex size-7 items-center justify-center rounded-md border border-white/10 text-[#9a9087] transition hover:bg-white/[0.05] hover:text-[#f4eadc]"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="pointer-events-none absolute inset-0 transition-colors duration-300" style={activeVisuals.ambient} />
       <div className="pointer-events-none absolute inset-0 bg-[size:24px_24px] opacity-55 transition-colors duration-300" style={activeVisuals.grid} />

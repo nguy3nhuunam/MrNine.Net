@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getModelById } from "@/lib/fal-models";
+import { requireAuth } from "@/lib/require-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,6 +26,9 @@ function coerceNumber(value: unknown): number | undefined {
 }
 
 export async function POST(request: Request) {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   let modelId = "";
   let payload: Record<string, unknown> = {};
 

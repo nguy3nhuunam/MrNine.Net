@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/require-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,6 +25,9 @@ function isAllowedUrl(raw: string): boolean {
 }
 
 export async function GET(request: Request) {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   const url = new URL(request.url);
   const target = url.searchParams.get("url") ?? "";
   const mode = url.searchParams.get("mode") ?? "status";

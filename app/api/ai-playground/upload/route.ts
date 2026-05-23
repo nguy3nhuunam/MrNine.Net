@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/require-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,6 +13,9 @@ function getKey() {
 }
 
 export async function POST(request: Request) {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   let formData: FormData;
   try {
     formData = await request.formData();

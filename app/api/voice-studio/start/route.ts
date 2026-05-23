@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/require-auth";
 
 const STUDIO_PORT = 7861;
 const STUDIO_URL = `http://127.0.0.1:${STUDIO_PORT}`;
@@ -142,6 +143,9 @@ async function getRuntimeStatus() {
 }
 
 export async function POST() {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   const status = await getRuntimeStatus();
 
   if (status.status === "ready") {
@@ -222,6 +226,9 @@ export async function POST() {
 }
 
 export async function GET() {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   const status = await getRuntimeStatus();
 
   return NextResponse.json({

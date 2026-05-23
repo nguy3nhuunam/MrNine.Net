@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/require-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -75,6 +76,9 @@ function extractAssistantText(json: unknown) {
 }
 
 export async function POST(request: Request) {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   const body = await request.json().catch(() => null);
   const messages = normalizeMessages((body as { messages?: unknown } | null)?.messages);
 

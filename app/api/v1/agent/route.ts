@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Agent } from "undici";
+import { requireAuth } from "@/lib/require-auth";
 
 const INKOS_AGENT_URL = "http://127.0.0.1:4567/api/v1/agent";
 const longRunningInkosDispatcher = new Agent({
@@ -11,6 +12,9 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("connection");

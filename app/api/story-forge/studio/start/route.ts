@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/require-auth";
 import {
   assertInkosInstalled,
   createInkosProcessEnv,
@@ -33,6 +34,9 @@ async function isStudioReady() {
 }
 
 export async function POST() {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   if (!assertInkosInstalled()) {
     return NextResponse.json(
       { ok: false, message: "InkOS is not installed. Run npm install first." },
@@ -75,6 +79,9 @@ export async function POST() {
 }
 
 export async function GET() {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   return NextResponse.json({
     ok: await isStudioReady(),
     status: await isStudioReady() ? "ready" : "offline",

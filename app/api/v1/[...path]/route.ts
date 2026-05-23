@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Agent } from "undici";
+import { requireAuth } from "@/lib/require-auth";
 
 const INKOS_API_BASE = "http://127.0.0.1:4567/api/v1";
 const longRunningInkosDispatcher = new Agent({
@@ -18,6 +19,9 @@ type RouteContext = {
 };
 
 async function proxyInkosApi(request: NextRequest, context: RouteContext) {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   const { path = [] } = await context.params;
   const targetUrl = new URL(`${INKOS_API_BASE}/${path.map(encodeURIComponent).join("/")}`);
   targetUrl.search = request.nextUrl.search;

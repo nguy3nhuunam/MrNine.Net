@@ -3,6 +3,7 @@ import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/require-auth";
 
 const PROJECT_ROOT = process.cwd();
 const PIXELLE_DIR = join(PROJECT_ROOT, ".webai-pixelle-video");
@@ -165,6 +166,9 @@ async function getRuntimeStatus() {
 }
 
 export async function POST() {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   const status = await getRuntimeStatus();
 
   if (status.status === "ready") {
@@ -253,6 +257,9 @@ export async function POST() {
 }
 
 export async function GET() {
+  const blocked = await requireAuth();
+  if (blocked) return blocked;
+
   const status = await getRuntimeStatus();
 
   return NextResponse.json({
