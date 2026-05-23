@@ -293,46 +293,50 @@ export async function runWriterPart(input: {
       content: `Truyện: "${input.book.title}" — Chương ${input.chapterNumber}.
 
 # ${spec.name}
-Nhiệm vụ phần này: ${spec.mission}
-Cách kết phần này: ${spec.ending}
+Nhiệm vụ: ${spec.mission}
+Cách kết: ${spec.ending}
 
 ${previousBlock}
 
-# Intent của cả chương (Planner đã viết — BÁM SÁT):
-${input.intent}
+# Intent của cả chương (BÁM SÁT):
+${input.intent.slice(0, 1200)}
 
 # Story bible:
-${input.composed.selected.storyBible.slice(0, 1500)}
+${input.composed.selected.storyBible.slice(0, 800)}
 
 # Rule stack:
-${input.composed.ruleStack.slice(0, 1500)}
+${input.composed.ruleStack.slice(0, 800)}
 
-# Trạng thái thế giới hiện tại:
-${input.composed.selected.currentState.slice(0, 1200) || "(trống)"}
+# Trạng thái thế giới:
+${input.composed.selected.currentState.slice(0, 600) || "(trống)"}
 
 # Hooks đang mở:
-${input.composed.selected.pendingHooks.slice(0, 800) || "(trống)"}
+${input.composed.selected.pendingHooks.slice(0, 500) || "(trống)"}
 
 # Cảm xúc trục:
-${input.composed.selected.emotionalArcs.slice(0, 600) || "(trống)"}
+${input.composed.selected.emotionalArcs.slice(0, 400) || "(trống)"}
 
-# Tài sản / vật phẩm hiện có:
-${input.composed.selected.particleLedger.slice(0, 600) || "(trống)"}
+# Tài sản:
+${input.composed.selected.particleLedger.slice(0, 400) || "(trống)"}
 
-# Tóm tắt các chương gần nhất:
-${input.composed.selected.recentSummaries.slice(0, 1500) || "(chưa có)"}
+# Tóm tắt chương gần nhất:
+${input.composed.selected.recentSummaries.slice(0, 800) || "(chưa có)"}
 
-# Yêu cầu output cho PHẦN ${input.part} / 5
-- Độ dài phần này: ~${partTarget} chữ (chấp nhận ${partMin}–${partMax}). Cả chương sẽ hợp 5 phần đến ~${totalTarget} chữ.
+# Yêu cầu PHẦN ${input.part} / 5
+- Độ dài phần này: ~${partTarget} chữ (chấp nhận ${partMin}–${partMax}). Cả chương ~${totalTarget} chữ.
 - ${titleLine}
 - Tránh các từ AI hay dùng (suy cho cùng, không thể phủ nhận, một cách khéo léo, đầy nghệ thuật, không hề ngạc nhiên, đáng kinh ngạc, đầy ấn tượng).
 - Thoại tự nhiên, có khoảng lặng.
-- Tuyệt đối không gọi tên độc giả, không break the fourth wall, không xưng "tôi/AI".
-- KHÔNG kết phần này bằng câu kiểu "Hết phần X" hay "Tiếp phần Y" — viết liền mạch để gộp được.`,
+- Không gọi tên độc giả, không break the fourth wall, không xưng "tôi/AI".
+- KHÔNG kết phần bằng câu kiểu "Hết phần X" — viết liền mạch để gộp được.`,
     },
   ];
 
-  return callLlm(messages, { temperature: 0.85, maxTokens: 3500, timeoutMs: 50_000 }, llmFor(input.book, "writer"));
+  return callLlm(
+    messages,
+    { temperature: 0.85, maxTokens: 2500, tier: "fast", timeoutMs: 40_000 },
+    llmFor(input.book, "writer"),
+  );
 }
 
 // Merge 5 part strings into one chapter draft. Strips leading chapter title
