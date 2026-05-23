@@ -20,6 +20,7 @@ export async function GET(_request: Request, ctx: Ctx) {
     title: ch.title,
     status: ch.status,
     contextBrief: ch.contextBrief ?? "",
+    notes: ch.notes ?? "",
     intent: ch.intent ?? "",
     context: ch.context ?? null,
     ruleStack: ch.ruleStack ?? "",
@@ -44,7 +45,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const userId = session.user.id;
 
-  let body: Partial<{ title: string; contextBrief: string; status: string }> = {};
+  let body: Partial<{ title: string; contextBrief: string; notes: string; status: string }> = {};
   try {
     body = await request.json();
   } catch {}
@@ -52,6 +53,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   const update: Record<string, unknown> = { updatedAt: new Date() };
   if (typeof body.title === "string") update.title = body.title.slice(0, 200);
   if (typeof body.contextBrief === "string") update.contextBrief = body.contextBrief.slice(0, 2000);
+  if (typeof body.notes === "string") update.notes = body.notes.slice(0, 4000);
   if (typeof body.status === "string" && ["planned", "drafted", "audited", "approved"].includes(body.status)) {
     update.status = body.status;
   }
