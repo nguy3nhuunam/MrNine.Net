@@ -201,14 +201,14 @@ const modules = [
   {
     number: "01",
     title: "AI Playground",
-    detail: "Chat, image, voice",
-    summary: "One command surface for quick chat, creative generation, and cross-module routing.",
-    signal: "Command core",
-    action: "Open command",
+    detail: "Image and video / FAL.AI",
+    summary: "Tạo ảnh và video bằng các model mới nhất của FAL.AI ngay trên một bề mặt.",
+    signal: "FAL queue",
+    action: "Open playground",
     icon: Sparkles,
     accent: "red",
     shortcut: "1",
-    lastUsed: "2 min",
+    lastUsed: "ready",
   },
   {
     number: "02",
@@ -439,10 +439,10 @@ const moduleCopy = {
   vi: {
     "AI Playground": {
       title: "AI Playground",
-      detail: "Chat, ảnh, giọng nói",
-      summary: "Một bề mặt lệnh cho chat nhanh, sáng tạo nội dung và điều phối qua nhiều module.",
-      signal: "Lõi lệnh",
-      action: "Mở chat",
+      detail: "Tạo ảnh và video / FAL.AI",
+      summary: "Tạo ảnh và video bằng các model mới nhất của FAL.AI trong cùng một bề mặt.",
+      signal: "Hàng đợi FAL",
+      action: "Mở playground",
     },
     "Story Forge": {
       title: "Story Forge",
@@ -1408,14 +1408,14 @@ export function HomeCommandSurface() {
 
   function openModule(title: string) {
     const destinations: Record<string, string> = {
+      "AI Playground": "/ai-playground",
       "Story Forge": "/story-forge",
       "Voice Studio": "/voice-studio",
       "Vision Foundry": "/video-studio",
     };
-    const isAiPlayground = title === "AI Playground";
     const destination = destinations[title];
 
-    if (!isAiPlayground && !destination) {
+    if (!destination) {
       return;
     }
 
@@ -1427,12 +1427,6 @@ export function HomeCommandSurface() {
     setArmingModule(title);
 
     window.setTimeout(() => {
-      if (isAiPlayground) {
-        window.dispatchEvent(new CustomEvent("mrnine-open-chat"));
-        setArmingModule("");
-        return;
-      }
-
       router.push(destination);
     }, delay);
   }
