@@ -415,3 +415,276 @@ a {
   color: white;
   text-decoration: none;
 }
+
+/* AI Playground — animations */
+
+@keyframes playgroundFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes playgroundDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes playgroundCapabilityArm {
+  0% {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+      0 0 0 rgba(239, 68, 68, 0);
+  }
+
+  60% {
+    box-shadow:
+      0 0 0 1px currentColor inset,
+      0 0 28px rgba(239, 68, 68, 0.18);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+      0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes playgroundShimmer {
+  0% {
+    background-position: -160% 0;
+  }
+
+  100% {
+    background-position: 260% 0;
+  }
+}
+
+@keyframes playgroundQueueScan {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes playgroundResultArrive {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+    filter: blur(8px) saturate(0.4);
+  }
+
+  60% {
+    opacity: 1;
+    filter: blur(0) saturate(1);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: none;
+  }
+}
+
+@keyframes playgroundUploadOrbit {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(214, 165, 72, 0.4) inset,
+      0 0 18px rgba(214, 165, 72, 0.18);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(214, 165, 72, 0.7) inset,
+      0 0 32px rgba(214, 165, 72, 0.34);
+  }
+}
+
+@keyframes playgroundCaretSignal {
+  0%,
+  62%,
+  100% {
+    border-color: rgba(239, 68, 68, 0.7);
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2) inset;
+  }
+
+  72% {
+    border-color: rgba(239, 68, 68, 0.96);
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.5) inset;
+  }
+}
+
+@keyframes playgroundRunArmed {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(239, 68, 68, 0.32),
+      0 18px 48px rgba(239, 68, 68, 0.18);
+  }
+
+  60% {
+    box-shadow:
+      0 0 0 14px rgba(239, 68, 68, 0),
+      0 22px 56px rgba(239, 68, 68, 0.26);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(239, 68, 68, 0),
+      0 18px 48px rgba(239, 68, 68, 0.18);
+  }
+}
+
+.playground-fade-in {
+  animation: playgroundFadeIn 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.playground-dropdown {
+  animation: playgroundDropdownIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top center;
+}
+
+.playground-capability-armed {
+  animation: playgroundCapabilityArm 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.playground-textarea-active {
+  animation: playgroundCaretSignal 3.6s ease-in-out infinite;
+}
+
+.playground-loading-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.playground-loading-shimmer::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  content: "";
+  animation: playgroundShimmer 1.6s linear infinite;
+}
+
+.playground-queue-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.playground-queue-bar::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(214, 165, 72, 0.32),
+    transparent
+  );
+  content: "";
+  animation: playgroundQueueScan 2.2s linear infinite;
+}
+
+.playground-result-arrive {
+  animation: playgroundResultArrive 540ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.playground-upload-active {
+  animation: playgroundUploadOrbit 1.4s ease-in-out infinite;
+}
+
+.playground-run-armed {
+  animation: playgroundRunArmed 1.8s ease-in-out infinite;
+}
+
+.playground-thumb {
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.playground-thumb:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.45);
+}
+
+.playground-card-soft {
+  transition:
+    border-color 220ms ease,
+    background-color 220ms ease,
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.playground-card-soft:hover {
+  transform: translateY(-1px);
+}
+
+.playground-cap-pill {
+  position: relative;
+  overflow: hidden;
+}
+
+.playground-cap-pill::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  content: "";
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(244, 234, 220, 0.08) 50%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  background-position: -160% 0;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.playground-cap-pill[data-active="true"]::after {
+  opacity: 1;
+  animation: playgroundShimmer 6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playground-fade-in,
+  .playground-dropdown,
+  .playground-capability-armed,
+  .playground-textarea-active,
+  .playground-loading-shimmer::after,
+  .playground-queue-bar::after,
+  .playground-result-arrive,
+  .playground-upload-active,
+  .playground-run-armed,
+  .playground-cap-pill::after {
+    animation: none !important;
+  }
+
+  .playground-thumb,
+  .playground-card-soft {
+    transition: none;
+  }
+}
