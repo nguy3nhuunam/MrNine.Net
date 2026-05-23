@@ -225,6 +225,22 @@ ${input.composed.selected.particleLedger.slice(0, 800) || "(trống)"}
 // chapterWords / 5 and is conditioned on every previous part for continuity.
 // ============================================================================
 
+// Build a tight summary of previous parts so prompt size stays roughly
+// constant across the 5 stages. Each prior part is condensed into its first
+// 220 chars + last 120 chars so the model still sees how it ended (for the
+// hand-off) and how it began (for tone).
+function summarisePriorParts(parts: ReadonlyArray<{ index: number; text: string }>): string {
+  if (!parts.length) return "";
+  return parts
+    .map(({ index, text }) => {
+      const cleaned = text.replace(/\s+/g, " ").trim();
+      const head = cleaned.slice(0, 220);
+      const tail = cleaned.length > 360 ? `... [tiếp] ${cleaned.slice(-120)}` : cleaned.slice(220);
+      return `Phần ${index} đã viết:\n${head}${tail ? "\n" + tail : ""}`;
+    })
+    .join("\n\n");
+}
+
 export type WriterPart = 1 | 2 | 3 | 4 | 5;
 
 export async function runWriterPart(input: {
@@ -233,6 +249,7 @@ export async function runWriterPart(input: {
   intent: string;
   composed: ComposedContext;
   part: WriterPart;
+  /** Either the raw previous parts joined (legacy) or already-summarised text. */
   previousParts: string;
 }): Promise<string> {
   const totalTarget = input.book.chapterWords;
@@ -332,9 +349,15 @@ ${input.composed.selected.recentSummaries.slice(0, 800) || "(chưa có)"}
     },
   ];
 
+  // Cap output: a Vietnamese paragraph of ~500 chars ≈ 250 tokens. Give the
+  // model 2x buffer (500 → 1000 tokens) so it can finish a sentence cleanly,
+  // but no more — that prevents the model from over-generating and Yunwu
+  // from spending 30s on a runaway part.
+  const tokenBudget = Math.min(1200, Math.max(600, Math.ceil(partTarget * 1.5)));
+
   return callLlm(
     messages,
-    { temperature: 0.85, maxTokens: 2500, tier: "fast", timeoutMs: 40_000 },
+    { temperature: 0.85, maxTokens: tokenBudget, tier: "fast", timeoutMs: 40_000 },
     llmFor(input.book, "writer"),
   );
 }

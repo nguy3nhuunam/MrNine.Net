@@ -1,9 +1,29 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { mergeChapterParts, runComposer, runWriterPart, runWriter, type WriterPart } from "@/lib/story-writer/agents";
+import {
+  mergeChapterParts,
+  runComposer,
+  runWriterPart,
+  runWriter,
+  type WriterPart,
+} from "@/lib/story-writer/agents";
 import { countWords, loadBookForUser, loadRecentSummaries, loadTruthMap } from "@/lib/story-writer/pipeline";
 import { chaptersCol, toId } from "@/lib/story-writer/store";
 import { safeJsonRoute } from "@/lib/safe-json-route";
+
+// Summarise prior parts to a compact head + tail snippet so the prompt size
+// for part 5 stays roughly the same as part 1, not 4× larger.
+function compactPrior(parts: Array<{ index: number; text: string }>): string {
+  if (!parts.length) return "";
+  return parts
+    .map(({ index, text }) => {
+      const cleaned = text.replace(/\s+/g, " ").trim();
+      const head = cleaned.slice(0, 220);
+      const tail = cleaned.length > 360 ? ` ... [tiếp] ${cleaned.slice(-120)}` : "";
+      return `Phần ${index} (đã viết): ${head}${tail}`;
+    })
+    .join("\n\n");
+}
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -45,13 +65,15 @@ async function _handler_POST(request: Request, ctx: Ctx) {
 
   try {
     if (part) {
-      // Build the previous parts as context for this part
+      // Build a compact summary of the previous parts so the prompt stays
+      // roughly constant in size as we move from part 1 → part 5.
       const existing = ch.draftParts ?? {};
-      const prev: string[] = [];
-      if (part >= 2 && existing.part1) prev.push(`## (Phần 1)\n${existing.part1}`);
-      if (part >= 3 && existing.part2) prev.push(`## (Phần 2)\n${existing.part2}`);
-      if (part >= 4 && existing.part3) prev.push(`## (Phần 3)\n${existing.part3}`);
-      if (part >= 5 && existing.part4) prev.push(`## (Phần 4)\n${existing.part4}`);
+      const collected: Array<{ index: number; text: string }> = [];
+      if (part >= 2 && existing.part1) collected.push({ index: 1, text: existing.part1 });
+      if (part >= 3 && existing.part2) collected.push({ index: 2, text: existing.part2 });
+      if (part >= 4 && existing.part3) collected.push({ index: 3, text: existing.part3 });
+      if (part >= 5 && existing.part4) collected.push({ index: 4, text: existing.part4 });
+      const previousParts = compactPrior(collected);
 
       // Validate prerequisites
       if (part === 2 && !existing.part1) {
@@ -73,7 +95,7 @@ async function _handler_POST(request: Request, ctx: Ctx) {
         intent: ch.intent,
         composed,
         part,
-        previousParts: prev.join("\n\n"),
+        previousParts,
       });
 
       const nextParts = { ...existing, [`part${part}`]: segment };
