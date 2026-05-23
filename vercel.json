@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "app/api/smart-recap/route.ts": { "maxDuration": 60 },
+    "app/api/docsense/route.ts": { "maxDuration": 60 },
+    "app/api/ai-playground/upload/route.ts": { "maxDuration": 30 },
+    "app/api/ai-playground/submit/route.ts": { "maxDuration": 30 },
+    "app/api/ai-playground/status/route.ts": { "maxDuration": 30 }
+  }
+}
