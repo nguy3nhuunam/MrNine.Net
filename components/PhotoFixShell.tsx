@@ -13,6 +13,7 @@ import {
   Send,
   Smile,
   Sparkles,
+  Trash2,
   TriangleAlert,
   Upload,
   Wand2,
@@ -51,7 +52,7 @@ const OPS: ReadonlyArray<PhotoOp> = [
   {
     id: "sharpen",
     modelId: "clarity-upscaler",
-    labelVi: "Làm nét + nâng cấp",
+    labelVi: "Làm nét + upscale",
     labelEn: "Sharpen + upscale",
     taglineVi: "Tăng độ phân giải, chi tiết hoá",
     taglineEn: "Higher resolution, more detail",
@@ -94,6 +95,7 @@ type ResultAsset = {
   id: string;
   url: string;
   op: Op;
+  opLabel: string;
   createdAt: number;
 };
 
@@ -101,54 +103,66 @@ const photoCopy = {
   vi: {
     back: "Quay lại trang chủ",
     title: "Photo Fix",
-    subtitle: "Sửa ảnh có sẵn: tách nền, làm nét, đổi nền và phục hồi khuôn mặt.",
-    chooseOp: "Chọn thao tác",
-    sourceImage: "Ảnh nguồn",
+    subtitle: "Sửa ảnh có sẵn — tách nền, làm nét, đổi nền, phục hồi khuôn mặt.",
+    chooseOp: "Thao tác",
+    sourceImage: "Ảnh đầu vào",
+    sourceImageHint: "Dán URL hoặc tải ảnh từ máy",
     pasteUrl: "Dán URL ảnh",
     uploadFromDevice: "Tải từ máy",
-    uploading: "Đang tải lên...",
+    uploading: "Đang tải lên",
     uploadFailed: "Tải file lên thất bại",
     clearImage: "Bỏ ảnh",
     needImage: "Cần chọn ảnh đầu vào",
     needPrompt: "Cần mô tả nền mới",
     submit: "Chạy",
+    runShortcut: "Ctrl + Enter để chạy",
     statusIdle: "Sẵn sàng",
-    statusSubmitting: "Đang gửi job...",
+    statusUploading: "Đang tải ảnh",
+    statusSubmitting: "Đang gửi job",
     statusQueued: "Đang chờ",
     statusRunning: "Đang xử lý",
     statusError: "Có lỗi",
     download: "Tải về",
     copyUrl: "Sao chép URL",
     copied: "Đã chép",
-    sourcePreview: "Ảnh nguồn",
-    resultPreview: "Kết quả",
+    historyTitle: "Lịch sử",
+    historyEmpty: "Lịch sử trống. Mỗi lần tạo xong sẽ lưu tại đây.",
+    historyClear: "Xoá lịch sử",
     galleryEmpty: "Chưa có kết quả. Chọn thao tác và upload ảnh để bắt đầu.",
+    uploaded: "Đã tải lên",
+    remoteUrl: "Liên kết ngoài",
   },
   en: {
     back: "Back to home",
     title: "Photo Fix",
-    subtitle: "Edit existing photos: remove BG, sharpen, replace BG, restore faces.",
-    chooseOp: "Pick an operation",
+    subtitle: "Edit existing photos — remove BG, sharpen, replace BG, restore faces.",
+    chooseOp: "Operation",
     sourceImage: "Source image",
+    sourceImageHint: "Paste a URL or upload from your device",
     pasteUrl: "Paste image URL",
     uploadFromDevice: "Upload from device",
-    uploading: "Uploading...",
+    uploading: "Uploading",
     uploadFailed: "Upload failed",
     clearImage: "Remove",
     needImage: "Source image is required",
     needPrompt: "New background description is required",
     submit: "Run",
+    runShortcut: "Press Ctrl + Enter to run",
     statusIdle: "Ready",
-    statusSubmitting: "Submitting...",
+    statusUploading: "Uploading",
+    statusSubmitting: "Submitting",
     statusQueued: "Queued",
     statusRunning: "Processing",
     statusError: "Error",
     download: "Download",
     copyUrl: "Copy URL",
     copied: "Copied",
-    sourcePreview: "Source",
-    resultPreview: "Result",
+    historyTitle: "History",
+    historyEmpty: "History is empty. Every render is saved here.",
+    historyClear: "Clear history",
     galleryEmpty: "No outputs yet. Pick an operation and upload an image to begin.",
+    uploaded: "Uploaded",
+    remoteUrl: "Remote URL",
   },
 } satisfies Record<WebLanguage, Record<string, string>>;
 
@@ -171,20 +185,58 @@ function extractAssets(payload: unknown): { url: string }[] {
   return assets;
 }
 
+const STORAGE_KEY = "mrnine-photofix-history";
+
 export function PhotoFixShell() {
   const { language, setLanguage } = useLanguage();
   const copy = photoCopy[language];
+
   const [op, setOp] = useState<Op>("remove-bg");
   const [sourceImage, setSourceImage] = useState("");
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  const [results, setResults] = useState<ResultAsset[]>([]);
-  const [activeId, setActiveId] = useState("");
   const [copiedId, setCopiedId] = useState("");
+  const [results, setResults] = useState<ResultAsset[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as ResultAsset[];
+      return Array.isArray(parsed)
+        ? parsed
+            .filter((item) => item && typeof item.url === "string" && typeof item.id === "string")
+            .slice(0, 60)
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  const [activeId, setActiveId] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return "";
+      const parsed = JSON.parse(raw) as ResultAsset[];
+      return Array.isArray(parsed) && parsed[0]?.id ? parsed[0].id : "";
+    } catch {
+      return "";
+    }
+  });
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pollRef = useRef<number | null>(null);
+  const promptRef = useRef<HTMLTextAreaElement | null>(null);
+
   const activeOp = OPS.find((item) => item.id === op) ?? OPS[0];
   const activeAsset = activeId ? results.find((item) => item.id === activeId) ?? results[0] : results[0];
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(results.slice(0, 60)));
+    } catch {
+      // ignore
+    }
+  }, [results]);
 
   useEffect(() => {
     return () => {
@@ -195,6 +247,16 @@ export function PhotoFixShell() {
     };
   }, []);
 
+  function clearHistory() {
+    setResults([]);
+    setActiveId("");
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
+
   async function uploadFile(file: File) {
     setStatus({ kind: "uploading" });
     try {
@@ -202,9 +264,7 @@ export function PhotoFixShell() {
       form.append("file", file);
       const res = await fetch("/api/ai-playground/upload", { method: "POST", body: form });
       const json = await res.json();
-      if (!res.ok || !json?.url) {
-        throw new Error(json?.error || copy.uploadFailed);
-      }
+      if (!res.ok || !json?.url) throw new Error(json?.error || copy.uploadFailed);
       setSourceImage(json.url as string);
       setStatus({ kind: "idle" });
     } catch (error) {
@@ -253,13 +313,15 @@ export function PhotoFixShell() {
         setStatus({ kind: "error", message: copy.statusError });
         return;
       }
+      const opLabel = language === "vi" ? activeOp.labelVi : activeOp.labelEn;
       const next: ResultAsset[] = found.map((asset, index) => ({
         id: `${Date.now()}-${index}`,
         url: asset.url,
         op,
+        opLabel,
         createdAt: Date.now(),
       }));
-      setResults((current) => [...next, ...current].slice(0, 24));
+      setResults((current) => [...next, ...current].slice(0, 60));
       setActiveId(next[0]?.id ?? "");
       setStatus({ kind: "idle" });
     } catch (error) {
@@ -277,9 +339,8 @@ export function PhotoFixShell() {
       return;
     }
 
-    const payload: Record<string, unknown> = {};
     const url = sourceImage.trim();
-
+    const payload: Record<string, unknown> = {};
     if (activeOp.id === "remove-bg") {
       payload.image_url = url;
     } else if (activeOp.id === "sharpen") {
@@ -297,7 +358,6 @@ export function PhotoFixShell() {
     }
 
     setStatus({ kind: "submitting" });
-
     try {
       const res = await fetch("/api/ai-playground/submit", {
         method: "POST",
@@ -316,6 +376,13 @@ export function PhotoFixShell() {
     }
   }
 
+  function handlePromptKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      event.preventDefault();
+      void submit();
+    }
+  }
+
   function copyUrl(asset: ResultAsset) {
     void navigator.clipboard.writeText(asset.url);
     setCopiedId(asset.id);
@@ -329,7 +396,7 @@ export function PhotoFixShell() {
     status.kind === "running";
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#0b0a08] pb-12 text-[#e8dfd4]">
+    <main className="relative flex h-screen flex-col overflow-hidden bg-[#0b0a08] text-[#e8dfd4]">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -345,23 +412,49 @@ export function PhotoFixShell() {
         }}
       />
 
-      <header className="relative z-20 flex h-14 items-center border-b border-[#25211b] bg-[#0a0907]/92 px-4 backdrop-blur md:px-6">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            aria-label={copy.back}
-            className="flex size-9 items-center justify-center rounded-md border border-white/10 text-[#a79d91] transition hover:border-[#d6a548]/40 hover:text-[#f4eadc]"
-          >
-            <ArrowLeft className="size-4" />
-          </Link>
+      <header className="relative z-20 flex h-14 shrink-0 items-center gap-3 border-b border-[#25211b] bg-[#0a0907]/92 px-3 backdrop-blur md:px-5">
+        <Link
+          href="/"
+          aria-label={copy.back}
+          className="flex size-9 items-center justify-center rounded-md border border-white/10 text-[#a79d91] transition hover:border-[#d6a548]/40 hover:text-[#f4eadc]"
+        >
+          <ArrowLeft className="size-4" />
+        </Link>
+        <div className="flex items-center gap-2.5">
           <div className="flex size-9 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548]">
             <ImageDown className="size-4" />
           </div>
-          <div className="min-w-0">
-            <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-[#d6a548]">MrNine Studio</p>
-            <h1 className="truncate text-lg font-black tracking-[-0.04em] text-[#f4eadc]">{copy.title}</h1>
+          <div className="hidden min-w-0 sm:block">
+            <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">MrNine Studio</p>
+            <h1 className="truncate text-base font-black tracking-[-0.04em] text-[#f4eadc]">{copy.title}</h1>
           </div>
         </div>
+
+        <nav className="ml-1 hidden flex-1 items-center justify-center gap-1 md:flex" aria-label="Operations">
+          {OPS.map((item) => {
+            const Icon = item.icon;
+            const active = item.id === activeOp.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setOp(item.id)}
+                aria-pressed={active}
+                data-active={active}
+                className={cn(
+                  "playground-cap-pill flex h-10 items-center gap-2 rounded-md border px-3 font-mono text-[0.62rem] uppercase tracking-[0.16em] transition-[color,background-color,border-color,box-shadow] duration-300",
+                  active
+                    ? "border-[#d6a548]/50 bg-[#d6a548]/12 text-[#f0c86d] playground-capability-armed shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]"
+                    : "border-[#25211b] text-[#9a9087] hover:border-white/20 hover:text-[#f4eadc]",
+                )}
+              >
+                <Icon className={cn("size-3.5 transition-transform duration-300", active && "scale-110")} />
+                {language === "vi" ? item.labelVi : item.labelEn}
+              </button>
+            );
+          })}
+        </nav>
+
         <div className="ml-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#9f968b] sm:flex">
             <span
@@ -373,7 +466,7 @@ export function PhotoFixShell() {
             {status.kind === "error"
               ? copy.statusError
               : status.kind === "uploading"
-                ? copy.uploading
+                ? copy.statusUploading
                 : status.kind === "submitting"
                   ? copy.statusSubmitting
                   : status.kind === "queued"
@@ -402,64 +495,47 @@ export function PhotoFixShell() {
         </div>
       </header>
 
-      <div className="relative z-10 mx-auto max-w-[88rem] px-4 pt-6 sm:px-6 lg:px-8">
-        <div className="mb-5">
-          <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">{copy.title}</p>
-          <h2 className="mt-1 max-w-2xl text-2xl font-black leading-tight tracking-[-0.04em] text-[#f4eadc] sm:text-3xl">
-            {copy.subtitle}
-          </h2>
+      <div className="md:hidden relative z-10 shrink-0 overflow-x-auto border-b border-[#25211b] bg-[#0a0907]/92 px-3 py-2">
+        <div className="flex min-w-max items-center gap-1.5">
+          {OPS.map((item) => {
+            const Icon = item.icon;
+            const active = item.id === activeOp.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setOp(item.id)}
+                className={cn(
+                  "flex h-9 items-center gap-1.5 rounded-md border px-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition",
+                  active ? "border-[#d6a548]/50 bg-[#d6a548]/10 text-[#f0c86d]" : "border-[#25211b] text-[#9a9087]",
+                )}
+              >
+                <Icon className="size-3" />
+                {language === "vi" ? item.labelVi : item.labelEn}
+              </button>
+            );
+          })}
         </div>
+      </div>
 
-        <div className="grid gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
-          <aside className="space-y-3">
+      <div className="relative z-10 grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[26rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col border-b border-[#25211b] bg-[#0a0907]/72 lg:border-b-0 lg:border-r">
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-5">
             <div className="rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-3">
               <div className="mb-2 flex items-center gap-2">
                 <Layers className="size-3.5 text-[#9a9087]" />
                 <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">{copy.chooseOp}</p>
               </div>
-              <div className="space-y-1.5">
-                {OPS.map((item) => {
-                  const Icon = item.icon;
-                  const selected = item.id === activeOp.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setOp(item.id)}
-                      className={cn(
-                        "flex w-full items-start gap-3 rounded-md border px-3 py-2.5 text-left transition",
-                        selected
-                          ? "border-[#d6a548]/50 bg-[#1b1508]"
-                          : "border-[#25211b] hover:border-white/20 hover:bg-white/[0.03]",
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "flex size-8 shrink-0 items-center justify-center rounded-md border",
-                          selected ? "border-[#d6a548]/40 bg-[#d6a548]/15 text-[#d6a548]" : "border-white/10 text-[#9a9087]",
-                        )}
-                      >
-                        <Icon className="size-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[0.85rem] font-bold text-[#f4eadc]">
-                          {language === "vi" ? item.labelVi : item.labelEn}
-                        </div>
-                        <p className="mt-0.5 line-clamp-2 text-[0.7rem] leading-5 text-[#b5ab9f]">
-                          {language === "vi" ? item.taglineVi : item.taglineEn}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <p className="text-[0.74rem] leading-5 text-[#b5ab9f]">
+                {language === "vi" ? activeOp.taglineVi : activeOp.taglineEn}
+              </p>
             </div>
-          </aside>
 
-          <section className="space-y-4">
-            <div className="rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">{copy.sourceImage}</p>
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="block font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
+                  {copy.sourceImage}
+                </label>
                 {sourceImage ? (
                   <button
                     type="button"
@@ -480,7 +556,7 @@ export function PhotoFixShell() {
                   value={sourceImage}
                   onChange={(event) => setSourceImage(event.target.value)}
                   placeholder={copy.pasteUrl}
-                  className="min-w-0 flex-1 rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 font-mono text-[0.78rem] text-[#f4eadc] outline-none focus:border-[#d6a548]/60"
+                  className="min-w-0 flex-1 rounded-md border border-[#2a251f] bg-[#0c0a08] px-3 py-2 font-mono text-[0.78rem] text-[#f4eadc] outline-none transition focus:border-[#d6a548]/60"
                 />
                 <input
                   ref={fileInputRef}
@@ -496,76 +572,120 @@ export function PhotoFixShell() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={status.kind === "uploading"}
-                  className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-[#45a85d]/35 bg-[#45a85d]/10 px-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#dff8e4] transition hover:border-[#45a85d]/60 hover:bg-[#45a85d]/16 disabled:opacity-60"
+                  className={cn(
+                    "flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border px-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition-[color,background-color,border-color] duration-200",
+                    status.kind === "uploading"
+                      ? "playground-upload-active border-[#d6a548]/45 bg-[#d6a548]/10 text-[#f0c86d]"
+                      : "border-[#45a85d]/35 bg-[#45a85d]/10 text-[#dff8e4] hover:border-[#45a85d]/60 hover:bg-[#45a85d]/16 active:scale-[0.985]",
+                  )}
                 >
                   {status.kind === "uploading" ? <LoaderCircle className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
                   {status.kind === "uploading" ? copy.uploading : copy.uploadFromDevice}
                 </button>
               </div>
-
               {sourceImage ? (
-                <div className="mt-3 overflow-hidden rounded-md border border-[#25211b] bg-black">
+                <div className="mt-2 flex items-center gap-3 rounded-md border border-[#25211b] bg-[#0c0a08] p-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={sourceImage} alt="source" className="max-h-72 w-full object-contain" />
-                </div>
-              ) : null}
-
-              {activeOp.needsPrompt ? (
-                <div className="mt-3">
-                  <label className="mb-1 block font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-                    {language === "vi" ? activeOp.promptLabelVi : activeOp.promptLabelEn}
-                  </label>
-                  <textarea
-                    value={prompt}
-                    onChange={(event) => setPrompt(event.target.value)}
-                    rows={3}
-                    placeholder={language === "vi" ? activeOp.promptPlaceholderVi : activeOp.promptPlaceholderEn}
-                    className="w-full resize-y rounded-md border border-[#2a251f] bg-[#0c0a08] p-3 text-sm leading-6 text-[#f4eadc] outline-none focus:border-[#d6a548]/60"
+                  <img
+                    src={sourceImage}
+                    alt="source preview"
+                    className="size-16 shrink-0 rounded border border-white/8 bg-black object-cover"
                   />
+                  <div className="min-w-0 flex-1 font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#cfc4b8]">
+                    {sourceImage.startsWith("https://v3.fal.media") ? copy.uploaded : copy.remoteUrl}
+                  </div>
                 </div>
               ) : null}
-
-              {status.kind === "error" ? (
-                <div className="mt-3 flex items-start gap-2 rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-[0.72rem] leading-5 text-[#ffb4ad]">
-                  <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
-                  <span>{status.message}</span>
-                </div>
-              ) : null}
-
-              <div className="mt-4 flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={submit}
-                  disabled={isWorking}
-                  className="flex h-11 items-center gap-2 rounded-md bg-[#d6a548] px-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#100b04] transition hover:bg-[#e8b859] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isWorking ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
-                  {copy.submit}
-                </button>
-              </div>
+              <p className="mt-1.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
+                {copy.sourceImageHint}
+              </p>
             </div>
 
-            <div className="rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#45a85d]">{copy.resultPreview}</p>
-                <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">{results.length}</span>
-              </div>
-              {!activeAsset ? (
-                <div className="rounded-md border border-dashed border-[#2a251f] bg-[#100d0a]/40 px-3 py-10 text-center text-[0.78rem] leading-6 text-[#9a9087]">
-                  {copy.galleryEmpty}
+            {activeOp.needsPrompt ? (
+              <div>
+                <label className="mb-1.5 block font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
+                  {language === "vi" ? activeOp.promptLabelVi : activeOp.promptLabelEn}
+                </label>
+                <textarea
+                  ref={promptRef}
+                  value={prompt}
+                  onChange={(event) => setPrompt(event.target.value)}
+                  onKeyDown={handlePromptKeyDown}
+                  rows={4}
+                  placeholder={language === "vi" ? activeOp.promptPlaceholderVi : activeOp.promptPlaceholderEn}
+                  className="playground-textarea-active min-h-[6rem] w-full resize-y rounded-md border border-[#2a251f] bg-[#0c0a08] p-3 text-sm leading-6 text-[#f4eadc] outline-none focus:border-[#d6a548]/60 focus:bg-[#120c09]"
+                />
+                <div className="mt-1.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
+                  {copy.runShortcut}
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="overflow-hidden rounded-md border border-[#25211b] bg-black">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={activeAsset.url} alt="result" className="max-h-[60vh] w-full object-contain" />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="shrink-0 border-t border-[#25211b] bg-[#08070680]/60 p-3 backdrop-blur md:p-4">
+            {status.kind === "error" ? (
+              <div className="mb-2 flex items-start gap-2 rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-2.5 py-2 text-[0.7rem] leading-5 text-[#ffb4ad]">
+                <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+                <span>{status.message}</span>
+              </div>
+            ) : null}
+            {isWorking ? (
+              <div className="playground-queue-bar mb-2 flex items-center justify-between rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 px-2.5 py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#f0c86d]">
+                <span className="flex items-center gap-2">
+                  <LoaderCircle className="size-3.5 animate-spin" />
+                  {status.kind === "uploading"
+                    ? copy.statusUploading
+                    : status.kind === "submitting"
+                      ? copy.statusSubmitting
+                      : status.kind === "queued"
+                        ? copy.statusQueued
+                        : copy.statusRunning}
+                </span>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={submit}
+              disabled={isWorking}
+              className={cn(
+                "flex h-12 w-full items-center justify-center gap-2 rounded-md font-mono text-[0.72rem] font-bold uppercase tracking-[0.18em] transition-[transform,background-color,box-shadow] duration-300",
+                "active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6a548]/70",
+                isWorking ? "playground-loading-shimmer" : "playground-run-armed",
+                "bg-[#d6a548] text-[#100b04] hover:bg-[#e8b859]",
+              )}
+            >
+              {isWorking ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
+              {copy.submit}
+            </button>
+          </div>
+        </aside>
+
+        <section className="grid min-h-0 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
+            {activeAsset ? (
+              <div className="mx-auto flex h-full max-w-5xl flex-col">
+                <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-lg border border-[#25211b] bg-black shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    key={activeAsset.id}
+                    src={activeAsset.url}
+                    alt="result"
+                    className="playground-result-arrive max-h-full max-w-full object-contain"
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#25211b] bg-[#0c0a08] px-3 py-2.5">
+                  <div className="min-w-0">
+                    <span className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">{activeAsset.opLabel}</span>
+                    <span className="ml-3 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">
+                      {new Date(activeAsset.createdAt).toLocaleTimeString()}
+                    </span>
                   </div>
-                  <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <a
                       href={activeAsset.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-3 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#cfc4b8] transition hover:bg-white/[0.06]"
+                      className="flex h-9 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-3 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#cfc4b8] transition hover:bg-white/[0.06]"
                     >
                       <Download className="size-3.5" />
                       {copy.download}
@@ -574,7 +694,7 @@ export function PhotoFixShell() {
                       type="button"
                       onClick={() => copyUrl(activeAsset)}
                       className={cn(
-                        "flex h-8 items-center gap-1.5 rounded-md border px-3 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition",
+                        "flex h-9 items-center gap-1.5 rounded-md border px-3 font-mono text-[0.58rem] uppercase tracking-[0.16em] transition",
                         copiedId === activeAsset.id
                           ? "border-[#45a85d]/45 bg-[#45a85d]/14 text-[#dff8e4]"
                           : "border-white/10 bg-white/[0.03] text-[#cfc4b8] hover:bg-white/[0.06]",
@@ -584,29 +704,80 @@ export function PhotoFixShell() {
                       {copiedId === activeAsset.id ? copy.copied : copy.copyUrl}
                     </button>
                   </div>
-                  {results.length > 1 ? (
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {results.map((asset) => (
-                        <button
-                          key={asset.id}
-                          type="button"
-                          onClick={() => setActiveId(asset.id)}
-                          className={cn(
-                            "size-16 shrink-0 overflow-hidden rounded-md border bg-black",
-                            asset.id === activeAsset.id ? "border-[#d6a548]/60" : "border-[#25211b] hover:border-white/20",
-                          )}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={asset.url} alt="thumb" className="size-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center text-center">
+                <div className="playground-fade-in flex size-14 items-center justify-center rounded-md border border-[#d6a548]/35 bg-[#d6a548]/10">
+                  <ImageDown className="size-6 animate-pulse text-[#d6a548]" />
+                </div>
+                <h3 className="playground-fade-in mt-4 max-w-xl text-2xl font-black tracking-[-0.04em] text-[#f4eadc]" style={{ animationDelay: "60ms" }}>
+                  {copy.title}
+                </h3>
+                <p className="playground-fade-in mt-1 max-w-md text-sm leading-6 text-[#b5ab9f]" style={{ animationDelay: "120ms" }}>
+                  {copy.galleryEmpty}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <aside className="hidden min-h-0 flex-col border-l border-[#25211b] bg-[#0a0907]/72 xl:flex">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#25211b] px-4 py-3">
+              <div>
+                <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">{copy.historyTitle}</p>
+                <p className="mt-0.5 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">
+                  {results.length} / 60
+                </p>
+              </div>
+              {results.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearHistory}
+                  aria-label={copy.historyClear}
+                  className="flex h-7 items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] px-2 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087] transition hover:border-[#ef4444]/35 hover:bg-[#ef4444]/10 hover:text-[#ffb4ad]"
+                >
+                  <Trash2 className="size-3" />
+                  {copy.historyClear}
+                </button>
+              ) : null}
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {results.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                  <div className="flex size-10 items-center justify-center rounded-md border border-[#25211b] bg-[#100d0a]/60 text-[#9a9087]">
+                    <Sparkles className="size-4" />
+                  </div>
+                  <p className="px-2 text-[0.7rem] leading-5 text-[#9a9087]">{copy.historyEmpty}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {results.map((asset) => {
+                    const active = asset.id === (activeAsset?.id ?? "");
+                    return (
+                      <button
+                        key={asset.id}
+                        type="button"
+                        onClick={() => setActiveId(asset.id)}
+                        title={asset.opLabel}
+                        className={cn(
+                          "playground-thumb group relative aspect-square overflow-hidden rounded-md border bg-black text-left",
+                          active ? "border-[#d6a548]/60 ring-2 ring-[#d6a548]/70" : "border-[#25211b] hover:border-white/20",
+                        )}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={asset.url} alt={asset.opLabel} className="size-full object-cover" />
+                        <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-1.5 pb-1 pt-3 text-[0.55rem] text-[#cfc4b8]">
+                          {asset.opLabel}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
-          </section>
-        </div>
+          </aside>
+        </section>
       </div>
     </main>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Copy,
@@ -10,15 +10,19 @@ import {
   Globe,
   LoaderCircle,
   Send,
+  Sparkles,
+  Trash2,
   TriangleAlert,
+  Type,
   Upload,
   Video,
+  Wand2,
   X,
 } from "lucide-react";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
 
-type Mode = "auto" | "text" | "pdf";
+type SourceMode = "auto" | "youtube" | "url" | "pdf" | "text";
 
 type Status =
   | { kind: "idle" }
@@ -26,68 +30,89 @@ type Status =
   | { kind: "summarizing" }
   | { kind: "error"; message: string };
 
-type Result = {
+type RecapEntry = {
+  id: string;
   summary: string;
   sourceLabel?: string;
   sourceTitle?: string;
-  sourceLength?: number;
   truncated?: boolean;
+  preview: string;
+  createdAt: number;
 };
+
+const MODES: ReadonlyArray<{
+  id: SourceMode;
+  labelVi: string;
+  labelEn: string;
+  icon: typeof Wand2;
+}> = [
+  { id: "auto", labelVi: "Auto", labelEn: "Auto", icon: Wand2 },
+  { id: "youtube", labelVi: "YouTube", labelEn: "YouTube", icon: Video },
+  { id: "url", labelVi: "Trang web", labelEn: "Web page", icon: Globe },
+  { id: "pdf", labelVi: "PDF", labelEn: "PDF", icon: FileText },
+  { id: "text", labelVi: "Văn bản", labelEn: "Text", icon: Type },
+];
 
 const recapCopy = {
   vi: {
     back: "Quay lại trang chủ",
     title: "Smart Recap",
-    subtitle: "Paste link YouTube, link bài web hoặc upload PDF dài — nhận tóm tắt 1 phút.",
-    inputLabel: "URL hoặc nội dung",
+    subtitle: "Paste link YouTube, link bài web, upload PDF dài hoặc văn bản — nhận tóm tắt 1 phút.",
+    inputLabel: "Nội dung",
     inputPlaceholder: "Dán link YouTube, link bài web, hoặc paste văn bản dài tại đây...",
     pdfUpload: "Upload PDF",
     pdfHint: "PDF text-based, tối đa ~2MB",
     needInput: "Cần nhập nội dung hoặc URL",
     submit: "Tóm tắt",
+    runShortcut: "Ctrl + Enter để chạy",
     statusIdle: "Sẵn sàng",
-    statusExtracting: "Đang trích xuất...",
-    statusSummarizing: "Đang tóm tắt...",
+    statusExtracting: "Đang trích xuất",
+    statusSummarizing: "Đang tóm tắt",
     statusError: "Có lỗi",
-    sourceMeta: "Nguồn",
     sourceText: "Văn bản",
     sourceUrl: "Trang web",
     sourceYouTube: "YouTube",
-    sourcePdf: "PDF",
     truncatedNote: "Nội dung quá dài đã bị cắt còn 40 000 ký tự",
     copy: "Sao chép",
     copied: "Đã chép",
     empty: "Chưa có tóm tắt. Paste link hoặc nội dung rồi bấm Tóm tắt.",
     pdfFailed: "Không đọc được PDF",
     pdfTextEmpty: "PDF không có text trích xuất được (có thể là ảnh scan)",
+    historyTitle: "Lịch sử",
+    historyEmpty: "Lịch sử trống. Mỗi recap sẽ lưu tại đây.",
+    historyClear: "Xoá lịch sử",
   },
   en: {
     back: "Back to home",
     title: "Smart Recap",
-    subtitle: "Paste a YouTube link, web URL, or upload a long PDF — get a 1-minute recap.",
-    inputLabel: "URL or content",
+    subtitle: "Paste a YouTube link, web URL, upload a long PDF or text — get a 1-minute recap.",
+    inputLabel: "Input",
     inputPlaceholder: "Paste a YouTube link, a web URL, or long text here...",
     pdfUpload: "Upload PDF",
     pdfHint: "Text-based PDF, max ~2MB",
     needInput: "Input is required",
     submit: "Summarize",
+    runShortcut: "Press Ctrl + Enter to run",
     statusIdle: "Ready",
-    statusExtracting: "Extracting...",
-    statusSummarizing: "Summarizing...",
+    statusExtracting: "Extracting",
+    statusSummarizing: "Summarizing",
     statusError: "Error",
-    sourceMeta: "Source",
     sourceText: "Text",
     sourceUrl: "Web page",
     sourceYouTube: "YouTube",
-    sourcePdf: "PDF",
     truncatedNote: "Content too long; truncated at 40k characters",
     copy: "Copy",
     copied: "Copied",
     empty: "No summary yet. Paste a link or text and press Summarize.",
     pdfFailed: "Failed to read PDF",
-    pdfTextEmpty: "PDF has no extractable text (may be scanned image)",
+    pdfTextEmpty: "PDF has no extractable text (may be a scanned image)",
+    historyTitle: "History",
+    historyEmpty: "History is empty. Each recap is saved here.",
+    historyClear: "Clear history",
   },
 } satisfies Record<WebLanguage, Record<string, string>>;
+
+const STORAGE_KEY = "mrnine-smartrecap-history";
 
 function renderMarkdown(md: string): string {
   const escape = (s: string) =>
@@ -102,19 +127,25 @@ function renderMarkdown(md: string): string {
         out.push("</ul>");
         inList = false;
       }
-      out.push(`<h3 class="mt-5 first:mt-0 font-mono text-[0.66rem] uppercase tracking-[0.22em] text-[#d6a548]">${escape(line.slice(3))}</h3>`);
+      out.push(
+        `<h3 class="mt-5 first:mt-0 font-mono text-[0.66rem] uppercase tracking-[0.22em] text-[#d6a548]">${escape(line.slice(3))}</h3>`,
+      );
     } else if (line.startsWith("# ")) {
       if (inList) {
         out.push("</ul>");
         inList = false;
       }
-      out.push(`<h2 class="mt-6 first:mt-0 text-lg font-bold tracking-[-0.02em] text-[#f4eadc]">${escape(line.slice(2))}</h2>`);
+      out.push(
+        `<h2 class="mt-6 first:mt-0 text-lg font-bold tracking-[-0.02em] text-[#f4eadc]">${escape(line.slice(2))}</h2>`,
+      );
     } else if (line.startsWith("- ") || line.startsWith("* ")) {
       if (!inList) {
         out.push('<ul class="mt-2 space-y-1.5 text-[0.86rem] leading-6 text-[#d8cfc4]">');
         inList = true;
       }
-      out.push(`<li class="flex gap-2"><span class="mt-2 size-1 shrink-0 rounded-full bg-[#45a85d]"></span><span>${escape(line.slice(2))}</span></li>`);
+      out.push(
+        `<li class="flex gap-2"><span class="mt-2 size-1 shrink-0 rounded-full bg-[#45a85d]"></span><span>${escape(line.slice(2))}</span></li>`,
+      );
     } else if (line === "") {
       if (inList) {
         out.push("</ul>");
@@ -136,7 +167,6 @@ async function extractPdfText(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
   const text = new TextDecoder("latin1").decode(bytes);
-  // PDF text streams are wrapped in BT...ET; pull the strings between Tj / TJ.
   const out: string[] = [];
   const blockRe = /BT([\s\S]*?)ET/g;
   let block: RegExpExecArray | null;
@@ -176,11 +206,60 @@ async function extractPdfText(file: File): Promise<string> {
 export function SmartRecapShell() {
   const { language, setLanguage } = useLanguage();
   const copy = recapCopy[language];
+
+  const [mode, setMode] = useState<SourceMode>("auto");
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  const [result, setResult] = useState<Result | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const [results, setResults] = useState<RecapEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as RecapEntry[];
+      return Array.isArray(parsed)
+        ? parsed
+            .filter((item) => item && typeof item.summary === "string" && typeof item.id === "string")
+            .slice(0, 40)
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  const [activeId, setActiveId] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return "";
+      const parsed = JSON.parse(raw) as RecapEntry[];
+      return Array.isArray(parsed) && parsed[0]?.id ? parsed[0].id : "";
+    } catch {
+      return "";
+    }
+  });
+
+  const activeResult = activeId ? results.find((item) => item.id === activeId) ?? results[0] : results[0];
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(results.slice(0, 40)));
+    } catch {
+      // ignore
+    }
+  }, [results]);
+
+  function clearHistory() {
+    setResults([]);
+    setActiveId("");
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
 
   async function handlePdf(file: File) {
     setStatus({ kind: "extracting" });
@@ -191,6 +270,7 @@ export function SmartRecapShell() {
         return;
       }
       setInput(text);
+      setMode("text");
       setStatus({ kind: "idle" });
     } catch (error) {
       setStatus({ kind: "error", message: error instanceof Error ? error.message : copy.pdfFailed });
@@ -204,7 +284,6 @@ export function SmartRecapShell() {
       return;
     }
     setStatus({ kind: "summarizing" });
-    setResult(null);
     try {
       const res = await fetch("/api/smart-recap", {
         method: "POST",
@@ -213,29 +292,48 @@ export function SmartRecapShell() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
-      setResult(json as Result);
+
+      const entry: RecapEntry = {
+        id: `${Date.now()}`,
+        summary: String(json.summary ?? ""),
+        sourceLabel: typeof json.sourceLabel === "string" ? json.sourceLabel : undefined,
+        sourceTitle: typeof json.sourceTitle === "string" ? json.sourceTitle : undefined,
+        truncated: Boolean(json.truncated),
+        preview: trimmed.slice(0, 140),
+        createdAt: Date.now(),
+      };
+      setResults((current) => [entry, ...current].slice(0, 40));
+      setActiveId(entry.id);
       setStatus({ kind: "idle" });
     } catch (error) {
       setStatus({ kind: "error", message: error instanceof Error ? error.message : copy.statusError });
     }
   }
 
+  function handleKey(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      event.preventDefault();
+      void submit();
+    }
+  }
+
   function copySummary() {
-    if (!result) return;
-    void navigator.clipboard.writeText(result.summary);
+    if (!activeResult) return;
+    void navigator.clipboard.writeText(activeResult.summary);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   }
 
   const isWorking = status.kind === "extracting" || status.kind === "summarizing";
-  const sourceTag = result?.sourceLabel === "youtube"
-    ? copy.sourceYouTube
-    : result?.sourceLabel === "url"
-      ? copy.sourceUrl
-      : copy.sourceText;
+
+  function modeLabel(m: string | undefined): string {
+    if (m === "youtube") return copy.sourceYouTube;
+    if (m === "url") return copy.sourceUrl;
+    return copy.sourceText;
+  }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#0b0a08] pb-12 text-[#e8dfd4]">
+    <main className="relative flex h-screen flex-col overflow-hidden bg-[#0b0a08] text-[#e8dfd4]">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -251,23 +349,49 @@ export function SmartRecapShell() {
         }}
       />
 
-      <header className="relative z-20 flex h-14 items-center border-b border-[#25211b] bg-[#0a0907]/92 px-4 backdrop-blur md:px-6">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            aria-label={copy.back}
-            className="flex size-9 items-center justify-center rounded-md border border-white/10 text-[#a79d91] transition hover:border-[#45a85d]/40 hover:text-[#f4eadc]"
-          >
-            <ArrowLeft className="size-4" />
-          </Link>
+      <header className="relative z-20 flex h-14 shrink-0 items-center gap-3 border-b border-[#25211b] bg-[#0a0907]/92 px-3 backdrop-blur md:px-5">
+        <Link
+          href="/"
+          aria-label={copy.back}
+          className="flex size-9 items-center justify-center rounded-md border border-white/10 text-[#a79d91] transition hover:border-[#45a85d]/40 hover:text-[#f4eadc]"
+        >
+          <ArrowLeft className="size-4" />
+        </Link>
+        <div className="flex items-center gap-2.5">
           <div className="flex size-9 items-center justify-center rounded-md border border-[#45a85d]/30 bg-[#45a85d]/10 text-[#45a85d]">
             <FileSearch className="size-4" />
           </div>
-          <div className="min-w-0">
-            <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-[#45a85d]">MrNine Studio</p>
-            <h1 className="truncate text-lg font-black tracking-[-0.04em] text-[#f4eadc]">{copy.title}</h1>
+          <div className="hidden min-w-0 sm:block">
+            <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#45a85d]">MrNine Studio</p>
+            <h1 className="truncate text-base font-black tracking-[-0.04em] text-[#f4eadc]">{copy.title}</h1>
           </div>
         </div>
+
+        <nav className="ml-1 hidden flex-1 items-center justify-center gap-1 md:flex" aria-label="Source modes">
+          {MODES.map((item) => {
+            const Icon = item.icon;
+            const active = item.id === mode;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setMode(item.id)}
+                aria-pressed={active}
+                data-active={active}
+                className={cn(
+                  "playground-cap-pill flex h-10 items-center gap-2 rounded-md border px-3 font-mono text-[0.62rem] uppercase tracking-[0.16em] transition-[color,background-color,border-color,box-shadow] duration-300",
+                  active
+                    ? "border-[#45a85d]/50 bg-[#45a85d]/12 text-[#dff8e4] playground-capability-armed shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]"
+                    : "border-[#25211b] text-[#9a9087] hover:border-white/20 hover:text-[#f4eadc]",
+                )}
+              >
+                <Icon className={cn("size-3.5 transition-transform duration-300", active && "scale-110")} />
+                {language === "vi" ? item.labelVi : item.labelEn}
+              </button>
+            );
+          })}
+        </nav>
+
         <div className="ml-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#9f968b] sm:flex">
             <span
@@ -304,39 +428,61 @@ export function SmartRecapShell() {
         </div>
       </header>
 
-      <div className="relative z-10 mx-auto grid max-w-[88rem] gap-5 px-4 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:px-8">
-        <section className="space-y-3">
-          <div>
-            <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">{copy.title}</p>
-            <h2 className="mt-1 max-w-2xl text-2xl font-black leading-tight tracking-[-0.04em] text-[#f4eadc] sm:text-3xl">
-              {copy.subtitle}
-            </h2>
-          </div>
+      <div className="md:hidden relative z-10 shrink-0 overflow-x-auto border-b border-[#25211b] bg-[#0a0907]/92 px-3 py-2">
+        <div className="flex min-w-max items-center gap-1.5">
+          {MODES.map((item) => {
+            const Icon = item.icon;
+            const active = item.id === mode;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setMode(item.id)}
+                className={cn(
+                  "flex h-9 items-center gap-1.5 rounded-md border px-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition",
+                  active ? "border-[#45a85d]/50 bg-[#45a85d]/10 text-[#dff8e4]" : "border-[#25211b] text-[#9a9087]",
+                )}
+              >
+                <Icon className="size-3" />
+                {language === "vi" ? item.labelVi : item.labelEn}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-          <div className="rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <label className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#45a85d]">
-                {copy.inputLabel}
-              </label>
-              {input ? (
-                <button
-                  type="button"
-                  onClick={() => setInput("")}
-                  className="flex items-center gap-1 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087] transition hover:text-[#ffb4ad]"
-                >
-                  <X className="size-3" />
-                  Clear
-                </button>
-              ) : null}
+      <div className="relative z-10 grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[26rem_minmax(0,1fr)] xl:grid-cols-[28rem_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col border-b border-[#25211b] bg-[#0a0907]/72 lg:border-b-0 lg:border-r">
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-5">
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#45a85d]">{copy.inputLabel}</label>
+                {input ? (
+                  <button
+                    type="button"
+                    onClick={() => setInput("")}
+                    className="flex items-center gap-1 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087] transition hover:text-[#ffb4ad]"
+                  >
+                    <X className="size-3" />
+                    Clear
+                  </button>
+                ) : null}
+              </div>
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={handleKey}
+                placeholder={copy.inputPlaceholder}
+                rows={10}
+                className="playground-textarea-active min-h-[12rem] w-full resize-y rounded-md border border-[#2a251f] bg-[#0c0a08] p-3 text-sm leading-6 text-[#f4eadc] outline-none focus:border-[#45a85d]/60 focus:bg-[#0d130c]"
+              />
+              <div className="mt-1.5 flex items-center justify-between font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
+                <span>{copy.runShortcut}</span>
+              </div>
             </div>
-            <textarea
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder={copy.inputPlaceholder}
-              rows={10}
-              className="min-h-[12rem] w-full resize-y rounded-md border border-[#2a251f] bg-[#0c0a08] p-3 text-sm leading-6 text-[#f4eadc] outline-none focus:border-[#45a85d]/60"
-            />
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+
+            <div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -351,98 +497,172 @@ export function SmartRecapShell() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={status.kind === "extracting"}
-                className="flex h-10 items-center gap-2 rounded-md border border-[#d6a548]/35 bg-[#d6a548]/10 px-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#f0c86d] transition hover:border-[#d6a548]/60 hover:bg-[#d6a548]/16 disabled:opacity-60"
+                className={cn(
+                  "flex h-10 w-full items-center justify-center gap-2 rounded-md border px-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition-[color,background-color,border-color] duration-200",
+                  status.kind === "extracting"
+                    ? "playground-upload-active border-[#d6a548]/45 bg-[#d6a548]/10 text-[#f0c86d]"
+                    : "border-[#d6a548]/35 bg-[#d6a548]/10 text-[#f0c86d] hover:border-[#d6a548]/60 hover:bg-[#d6a548]/16 active:scale-[0.985]",
+                )}
               >
                 {status.kind === "extracting" ? <LoaderCircle className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
                 {status.kind === "extracting" ? copy.statusExtracting : copy.pdfUpload}
               </button>
-              <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
+              <p className="mt-1.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
                 {copy.pdfHint}
-              </span>
+              </p>
             </div>
+          </div>
 
+          <div className="shrink-0 border-t border-[#25211b] bg-[#08070680]/60 p-3 backdrop-blur md:p-4">
             {status.kind === "error" ? (
-              <div className="mt-3 flex items-start gap-2 rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-[0.72rem] leading-5 text-[#ffb4ad]">
+              <div className="mb-2 flex items-start gap-2 rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-2.5 py-2 text-[0.7rem] leading-5 text-[#ffb4ad]">
                 <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
                 <span>{status.message}</span>
               </div>
             ) : null}
-
-            <div className="mt-4 flex items-center justify-end">
-              <button
-                type="button"
-                onClick={submit}
-                disabled={isWorking}
-                className="flex h-11 items-center gap-2 rounded-md bg-[#45a85d] px-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#061009] transition hover:bg-[#58c772] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isWorking ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
-                {copy.submit}
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 text-[0.62rem] uppercase tracking-[0.16em] text-[#9a9087]">
-            <div className="flex items-center gap-1.5 rounded-md border border-[#25211b] bg-[#0d0b08]/82 px-2 py-2">
-              <Video className="size-3.5 text-[#ef4444]" /> YouTube
-            </div>
-            <div className="flex items-center gap-1.5 rounded-md border border-[#25211b] bg-[#0d0b08]/82 px-2 py-2">
-              <FileText className="size-3.5 text-[#d6a548]" /> PDF
-            </div>
-            <div className="flex items-center gap-1.5 rounded-md border border-[#25211b] bg-[#0d0b08]/82 px-2 py-2">
-              <Globe className="size-3.5 text-[#45a85d]" /> URL
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-3">
-          <div className="rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-5">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#45a85d]">Recap</p>
-                {result ? (
-                  <span className="rounded-md border border-[#45a85d]/35 bg-[#45a85d]/10 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#dff8e4]">
-                    {sourceTag}
-                  </span>
-                ) : null}
-                {result?.sourceTitle ? (
-                  <span className="max-w-xs truncate text-[0.7rem] text-[#9a9087]">{result.sourceTitle}</span>
-                ) : null}
+            {isWorking ? (
+              <div className="playground-queue-bar mb-2 flex items-center justify-between rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 px-2.5 py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#f0c86d]">
+                <span className="flex items-center gap-2">
+                  <LoaderCircle className="size-3.5 animate-spin" />
+                  {status.kind === "extracting" ? copy.statusExtracting : copy.statusSummarizing}
+                </span>
               </div>
-              {result ? (
-                <button
-                  type="button"
-                  onClick={copySummary}
-                  className={cn(
-                    "flex h-8 items-center gap-1.5 rounded-md border px-3 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition",
-                    copied
-                      ? "border-[#45a85d]/45 bg-[#45a85d]/14 text-[#dff8e4]"
-                      : "border-white/10 bg-white/[0.03] text-[#cfc4b8] hover:bg-white/[0.06]",
-                  )}
-                >
-                  <Copy className="size-3.5" />
-                  {copied ? copy.copied : copy.copy}
-                </button>
-              ) : null}
-            </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={submit}
+              disabled={isWorking}
+              className={cn(
+                "flex h-12 w-full items-center justify-center gap-2 rounded-md font-mono text-[0.72rem] font-bold uppercase tracking-[0.18em] transition-[transform,background-color,box-shadow] duration-300",
+                "active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/70",
+                isWorking ? "playground-loading-shimmer" : "playground-run-armed",
+                "bg-[#45a85d] text-[#061009] hover:bg-[#58c772]",
+              )}
+            >
+              {isWorking ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
+              {copy.submit}
+            </button>
+          </div>
+        </aside>
 
-            {!result ? (
-              <div className="flex min-h-[24rem] items-center justify-center rounded-md border border-dashed border-[#2a251f] bg-[#100d0a]/40 p-6 text-center text-[0.78rem] leading-6 text-[#9a9087]">
-                {copy.empty}
-              </div>
-            ) : (
-              <>
-                {result.truncated ? (
+        <section className="grid min-h-0 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_18rem]">
+          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6">
+            {activeResult ? (
+              <div className="mx-auto flex h-full max-w-4xl flex-col">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-[#25211b] bg-[#0c0a08] px-3 py-2.5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="rounded-md border border-[#45a85d]/35 bg-[#45a85d]/10 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#dff8e4]">
+                      {modeLabel(activeResult.sourceLabel)}
+                    </span>
+                    {activeResult.sourceTitle ? (
+                      <span className="max-w-md truncate text-[0.7rem] text-[#cfc4b8]">{activeResult.sourceTitle}</span>
+                    ) : null}
+                    <span className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">
+                      {new Date(activeResult.createdAt).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copySummary}
+                    className={cn(
+                      "flex h-8 items-center gap-1.5 rounded-md border px-3 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition",
+                      copied
+                        ? "border-[#45a85d]/45 bg-[#45a85d]/14 text-[#dff8e4]"
+                        : "border-white/10 bg-white/[0.03] text-[#cfc4b8] hover:bg-white/[0.06]",
+                    )}
+                  >
+                    <Copy className="size-3.5" />
+                    {copied ? copy.copied : copy.copy}
+                  </button>
+                </div>
+
+                {activeResult.truncated ? (
                   <div className="mb-3 rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 px-3 py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#f0c86d]">
                     {copy.truncatedNote}
                   </div>
                 ) : null}
+
                 <div
-                  className="prose prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(result.summary) }}
+                  className="playground-result-arrive flex-1 overflow-y-auto rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-5"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(activeResult.summary) }}
                 />
-              </>
+              </div>
+            ) : (
+              <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center text-center">
+                <div className="playground-fade-in flex size-14 items-center justify-center rounded-md border border-[#45a85d]/35 bg-[#45a85d]/10">
+                  <Sparkles className="size-6 animate-pulse text-[#45a85d]" />
+                </div>
+                <h3 className="playground-fade-in mt-4 max-w-xl text-2xl font-black tracking-[-0.04em] text-[#f4eadc]" style={{ animationDelay: "60ms" }}>
+                  {copy.title}
+                </h3>
+                <p className="playground-fade-in mt-1 max-w-md text-sm leading-6 text-[#b5ab9f]" style={{ animationDelay: "120ms" }}>
+                  {copy.empty}
+                </p>
+              </div>
             )}
           </div>
+
+          <aside className="hidden min-h-0 flex-col border-l border-[#25211b] bg-[#0a0907]/72 xl:flex">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#25211b] px-4 py-3">
+              <div>
+                <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#45a85d]">{copy.historyTitle}</p>
+                <p className="mt-0.5 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">
+                  {results.length} / 40
+                </p>
+              </div>
+              {results.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearHistory}
+                  className="flex h-7 items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] px-2 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087] transition hover:border-[#ef4444]/35 hover:bg-[#ef4444]/10 hover:text-[#ffb4ad]"
+                >
+                  <Trash2 className="size-3" />
+                  {copy.historyClear}
+                </button>
+              ) : null}
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {results.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                  <div className="flex size-10 items-center justify-center rounded-md border border-[#25211b] bg-[#100d0a]/60 text-[#9a9087]">
+                    <Sparkles className="size-4" />
+                  </div>
+                  <p className="px-2 text-[0.7rem] leading-5 text-[#9a9087]">{copy.historyEmpty}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {results.map((entry) => {
+                    const active = entry.id === (activeResult?.id ?? "");
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => setActiveId(entry.id)}
+                        className={cn(
+                          "playground-thumb group block w-full rounded-md border px-3 py-2.5 text-left transition",
+                          active ? "border-[#45a85d]/50 bg-[#0e1a11]" : "border-[#25211b] bg-[#0d0b08]/82 hover:border-white/20",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={cn("font-mono text-[0.55rem] uppercase tracking-[0.16em]", active ? "text-[#dff8e4]" : "text-[#d6a548]")}>
+                            {modeLabel(entry.sourceLabel)}
+                          </span>
+                          <span className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d64]">
+                            {new Date(entry.createdAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        {entry.sourceTitle ? (
+                          <p className="mt-1 truncate text-[0.74rem] font-bold text-[#f4eadc]">{entry.sourceTitle}</p>
+                        ) : null}
+                        <p className="mt-1 line-clamp-2 text-[0.7rem] leading-5 text-[#b5ab9f]">{entry.preview}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </aside>
         </section>
       </div>
     </main>
