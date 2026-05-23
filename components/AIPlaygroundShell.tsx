@@ -48,8 +48,8 @@ type ParamValues = Record<string, string | number | boolean>;
 type Status =
   | { kind: "idle" }
   | { kind: "submitting" }
-  | { kind: "queued"; requestId: string; queuePos?: number; logs: string[] }
-  | { kind: "running"; requestId: string; logs: string[] }
+  | { kind: "queued"; requestId: string; statusUrl: string; responseUrl: string; queuePos?: number; logs: string[] }
+  | { kind: "running"; requestId: string; statusUrl: string; responseUrl: string; logs: string[] }
   | { kind: "error"; message: string };
 
 const CAPABILITIES: ReadonlyArray<{
@@ -507,14 +507,14 @@ export function AIPlaygroundShell() {
     }));
   }
 
-  function startPolling(modelId: string, requestId: string) {
+  function startPolling(modelId: string, requestId: string, statusUrl: string, responseUrl: string) {
     if (pollRef.current) {
       window.clearInterval(pollRef.current);
     }
     pollRef.current = window.setInterval(async () => {
       try {
         const res = await fetch(
-          `/api/ai-playground/status?modelId=${encodeURIComponent(modelId)}&requestId=${encodeURIComponent(requestId)}&mode=status`,
+          `/api/ai-playground/status?url=${encodeURIComponent(statusUrl)}&mode=status`,
           { cache: "no-store" },
         );
         const json = await res.json();
@@ -539,13 +539,13 @@ export function AIPlaygroundShell() {
             window.clearInterval(pollRef.current);
             pollRef.current = null;
           }
-          await loadResult(modelId, requestId);
+          await loadResult(modelId, requestId, responseUrl);
           return;
         }
         if (queueStatus === "IN_PROGRESS") {
-          setStatus({ kind: "running", requestId, logs });
+          setStatus({ kind: "running", requestId, statusUrl, responseUrl, logs });
         } else {
-          setStatus({ kind: "queued", requestId, queuePos, logs });
+          setStatus({ kind: "queued", requestId, statusUrl, responseUrl, queuePos, logs });
         }
       } catch (error) {
         if (pollRef.current) {
@@ -560,10 +560,10 @@ export function AIPlaygroundShell() {
     }, 2200);
   }
 
-  async function loadResult(modelId: string, requestId: string) {
+  async function loadResult(modelId: string, requestId: string, responseUrl: string) {
     try {
       const res = await fetch(
-        `/api/ai-playground/status?modelId=${encodeURIComponent(modelId)}&requestId=${encodeURIComponent(requestId)}&mode=result`,
+        `/api/ai-playground/status?url=${encodeURIComponent(responseUrl)}&mode=result`,
         { cache: "no-store" },
       );
       const json = await res.json();
@@ -627,8 +627,13 @@ export function AIPlaygroundShell() {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       const requestId = json.requestId as string;
-      setStatus({ kind: "queued", requestId, logs: [] });
-      startPolling(activeModel.id, requestId);
+      const statusUrl = json.statusUrl as string | undefined;
+      const responseUrl = json.responseUrl as string | undefined;
+      if (!statusUrl || !responseUrl) {
+        throw new Error("Phản hồi thiếu thông tin truy vấn");
+      }
+      setStatus({ kind: "queued", requestId, statusUrl, responseUrl, logs: [] });
+      startPolling(activeModel.id, requestId, statusUrl, responseUrl);
     } catch (error) {
       setStatus({ kind: "error", message: error instanceof Error ? error.message : copy.statusError });
     }

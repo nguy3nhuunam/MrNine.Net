@@ -111,7 +111,7 @@ export async function POST(request: Request) {
 
   if (!response.ok) {
     return NextResponse.json(
-      { error: "FAL từ chối request", status: response.status, detail: parsed },
+      { error: "Yêu cầu bị từ chối", status: response.status, detail: parsed },
       { status: response.status },
     );
   }
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
 
   if (!data?.request_id) {
     return NextResponse.json(
-      { error: "FAL không trả về request_id", detail: parsed },
+      { error: "Hệ thống không trả về request_id", detail: parsed },
       { status: 502 },
     );
   }

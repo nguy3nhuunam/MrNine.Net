@@ -1,33 +1,38 @@
 import { NextResponse } from "next/server";
-import { getModelById } from "@/lib/fal-models";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const FAL_QUEUE_BASE = "https://queue.fal.run";
 const EMBEDDED_FAL_KEY = "d3ed1c4c-b8aa-40aa-926e-4b82ba599ae6:cae3e2004fd04235f9805226a5f96464";
+const ALLOWED_HOSTS = new Set(["queue.fal.run", "fal.run", "rest.alpha.fal.ai"]);
 
 function getKey() {
   const key = process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
   if (!key) {
-    throw new Error("FAL_KEY chưa được cấu hình");
+    throw new Error("API key chưa được cấu hình");
   }
   return key;
 }
 
+function isAllowedUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    return u.protocol === "https:" && ALLOWED_HOSTS.has(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const modelId = url.searchParams.get("modelId") ?? "";
-  const requestId = url.searchParams.get("requestId") ?? "";
+  const target = url.searchParams.get("url") ?? "";
   const mode = url.searchParams.get("mode") ?? "status";
 
-  if (!modelId || !requestId) {
-    return NextResponse.json({ error: "Thiếu modelId hoặc requestId" }, { status: 400 });
+  if (!target) {
+    return NextResponse.json({ error: "Thiếu tham số url" }, { status: 400 });
   }
-
-  const model = getModelById(modelId);
-  if (!model) {
-    return NextResponse.json({ error: `Model không hỗ trợ: ${modelId}` }, { status: 400 });
+  if (!isAllowedUrl(target)) {
+    return NextResponse.json({ error: "URL không hợp lệ" }, { status: 400 });
   }
 
   let key: string;
@@ -35,13 +40,10 @@ export async function GET(request: Request) {
     key = getKey();
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Thiếu FAL_KEY" },
+      { error: error instanceof Error ? error.message : "Thiếu API key" },
       { status: 500 },
     );
   }
-
-  const tail = mode === "result" ? "" : "/status";
-  const target = `${FAL_QUEUE_BASE}/${model.endpoint}/requests/${requestId}${tail}`;
 
   const response = await fetch(target, {
     method: "GET",
@@ -59,7 +61,7 @@ export async function GET(request: Request) {
 
   if (!response.ok) {
     return NextResponse.json(
-      { error: "FAL trả lỗi khi truy vấn", status: response.status, detail: parsed },
+      { error: "Truy vấn thất bại", status: response.status, detail: parsed },
       { status: response.status },
     );
   }
