@@ -567,9 +567,9 @@ export function StoryWriterShell() {
         });
         const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
-        return json as { id: string; title: string };
+        return json as { id: string; title: string; needsArchitect?: boolean };
       },
-      `Architect tạo sách "${payload.title.trim()}"`,
+      `Đã tạo sách "${payload.title.trim()}"`,
     );
     if (r) {
       const summary: BookSummary = {
@@ -584,6 +584,37 @@ export function StoryWriterShell() {
       setActiveBookId(r.id);
       setBookModal(false);
       setNewBook({ title: "", genre: "", brief: "", authorIntent: "", currentFocus: "", chapterWords: 2400, targetChapters: 200 });
+      setTab("books");
+
+      if (r.needsArchitect) {
+        log("info", "Architect đang dựng khung truyện (1/2)...");
+        await safeRun(
+          "architect-skeleton",
+          async () => {
+            const res2 = await fetch(`/api/story-writer/books/${r.id}/architect-rerun?stage=skeleton`, {
+              method: "POST",
+            });
+            const json2 = await safeParseJson(res2);
+            if (!res2.ok) throw new Error(json2?.error || `HTTP ${res2.status}`);
+            return json2;
+          },
+          "Architect khung xong",
+        );
+        log("info", "Architect đang reo hook truyện (2/2)...");
+        await safeRun(
+          "architect-truth",
+          async () => {
+            const res3 = await fetch(`/api/story-writer/books/${r.id}/architect-rerun?stage=truth`, {
+              method: "POST",
+            });
+            const json3 = await safeParseJson(res3);
+            if (!res3.ok) throw new Error(json3?.error || `HTTP ${res3.status}`);
+            return json3;
+          },
+          "Architect truth xong",
+        );
+        await loadBook(r.id);
+      }
       setTab("write");
     }
   }
@@ -639,7 +670,7 @@ export function StoryWriterShell() {
         const res = await fetch(path, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: action === "full" ? JSON.stringify({ autoApprove: false, reviseRetries: 1 }) : "{}",
+          body: action === "full" ? JSON.stringify({ autoApprove: false, reviseRetries: 0 }) : "{}",
         });
         const json = await safeParseJson(res);
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);

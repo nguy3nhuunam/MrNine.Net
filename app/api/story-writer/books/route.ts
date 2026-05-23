@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { runArchitect } from "@/lib/story-writer/architect";
 import { getGenre } from "@/lib/story-writer/genres";
 import {
   booksCol,
@@ -9,14 +8,13 @@ import {
   truthCol,
   type LlmConfig,
   type SwBook,
-  type TruthKind,
   TRUTH_KINDS,
 } from "@/lib/story-writer/store";
 import { safeJsonRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 async function _handler_GET(request: Request) {
   const session = await auth();
@@ -40,6 +38,10 @@ async function _handler_GET(request: Request) {
   });
 }
 
+// Stub-only book creation. Returns instantly so the UI never hits the
+// 60s function timeout. The skeleton + truth seeds are produced by the
+// follow-up POST /books/[id]/architect-rerun call (split into two LLM
+// passes) which the client triggers right after.
 async function _handler_POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
@@ -79,104 +81,7 @@ async function _handler_POST(request: Request) {
     ? Math.min(2000, Math.max(20, Number(body.targetChapters)))
     : genreSpec.defaultTargetChapters;
 
-  const authorIntent = (body.authorIntent ?? "").trim();
-  const currentFocus = (body.currentFocus ?? "").trim();
-  const brief = (body.brief ?? "").trim();
-
-  let architectResult;
-  try {
-    architectResult = await runArchitect({
-      title,
-      genreId: genre,
-      brief,
-      authorIntent,
-      currentFocus,
-      chapterWords,
-      targetChapters,
-      llm: body.llm ?? null,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Architect thất bại" },
-      { status: 502 },
-    );
-  }
-
   const now = new Date();
-  // Persist Architect output as structured entities.
-  const charById = new Map<string, string>();
-  const characters = (architectResult.characters ?? []).map((c, idx) => {
-    const id = `c${idx + 1}`;
-    charById.set(c.name.trim().toLowerCase(), id);
-    return {
-      id,
-      name: c.name.trim(),
-      role: c.role,
-      profile: c.profile,
-      aliases: c.aliases ?? [],
-    };
-  });
-  const relationships = (architectResult.relationships ?? [])
-    .map((rel, idx) => {
-      const fromId = charById.get(rel.fromName?.trim?.().toLowerCase?.() ?? "");
-      const toId = charById.get(rel.toName?.trim?.().toLowerCase?.() ?? "");
-      if (!fromId || !toId) return null;
-      const safeKind = [
-        "knows",
-        "loves",
-        "hates",
-        "rivals",
-        "parent_of",
-        "child_of",
-        "sibling",
-        "mentor_of",
-        "ally",
-        "owes",
-        "secret_with",
-        "betrayed_by",
-        "custom",
-      ].includes(rel.kind)
-        ? (rel.kind as
-            | "knows"
-            | "loves"
-            | "hates"
-            | "rivals"
-            | "parent_of"
-            | "child_of"
-            | "sibling"
-            | "mentor_of"
-            | "ally"
-            | "owes"
-            | "secret_with"
-            | "betrayed_by"
-            | "custom")
-        : "custom";
-      return {
-        id: `r${idx + 1}`,
-        fromCharacterId: fromId,
-        toCharacterId: toId,
-        kind: safeKind,
-        label: rel.label,
-        note: rel.note,
-      };
-    })
-    .filter((rel): rel is NonNullable<typeof rel> => rel !== null);
-  const foreshadows = (architectResult.foreshadows ?? []).map((f, idx) => ({
-    id: `f${idx + 1}`,
-    summary: f.summary,
-    status: "open" as const,
-    expectedResolutionChapter: f.expectedResolutionChapter,
-  }));
-  const volumes = (architectResult.volumes ?? []).map((v) => ({
-    id: `v${v.number}`,
-    number: v.number,
-    title: v.title,
-    summary: v.summary,
-    startChapter: v.startChapter,
-    endChapter: v.endChapter,
-    status: "planned" as const,
-  }));
-
   const book: SwBook = {
     projectId: toId(projectId),
     userId,
@@ -186,18 +91,18 @@ async function _handler_POST(request: Request) {
     chapterWords,
     targetChapters,
     status: "draft",
-    brief: brief || undefined,
-    authorIntent,
-    currentFocus,
-    bookRules: architectResult.bookRules,
-    storyBible: architectResult.storyBible,
-    volumeOutline: architectResult.volumeOutline,
+    brief: (body.brief ?? "").trim() || undefined,
+    authorIntent: (body.authorIntent ?? "").trim(),
+    currentFocus: (body.currentFocus ?? "").trim(),
+    bookRules: "",
+    storyBible: "",
+    volumeOutline: "",
     styleGuide: genreSpec.styleGuide,
     llm: body.llm ?? undefined,
-    characters,
-    relationships,
-    foreshadows,
-    volumes,
+    characters: [],
+    relationships: [],
+    foreshadows: [],
+    volumes: [],
     aiTellHistory: [],
     wordCountHistory: [],
     createdAt: now,
@@ -207,17 +112,16 @@ async function _handler_POST(request: Request) {
   const insertResult = await (await booksCol()).insertOne(book);
   const bookId = insertResult.insertedId;
 
-  // Seed 7 truth files.
-  const truth = await truthCol();
-  const truthDocs = TRUTH_KINDS.map((kind: TruthKind) => ({
+  // Empty truth files; architect-rerun will fill them.
+  const truthDocs = TRUTH_KINDS.map((kind) => ({
     bookId,
     userId,
     kind,
-    content: architectResult.truthSeeds[kind] ?? "",
+    content: "",
     version: 1,
     updatedAt: now,
   }));
-  await truth.insertMany(truthDocs);
+  await (await truthCol()).insertMany(truthDocs);
 
   await (await projectsCol()).updateOne({ _id: toId(projectId), userId }, { $set: { updatedAt: now } });
 
@@ -226,13 +130,9 @@ async function _handler_POST(request: Request) {
     title,
     genre,
     status: "draft",
-    storyBible: architectResult.storyBible,
-    bookRules: architectResult.bookRules,
-    volumeOutline: architectResult.volumeOutline,
-    characters: architectResult.characters,
+    needsArchitect: true,
   });
 }
 
 export const GET = safeJsonRoute(_handler_GET);
-
 export const POST = safeJsonRoute(_handler_POST);

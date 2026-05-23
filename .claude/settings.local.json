@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "Bash(mv banner-design *)",
+      "Bash(rm -rf ~/.claude/skills/ui-ux-pro-max-repo)",
+      "Bash(npx next *)"
+    ]
+  }
+}

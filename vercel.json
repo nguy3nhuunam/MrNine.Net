@@ -4,6 +4,21 @@
     "app/api/docsense/route.ts": { "maxDuration": 60 },
     "app/api/ai-playground/upload/route.ts": { "maxDuration": 30 },
     "app/api/ai-playground/submit/route.ts": { "maxDuration": 30 },
-    "app/api/ai-playground/status/route.ts": { "maxDuration": 30 }
+    "app/api/ai-playground/status/route.ts": { "maxDuration": 30 },
+    "app/api/story-writer/books/route.ts": { "maxDuration": 30 },
+    "app/api/story-writer/books/[id]/architect-rerun/route.ts": { "maxDuration": 50 },
+    "app/api/story-writer/books/[id]/bulk-approve/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/books/[id]/cover/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/books/[id]/import-chapters/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/books/[id]/style/analyze/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/chapters/[id]/plan/route.ts": { "maxDuration": 50 },
+    "app/api/story-writer/chapters/[id]/write/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/chapters/[id]/audit/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/chapters/[id]/revise/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/chapters/[id]/approve/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/chapters/[id]/full/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/chapters/[id]/detect/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/short/route.ts": { "maxDuration": 60 },
+    "app/api/story-writer/suggest-setting/route.ts": { "maxDuration": 50 }
   }
 }
