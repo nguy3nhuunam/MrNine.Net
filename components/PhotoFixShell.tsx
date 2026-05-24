@@ -350,7 +350,7 @@ export function PhotoFixShell() {
       payload.upscale_factor = 2;
     } else if (activeOp.id === "replace-bg") {
       payload.image_url = url;
-      payload.ref_image_url = prompt.trim();
+      payload.bg_prompt = prompt.trim();
       payload.fast = true;
     } else if (activeOp.id === "face-fix") {
       payload.image_url = url;

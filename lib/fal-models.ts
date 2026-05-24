@@ -1698,7 +1698,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     tagline: "Thay nền theo prompt, giữ chủ thể",
     badge: "TOOL",
     capability: "image-to-image",
-    promptKey: "ref_image_url",
+    promptKey: "bg_prompt",
     promptLabel: "Mô tả nền mới",
     promptPlaceholder: "Ví dụ: bãi biển hoàng hôn, ánh sáng vàng cam...",
     imageKey: "image_url",
