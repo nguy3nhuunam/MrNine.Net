@@ -459,6 +459,14 @@ export function StoryWriterShell() {
   const [searchQ, setSearchQ] = useState("");
   const [searchResult, setSearchResult] = useState<SearchHit | null>(null);
   const [readingMode, setReadingMode] = useState(false);
+  useEffect(() => {
+    if (!readingMode) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setReadingMode(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [readingMode]);
   const [coverPrompt, setCoverPrompt] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -2790,6 +2798,18 @@ function ChapterEditor({
       ) : null}
 
       <div className={cn("flex-1 overflow-y-auto rounded-lg border border-[#25211b] bg-[#0d0b08]/82 p-5", readingMode && "fixed inset-0 z-40 m-6 max-w-none p-10 text-[1.05rem] leading-9")}>
+        {readingMode ? (
+          <button
+            type="button"
+            onClick={() => setReadingMode(false)}
+            aria-label="Thoát chế độ đọc"
+            title="Thoát chế độ đọc (Esc)"
+            className="fixed right-10 top-10 z-50 flex h-10 items-center gap-2 rounded-md border border-[#ef4444]/40 bg-[#0d0b08]/92 px-3 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[#ffb4ad] shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur transition hover:bg-[#ef4444]/16"
+          >
+            <X className="size-4" />
+            Thoát
+          </button>
+        ) : null}
         {chapter.draft ? (
           <pre className={cn("playground-result-arrive whitespace-pre-wrap text-[#f4eadc]", readingMode ? "text-[1.05rem] leading-9 mx-auto max-w-3xl" : "text-[0.86rem] leading-7")}>{chapter.draft}</pre>
         ) : (
