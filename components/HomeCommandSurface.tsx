@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { languageOptions as appLanguageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
 import { safeParseJson } from "@/lib/fetch-json";
+import { DiscordActivity } from "@/components/DiscordActivity";
 
 type InterfaceTheme = "auto" | "crimson" | "signal" | "gold" | "frost";
 type AskMessage = {
@@ -1548,14 +1549,17 @@ export function HomeCommandSurface() {
         </div>
 
         <div className="hidden flex-1 justify-center xl:flex">
-          <div className="flex h-9 items-center gap-2.5 rounded-full border border-[#1f7d43]/35 bg-[#0b2114]/72 px-3.5 shadow-[0_0_22px_rgba(34,197,94,0.08)]">
-            <span className="flex size-6 items-center justify-center rounded-full bg-[conic-gradient(from_180deg,#ef4444,#45a85d,#47c9d9,#ef4444)]">
-              <Sparkles className="size-3 text-[#070604]" />
-            </span>
-            <div className="font-mono text-[0.6rem] uppercase leading-3 tracking-[0.14em]">
-              <div className="text-[#f4eadc]">009</div>
-              <div className="text-[#9a9087]">mrnine.net</div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 items-center gap-2.5 rounded-full border border-[#1f7d43]/35 bg-[#0b2114]/72 px-3.5 shadow-[0_0_22px_rgba(34,197,94,0.08)]">
+              <span className="flex size-6 items-center justify-center rounded-full bg-[conic-gradient(from_180deg,#ef4444,#45a85d,#47c9d9,#ef4444)]">
+                <Sparkles className="size-3 text-[#070604]" />
+              </span>
+              <div className="font-mono text-[0.6rem] uppercase leading-3 tracking-[0.14em]">
+                <div className="text-[#f4eadc]">009</div>
+                <div className="text-[#9a9087]">mrnine.net</div>
+              </div>
             </div>
+            <DiscordActivity userId="489092502998220812" />
           </div>
         </div>
 
