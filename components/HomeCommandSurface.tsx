@@ -1308,22 +1308,22 @@ function HeroParticleNetwork() {
         for (const particle of particles) {
           const distance = Math.hypot(particle.x - mouse.x, particle.y - mouse.y);
           if (distance < mouseDistance) {
-            const opacity = Math.pow(1 - distance / mouseDistance, 2) * 0.55;
+            const opacity = Math.pow(1 - distance / mouseDistance, 1.4) * 0.95;
             currentContext.beginPath();
             currentContext.moveTo(particle.x, particle.y);
             currentContext.lineTo(mouse.x, mouse.y);
             currentContext.strokeStyle = `rgba(244, 234, 220, ${opacity})`;
-            currentContext.lineWidth = 0.7;
+            currentContext.lineWidth = 1.1;
             currentContext.stroke();
           }
         }
         currentContext.beginPath();
-        currentContext.arc(mouse.x, mouse.y, 14, 0, Math.PI * 2);
-        currentContext.fillStyle = "rgba(244, 234, 220, 0.05)";
+        currentContext.arc(mouse.x, mouse.y, 18, 0, Math.PI * 2);
+        currentContext.fillStyle = "rgba(244, 234, 220, 0.1)";
         currentContext.fill();
         currentContext.beginPath();
-        currentContext.arc(mouse.x, mouse.y, 2.6, 0, Math.PI * 2);
-        currentContext.fillStyle = "rgba(244, 234, 220, 0.55)";
+        currentContext.arc(mouse.x, mouse.y, 3.2, 0, Math.PI * 2);
+        currentContext.fillStyle = "rgba(244, 234, 220, 0.85)";
         currentContext.fill();
       }
 
