@@ -16,9 +16,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     strategy: hasMongo ? "database" : "jwt",
   },
   callbacks: {
-    session({ session, user }) {
+    async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
+
+        if (clientPromise) {
+          try {
+            const client = await clientPromise;
+            const account = await client
+              .db()
+              .collection("accounts")
+              .findOne({ userId: user.id, provider: "discord" });
+            if (account?.providerAccountId) {
+              session.user.discordId = String(account.providerAccountId);
+            }
+          } catch {
+            // ignore lookup failures; fall through with no discordId
+          }
+        }
       }
 
       return session;

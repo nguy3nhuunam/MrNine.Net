@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Gamepad2, Headphones, Music2 } from "lucide-react";
+import { Gamepad2, Headphones, Music2, UserPlus } from "lucide-react";
+import { signIn } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 type Activity = {
@@ -76,7 +77,11 @@ function discordCdnAsset(activity: Activity, image: string): string {
   return image;
 }
 
-export function DiscordActivity({ userId }: Readonly<{ userId: string }>) {
+export function DiscordActivity({
+  userId,
+  unlinked = false,
+  viewerName = null,
+}: Readonly<{ userId: string; unlinked?: boolean; viewerName?: string | null }>) {
   const [data, setData] = useState<LanyardData | null>(null);
   const [now, setNow] = useState<number>(() => Date.now());
   const wsRef = useRef<WebSocket | null>(null);
@@ -288,6 +293,32 @@ export function DiscordActivity({ userId }: Readonly<{ userId: string }>) {
 
   const custom = data.activities.find((a) => a.type === 4);
   const username = data.discord_user.global_name || data.discord_user.username;
+
+  if (unlinked) {
+    return (
+      <button
+        type="button"
+        onClick={() => void signIn("discord")}
+        title={
+          viewerName
+            ? `${viewerName}: kết nối Discord để hiện hoạt động của bạn ở đây`
+            : "Kết nối Discord để hiện hoạt động của bạn ở đây"
+        }
+        className="flex h-9 max-w-[18rem] items-center gap-2 rounded-full border border-[#5865F2]/35 bg-[#0c0e1f]/82 px-3 font-mono text-[0.58rem] uppercase tracking-[0.14em] text-[#c9cefa] transition hover:border-[#5865F2]/70 hover:bg-[#10142e]"
+      >
+        <UserPlus className="size-3.5 text-[#5865F2]" />
+        <span className="hidden flex-col leading-tight sm:flex">
+          <span className="text-[0.6rem] font-bold normal-case tracking-normal text-[#dfe1ff]">
+            {viewerName ? `${viewerName.split(/\s+/)[0]}` : "Discord"}
+          </span>
+          <span className="text-[0.5rem] normal-case tracking-normal text-[#a1a8ff]">
+            {viewerName ? "Kết nối Discord" : "Đăng nhập Discord"}
+          </span>
+        </span>
+        <span className="sm:hidden">{viewerName ? "Link" : "Discord"}</span>
+      </button>
+    );
+  }
 
   return (
     <div

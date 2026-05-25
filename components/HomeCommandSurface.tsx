@@ -1557,7 +1557,7 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
 export function HomeCommandSurface() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { status: sessionStatus } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const shouldReduceMotion = useReducedMotion();
   const { language, setLanguage } = useLanguage();
   const [interfaceTheme, setInterfaceTheme] = useState<InterfaceTheme>("auto");
@@ -1901,7 +1901,7 @@ export function HomeCommandSurface() {
                 <div className="text-[#9a9087]">mrnine.net</div>
               </div>
             </div>
-            <DiscordActivity userId="489092502998220812" />
+            <DiscordActivity userId={session?.user?.discordId || "489092502998220812"} unlinked={!session?.user?.discordId} viewerName={session?.user?.name ?? null} />
           </div>
         </div>
 
