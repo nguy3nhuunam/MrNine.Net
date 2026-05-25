@@ -781,6 +781,29 @@ function falCapabilityIcon(capability: FalCapability): LucideIcon {
   return Clapperboard;
 }
 
+function moduleAnimationClass(title: string): string {
+  switch (title) {
+    case "AI Playground":
+      return "module-anim-playground";
+    case "Photo Fix":
+      return "module-anim-photo";
+    case "Smart Recap":
+      return "module-anim-recap";
+    case "DocSense":
+      return "module-anim-doc";
+    case "Story Writer":
+      return "module-anim-story";
+    case "Language Tutor":
+      return "module-anim-tutor";
+    case "Mystic Deck":
+      return "module-anim-mystic";
+    case "Voice Lab":
+      return "module-anim-voice";
+    default:
+      return "";
+  }
+}
+
 function buildSearchResults(language: WebLanguage): ReadonlyArray<SearchResult> {
   const results: SearchResult[] = [];
 
@@ -1056,9 +1079,9 @@ function HeroParticleNetwork() {
     const currentContext = context;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const colors = [
-      { core: "rgba(239, 68, 68, 0.86)", glow: "rgba(239, 68, 68, 0.07)" },
-      { core: "rgba(69, 168, 93, 0.86)", glow: "rgba(69, 168, 93, 0.07)" },
-      { core: "rgba(214, 165, 72, 0.84)", glow: "rgba(214, 165, 72, 0.06)" },
+      { core: "rgba(239, 68, 68, 0.92)", glow: "rgba(239, 68, 68, 0.14)" },
+      { core: "rgba(69, 168, 93, 0.92)", glow: "rgba(69, 168, 93, 0.14)" },
+      { core: "rgba(214, 165, 72, 0.9)", glow: "rgba(214, 165, 72, 0.12)" },
     ];
     const particles: Array<{
       x: number;
@@ -1087,14 +1110,14 @@ function HeroParticleNetwork() {
       const count = Math.max(14, Math.min(34, Math.floor(width / 58)));
 
       for (let index = 0; index < count; index += 1) {
-        const speed = 7 + Math.random() * 13;
+        const speed = 9 + Math.random() * 16;
         const angle = Math.random() * Math.PI * 2;
         particles.push({
           x: Math.random() * width,
           y: Math.random() * height,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
-          radius: 0.72 + Math.random() * 0.78,
+          radius: 1.6 + Math.random() * 1.6,
           phase: Math.random() * Math.PI * 2,
           color: colors[index % colors.length],
         });
@@ -1141,7 +1164,7 @@ function HeroParticleNetwork() {
       for (const particle of particles) {
         const pulse = 0.72 + Math.sin(time * 0.002 + particle.phase) * 0.28;
         currentContext.beginPath();
-        currentContext.arc(particle.x, particle.y, particle.radius * 2.35, 0, Math.PI * 2);
+        currentContext.arc(particle.x, particle.y, particle.radius * 4.6, 0, Math.PI * 2);
         currentContext.fillStyle = particle.color.glow;
         currentContext.fill();
         currentContext.beginPath();
@@ -2248,6 +2271,7 @@ export function HomeCommandSurface() {
                       }}
                       className={cn(
                         "module-card-signal group relative flex min-h-[9.25rem] overflow-hidden rounded-lg border border-[#2a251f] bg-[#14100d]/72 p-3.5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[#ef4444]/45 hover:bg-[#1c1612] hover:shadow-[0_12px_40px_rgba(239,68,68,0.12),0_0_0_1px_rgba(239,68,68,0.08)_inset] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 min-[1920px]:min-h-[9.5rem]",
+                        moduleAnimationClass(module.title),
                         moduleIsArming && "module-route-arming",
                         moduleIsDimmed && "pointer-events-none blur-[0.4px]",
                         module.title !== "AI Playground" &&

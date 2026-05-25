@@ -697,3 +697,203 @@ a {
     transition: none;
   }
 }
+
+/* ============================================================
+   Per-module card animations
+   Each card gets an ::after overlay tied to its function:
+   - Playground: prismatic shimmer (image+video)
+   - Photo Fix:  vertical scan line (restoring/fixing)
+   - Smart Recap: ticker stripes (summarizing flow)
+   - DocSense:   horizontal OCR sweep
+   - Story Writer: ink drift
+   - Mystic Deck: orbital glow
+   - Language Tutor (soon): subtle fade
+   - Voice Lab (soon): standing wave
+   Reduced motion users get a static gradient instead.
+============================================================ */
+
+.module-anim-playground::after,
+.module-anim-photo::after,
+.module-anim-recap::after,
+.module-anim-doc::after,
+.module-anim-story::after,
+.module-anim-tutor::after,
+.module-anim-mystic::after,
+.module-anim-voice::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.module-card-signal:hover.module-anim-playground::after,
+.module-card-signal:hover.module-anim-photo::after,
+.module-card-signal:hover.module-anim-recap::after,
+.module-card-signal:hover.module-anim-doc::after,
+.module-card-signal:hover.module-anim-story::after,
+.module-card-signal:hover.module-anim-tutor::after,
+.module-card-signal:hover.module-anim-mystic::after,
+.module-card-signal:hover.module-anim-voice::after {
+  opacity: 0.78;
+}
+
+.module-card-signal > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* AI Playground — prismatic shimmer for image+video render */
+.module-anim-playground::after {
+  background: linear-gradient(
+    115deg,
+    transparent 18%,
+    rgba(239, 68, 68, 0.18) 30%,
+    rgba(214, 165, 72, 0.12) 50%,
+    rgba(71, 201, 217, 0.18) 70%,
+    transparent 82%
+  );
+  background-size: 220% 100%;
+  background-position: 100% 50%;
+  animation: prismShimmer 9s ease-in-out infinite;
+}
+
+@keyframes prismShimmer {
+  0%, 100% { background-position: 120% 50%; }
+  50%      { background-position: -20% 50%; }
+}
+
+/* Photo Fix — vertical scan line for restore/repair feel */
+.module-anim-photo::after {
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(214, 165, 72, 0.32) 50%, transparent 100%);
+  background-size: 100% 28%;
+  background-repeat: no-repeat;
+  background-position: 0 -30%;
+  animation: photoScan 5s ease-in-out infinite;
+}
+
+@keyframes photoScan {
+  0%, 100% { background-position: 0 -30%; }
+  50%      { background-position: 0 130%; }
+}
+
+/* Smart Recap — diagonal ticker stripes */
+.module-anim-recap::after {
+  background-image: repeating-linear-gradient(
+    115deg,
+    transparent 0,
+    transparent 14px,
+    rgba(69, 168, 93, 0.12) 14px,
+    rgba(69, 168, 93, 0.12) 16px
+  );
+  background-size: 200% 100%;
+  animation: recapStream 6s linear infinite;
+}
+
+@keyframes recapStream {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: -200% 0%; }
+}
+
+/* DocSense — horizontal OCR sweep, left → right */
+.module-anim-doc::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 28%,
+    rgba(71, 201, 217, 0.32) 50%,
+    transparent 72%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  background-position: -120% 0;
+  animation: docSweep 4s ease-in-out infinite;
+}
+
+@keyframes docSweep {
+  0%, 100% { background-position: -120% 0; }
+  50%      { background-position: 120% 0; }
+}
+
+/* Story Writer — slow ink wash bottom-up */
+.module-anim-story::after {
+  background:
+    radial-gradient(circle at 18% 110%, rgba(239, 68, 68, 0.28), transparent 55%),
+    radial-gradient(circle at 82% 110%, rgba(214, 165, 72, 0.18), transparent 60%);
+  animation: storyInk 11s ease-in-out infinite;
+}
+
+@keyframes storyInk {
+  0%, 100% { transform: translateY(8%); opacity: 0.32; }
+  50%      { transform: translateY(-2%); opacity: 0.55; }
+}
+
+/* Mystic Deck — orbital glow rotating around the card */
+.module-anim-mystic::after {
+  background:
+    conic-gradient(
+      from 0deg,
+      rgba(214, 165, 72, 0.12) 0deg,
+      rgba(214, 165, 72, 0.32) 60deg,
+      transparent 120deg,
+      rgba(239, 68, 68, 0.18) 200deg,
+      transparent 280deg,
+      rgba(214, 165, 72, 0.12) 360deg
+    );
+  filter: blur(14px);
+  animation: mysticOrbit 14s linear infinite;
+}
+
+@keyframes mysticOrbit {
+  0%   { transform: rotate(0deg) scale(1.02); }
+  100% { transform: rotate(360deg) scale(1.02); }
+}
+
+/* Language Tutor (soon) — gentle fade pulse */
+.module-anim-tutor::after {
+  background: radial-gradient(circle at 50% 50%, rgba(69, 168, 93, 0.18), transparent 70%);
+  animation: tutorPulse 5.5s ease-in-out infinite;
+}
+
+@keyframes tutorPulse {
+  0%, 100% { opacity: 0.18; transform: scale(0.95); }
+  50%      { opacity: 0.45; transform: scale(1); }
+}
+
+/* Voice Lab (soon) — standing wave bands */
+.module-anim-voice::after {
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 6px,
+    rgba(71, 201, 217, 0.18) 6px,
+    rgba(71, 201, 217, 0.18) 7px,
+    transparent 7px,
+    transparent 14px
+  );
+  mask: linear-gradient(180deg, transparent 30%, #000 50%, transparent 70%);
+  -webkit-mask: linear-gradient(180deg, transparent 30%, #000 50%, transparent 70%);
+  animation: voiceBand 3.6s ease-in-out infinite;
+}
+
+@keyframes voiceBand {
+  0%, 100% { transform: scaleY(0.3); }
+  50%      { transform: scaleY(1.05); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .module-anim-playground::after,
+  .module-anim-photo::after,
+  .module-anim-recap::after,
+  .module-anim-doc::after,
+  .module-anim-story::after,
+  .module-anim-tutor::after,
+  .module-anim-mystic::after,
+  .module-anim-voice::after {
+    animation: none !important;
+  }
+}
