@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import {
   ArrowRight,
   AudioLines,
@@ -8,6 +8,7 @@ import {
   BookOpenText,
   ChevronDown,
   Check,
+  Clapperboard,
   FileSearch,
   Image as ImageLucide,
   ImageDown,
@@ -17,10 +18,12 @@ import {
   Menu,
   Moon,
   PenLine,
+  Search,
   Send,
   Sparkles,
   Wrench,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,6 +33,7 @@ import { languageOptions as appLanguageOptions, useLanguage, type WebLanguage } 
 import { cn } from "@/lib/utils";
 import { safeParseJson } from "@/lib/fetch-json";
 import { DiscordActivity } from "@/components/DiscordActivity";
+import { allModels as falAllModels, type FalCapability } from "@/lib/fal-models";
 
 type InterfaceTheme = "auto" | "crimson" | "signal" | "gold" | "frost";
 type AskMessage = {
@@ -376,9 +380,11 @@ const homeCopy = {
     home: "Home",
     online: "Online",
     heroDescription: "A personal AI control surface: writing, voice, image, video, documents, coding, and tools woven into one command center.",
-    commandPlaceholder: "Ask MrNine to write, render, convert, debug...",
-    mobileCommandPlaceholder: "Ask MrNine...",
-    run: "Run",
+    commandPlaceholder: "Search modules, models, tools...",
+    mobileCommandPlaceholder: "Search MrNine...",
+    run: "Open",
+    searchEmpty: "No matches. Try another keyword.",
+    searchHint: "Use ↑↓ to browse, Enter to open",
     modules: "Modules",
     todo: "To-do",
     missionDeck: "Mission deck / 08",
@@ -409,9 +415,11 @@ const homeCopy = {
     home: "Trang chủ",
     online: "Trực tuyến",
     heroDescription: "Một trung tâm điều khiển AI cá nhân: viết, giọng nói, hình ảnh, video, tài liệu, code và công cụ trong cùng một giao diện lệnh.",
-    commandPlaceholder: "Yêu cầu MrNine viết, dựng, chuyển đổi, debug...",
-    mobileCommandPlaceholder: "Hỏi MrNine...",
-    run: "Chạy",
+    commandPlaceholder: "Tìm module, model, công cụ...",
+    mobileCommandPlaceholder: "Tìm MrNine...",
+    run: "Mở",
+    searchEmpty: "Không có kết quả. Thử từ khoá khác.",
+    searchHint: "Dùng ↑↓ để chọn, Enter để mở",
     modules: "Module",
     todo: "Việc cần làm",
     missionDeck: "Bảng nhiệm vụ / 08",
@@ -670,6 +678,197 @@ const accentMap = {
     dot: "bg-[#47c9d9]",
   },
 };
+
+type SearchCategory = "module" | "image-model" | "video-model" | "motion-model" | "feature";
+
+type SearchAccent = "red" | "lime" | "amber" | "cyan";
+
+type SearchResult = {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  vendor?: string;
+  category: SearchCategory;
+  icon: LucideIcon;
+  accent: SearchAccent;
+  href: string;
+};
+
+const searchCategoryCopy = {
+  en: {
+    module: "Modules",
+    "image-model": "Image models",
+    "video-model": "Video models",
+    "motion-model": "Motion control",
+    feature: "Tools",
+  },
+  vi: {
+    module: "Module",
+    "image-model": "Model ảnh",
+    "video-model": "Model video",
+    "motion-model": "Motion control",
+    feature: "Công cụ",
+  },
+} satisfies Record<WebLanguage, Record<SearchCategory, string>>;
+
+const moduleNavMap: Record<string, string> = {
+  "AI Playground": "/ai-playground",
+  "Photo Fix": "/photo-fix",
+  "Smart Recap": "/smart-recap",
+  "DocSense": "/docsense",
+  "Story Writer": "/story-writer",
+};
+
+const extraFeatureEntries: ReadonlyArray<{
+  id: string;
+  title: string;
+  subtitleVi: string;
+  subtitleEn: string;
+  href: string;
+  icon: LucideIcon;
+  accent: SearchAccent;
+}> = [
+  {
+    id: "story-forge",
+    title: "Story Forge",
+    subtitleVi: "Studio dàn ý · chương · nhân vật",
+    subtitleEn: "Outline · chapter · character studio",
+    href: "/story-forge",
+    icon: PenLine,
+    accent: "red",
+  },
+  {
+    id: "voice-studio",
+    title: "Voice Studio",
+    subtitleVi: "TTS · thuyết minh · clone giọng",
+    subtitleEn: "TTS · narration · voice clone",
+    href: "/voice-studio",
+    icon: AudioLines,
+    accent: "cyan",
+  },
+  {
+    id: "video-studio",
+    title: "Video Studio",
+    subtitleVi: "Edit video · timeline · motion",
+    subtitleEn: "Video edit · timeline · motion",
+    href: "/video-studio",
+    icon: Clapperboard,
+    accent: "amber",
+  },
+];
+
+function falCapabilityToCategory(capability: FalCapability): SearchCategory {
+  if (capability === "text-to-image" || capability === "image-to-image") return "image-model";
+  if (capability === "text-to-video" || capability === "image-to-video") return "video-model";
+  return "motion-model";
+}
+
+function falCapabilityAccent(capability: FalCapability): SearchAccent {
+  if (capability === "text-to-image") return "red";
+  if (capability === "image-to-image") return "amber";
+  if (capability === "text-to-video") return "cyan";
+  if (capability === "image-to-video") return "lime";
+  return "amber";
+}
+
+function falCapabilityIcon(capability: FalCapability): LucideIcon {
+  if (capability === "text-to-image" || capability === "image-to-image") return ImageLucide;
+  return Clapperboard;
+}
+
+function buildSearchResults(language: WebLanguage): ReadonlyArray<SearchResult> {
+  const results: SearchResult[] = [];
+
+  for (const item of modules) {
+    const href = moduleNavMap[item.title];
+    if (!href) continue;
+    const localized = moduleCopy[language][item.title as keyof typeof moduleCopy.vi] ?? item;
+    results.push({
+      id: `module-${item.title}`,
+      title: localized.title ?? item.title,
+      subtitle: localized.detail ?? item.detail,
+      badge: item.shortcut ? `⇧${item.shortcut}` : undefined,
+      category: "module",
+      icon: item.icon,
+      accent: item.accent as SearchAccent,
+      href,
+    });
+  }
+
+  for (const feature of extraFeatureEntries) {
+    results.push({
+      id: `feature-${feature.id}`,
+      title: feature.title,
+      subtitle: language === "vi" ? feature.subtitleVi : feature.subtitleEn,
+      category: "feature",
+      icon: feature.icon,
+      accent: feature.accent,
+      href: feature.href,
+    });
+  }
+
+  for (const fal of falAllModels) {
+    results.push({
+      id: `fal-${fal.id}`,
+      title: fal.label,
+      subtitle: fal.tagline,
+      vendor: fal.vendor,
+      badge: fal.badge,
+      category: falCapabilityToCategory(fal.capability),
+      icon: falCapabilityIcon(fal.capability),
+      accent: falCapabilityAccent(fal.capability),
+      href: `/ai-playground?capability=${encodeURIComponent(fal.capability)}&model=${encodeURIComponent(fal.id)}`,
+    });
+  }
+
+  return results;
+}
+
+function scoreSearchResult(query: string, result: SearchResult): number {
+  if (!query) return 0;
+  const q = query.toLowerCase();
+  const title = result.title.toLowerCase();
+  const subtitle = result.subtitle.toLowerCase();
+  const vendor = result.vendor?.toLowerCase() ?? "";
+  const id = result.id.toLowerCase();
+  const badge = result.badge?.toLowerCase() ?? "";
+
+  if (title === q) return 1000;
+  if (title.startsWith(q)) return 700;
+  if (title.split(/\s+/).some((word) => word.startsWith(q))) return 500;
+  if (title.includes(q)) return 400;
+  if (vendor.includes(q)) return 320;
+  if (id.includes(q)) return 260;
+  if (subtitle.includes(q)) return 220;
+  if (badge.includes(q)) return 180;
+  return 0;
+}
+
+function filterAndRankResults(
+  query: string,
+  all: ReadonlyArray<SearchResult>,
+  limit = 28,
+): ReadonlyArray<SearchResult> {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    const featured = all.filter((r) => r.category === "module" || r.category === "feature");
+    const tail = all
+      .filter((r) => r.category !== "module" && r.category !== "feature")
+      .slice(0, Math.max(0, limit - featured.length));
+    return [...featured, ...tail].slice(0, limit);
+  }
+  const stripped = trimmed.startsWith("/") ? trimmed.slice(1).trim() : trimmed;
+  if (!stripped) {
+    return filterAndRankResults("", all, limit);
+  }
+  return all
+    .map((result) => ({ result, score: scoreSearchResult(stripped, result) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ result }) => result);
+}
 
 function SocialIconButton({ label, icon }: Readonly<{ label: string; icon: ReactNode }>) {
   return (
@@ -1241,7 +1440,7 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
       {open ? (
         <section
           aria-label={copy.aria}
-          className="fixed bottom-28 right-5 z-50 flex h-[min(36rem,calc(100vh-8rem))] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-[#45a85d]/28 bg-[#080b08]/96 shadow-[0_24px_90px_rgba(0,0,0,0.58),0_0_44px_rgba(24,201,100,0.16)] backdrop-blur-xl"
+          className="fixed bottom-28 left-5 z-50 flex h-[min(36rem,calc(100vh-8rem))] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-[#45a85d]/28 bg-[#080b08]/96 shadow-[0_24px_90px_rgba(0,0,0,0.58),0_0_44px_rgba(24,201,100,0.16)] backdrop-blur-xl"
         >
           <div className="flex items-center justify-between border-b border-white/10 bg-[#0b140d] px-4 py-3">
             <div>
@@ -1325,7 +1524,7 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
         aria-hidden={!scrolledPastHero && !open}
         tabIndex={scrolledPastHero || open ? 0 : -1}
         className={cn(
-          "ask-dock-wake group fixed bottom-14 right-5 z-40 hidden h-12 items-center gap-3 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-4 pr-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:flex lg:bottom-16",
+          "ask-dock-wake group fixed bottom-14 left-5 z-40 hidden h-12 items-center gap-3 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-4 pr-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:flex lg:bottom-16",
           scrolledPastHero ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-4 pointer-events-none",
         )}
       >
@@ -1354,17 +1553,47 @@ export function HomeCommandSurface() {
   const [armingModule, setArmingModule] = useState("");
   const [commandInput, setCommandInput] = useState("");
   const [commandFocused, setCommandFocused] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchActiveIndex, setSearchActiveIndex] = useState(0);
   const [previewModule, setPreviewModule] = useState<ModuleCard | null>(null);
   const [authPromptDismissed, setAuthPromptDismissed] = useState(false);
   const [authPromptForced, setAuthPromptForced] = useState(false);
   const heroRef = useRef<HTMLElement | null>(null);
   const commandInputRef = useRef<HTMLInputElement | null>(null);
+  const searchPanelRef = useRef<HTMLDivElement | null>(null);
+  const mobileSearchPanelRef = useRef<HTMLDivElement | null>(null);
   const activeTheme = interfaceThemes.find((theme) => theme.value === interfaceTheme) ?? interfaceThemes[0];
   const activeVisuals = themeVisuals[activeTheme.value];
-  const commandMode = quickCommands.find((item) => commandInput.trimStart().startsWith(item.command));
-  const slashMode = commandInput.trimStart().startsWith("/");
   const PreviewIcon = previewModule?.icon;
   const copy = homeCopy[language];
+  const allSearchResults = useMemo(() => buildSearchResults(language), [language]);
+  const searchResults = useMemo(
+    () => filterAndRankResults(commandInput, allSearchResults),
+    [commandInput, allSearchResults],
+  );
+  const slashMode = commandInput.trimStart().startsWith("/");
+  const groupedResults = useMemo(() => {
+    const order: ReadonlyArray<SearchCategory> = [
+      "module",
+      "feature",
+      "image-model",
+      "video-model",
+      "motion-model",
+    ];
+    const groups = new Map<SearchCategory, SearchResult[]>();
+    for (const result of searchResults) {
+      const list = groups.get(result.category) ?? [];
+      list.push(result);
+      groups.set(result.category, list);
+    }
+    return order
+      .filter((cat) => groups.has(cat))
+      .map((cat) => ({ category: cat, items: groups.get(cat) ?? [] }));
+  }, [searchResults]);
+  const flatResults = useMemo(
+    () => groupedResults.flatMap((group) => group.items),
+    [groupedResults],
+  );
   const authPromptCopy = language === "vi"
     ? "Vui lòng đăng nhập để sử dụng các tính năng MrNine."
     : "Please sign in to use MrNine features.";
@@ -1432,8 +1661,76 @@ export function HomeCommandSurface() {
 
   function applyQuickCommand(command: string) {
     setCommandInput(`${command} `);
+    setSearchOpen(true);
     window.requestAnimationFrame(() => commandInputRef.current?.focus());
   }
+
+  function navigateToResult(result: SearchResult) {
+    if (sessionStatus !== "authenticated") {
+      setAuthPromptForced(true);
+      setAuthPromptDismissed(false);
+      return;
+    }
+    setSearchOpen(false);
+    setCommandFocused(false);
+    setCommandInput("");
+    commandInputRef.current?.blur();
+    if (result.category === "module" && moduleNavMap[result.title]) {
+      const delay = shouldReduceMotion ? 0 : 320;
+      setArmingModule(result.title);
+      window.setTimeout(() => router.push(result.href), delay);
+      return;
+    }
+    router.push(result.href);
+  }
+
+  function handleSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (!searchOpen) setSearchOpen(true);
+      setSearchActiveIndex((current) =>
+        flatResults.length === 0 ? 0 : (current + 1) % flatResults.length,
+      );
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!searchOpen) setSearchOpen(true);
+      setSearchActiveIndex((current) =>
+        flatResults.length === 0 ? 0 : (current - 1 + flatResults.length) % flatResults.length,
+      );
+      return;
+    }
+    if (event.key === "Escape") {
+      if (searchOpen) {
+        event.preventDefault();
+        setSearchOpen(false);
+      }
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const target = flatResults[searchActiveIndex] ?? flatResults[0];
+      if (target) navigateToResult(target);
+    }
+  }
+
+  useEffect(() => {
+    setSearchActiveIndex(0);
+  }, [commandInput]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    function handlePointerDown(event: globalThis.MouseEvent) {
+      const target = event.target as Node;
+      if (commandInputRef.current?.contains(target)) return;
+      if (searchPanelRef.current?.contains(target)) return;
+      if (mobileSearchPanelRef.current?.contains(target)) return;
+      setSearchOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [searchOpen]);
 
   function openModule(title: string) {
     const destinations: Record<string, string> = {
@@ -1474,10 +1771,10 @@ export function HomeCommandSurface() {
       setAuthPromptDismissed(false);
       return;
     }
-    const prompt = commandInput.trim();
-
-    window.dispatchEvent(new CustomEvent("mrnine-open-chat", { detail: { prompt } }));
-    setCommandFocused(false);
+    const target = flatResults[searchActiveIndex] ?? flatResults[0];
+    if (target) {
+      navigateToResult(target);
+    }
   }
 
   function updateNumeralParallax(event: MouseEvent<HTMLElement>) {
@@ -1664,7 +1961,7 @@ export function HomeCommandSurface() {
               <form
                 onSubmit={submitCommand}
                 className={cn(
-                  "command-control-line mt-7 max-w-3xl rounded-xl border-2 bg-[#0d0b08]/92 p-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_24px_80px_rgba(239,68,68,0.08),0_18px_70px_rgba(0,0,0,0.32)] backdrop-blur transition",
+                  "command-control-line relative mt-7 max-w-3xl rounded-xl border-2 bg-[#0d0b08]/92 p-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_24px_80px_rgba(239,68,68,0.08),0_18px_70px_rgba(0,0,0,0.32)] backdrop-blur transition",
                   commandFocused ? "border-[#ef4444]/72 bg-[#120c09]/96 shadow-[0_0_0_1px_rgba(239,68,68,0.2)_inset,0_28px_92px_rgba(239,68,68,0.18),0_22px_82px_rgba(0,0,0,0.4)]" : "border-[#3a322a]",
                 )}
               >
@@ -1672,12 +1969,24 @@ export function HomeCommandSurface() {
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/35 bg-[#ef4444]/14 font-mono text-base text-[#ef4444]">
                     &gt;_
                   </span>
+                  <Search className="size-4 shrink-0 text-[#ef4444]/70" aria-hidden="true" />
                   <input
                     ref={commandInputRef}
                     value={commandInput}
-                    onFocus={() => setCommandFocused(true)}
+                    onFocus={() => {
+                      setCommandFocused(true);
+                      setSearchOpen(true);
+                    }}
                     onBlur={() => setCommandFocused(false)}
-                    onChange={(event) => setCommandInput(event.target.value)}
+                    onChange={(event) => {
+                      setCommandInput(event.target.value);
+                      setSearchOpen(true);
+                    }}
+                    onKeyDown={handleSearchKeyDown}
+                    role="combobox"
+                    aria-expanded={searchOpen}
+                    aria-autocomplete="list"
+                    aria-controls="mrnine-search-listbox"
                     placeholder={copy.commandPlaceholder}
                     className="min-w-0 flex-1 bg-transparent px-1 text-base text-[#f4eadc] outline-none placeholder:text-[#8a8278]"
                   />
@@ -1717,13 +2026,92 @@ export function HomeCommandSurface() {
                       </button>
                     );
                   })}
-                  {commandMode ? (
-                    <span className="ml-auto hidden items-center gap-1.5 font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#45a85d] md:flex">
-                      <span className="size-1.5 rounded-full bg-[#45a85d]" />
-                      {quickCommandCopy[language][commandMode.command as keyof typeof quickCommandCopy.vi]?.module ?? commandMode.module}
-                    </span>
-                  ) : null}
+                  <span className="ml-auto hidden items-center gap-1.5 font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#9a9087] md:flex">
+                    {copy.searchHint}
+                  </span>
                 </div>
+
+                {searchOpen ? (
+                  <div
+                    ref={searchPanelRef}
+                    id="mrnine-search-listbox"
+                    role="listbox"
+                    onMouseDown={(event) => event.preventDefault()}
+                    className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 max-h-[26rem] overflow-y-auto rounded-xl border border-[#3a322a] bg-[#0a0907]/97 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+                  >
+                    {flatResults.length === 0 ? (
+                      <div className="flex items-center justify-center px-3 py-6 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[#8f8579]">
+                        {copy.searchEmpty}
+                      </div>
+                    ) : (
+                      groupedResults.map((group) => (
+                        <div key={group.category} className="mb-1 last:mb-0">
+                          <div className="flex items-center gap-2 px-2 pb-1 pt-1.5 font-mono text-[0.5rem] uppercase tracking-[0.22em] text-[#9a9087]">
+                            <span className="size-1 rounded-full bg-[#ef4444]" />
+                            {searchCategoryCopy[language][group.category]}
+                            <span className="text-[#5e574e]">/ {group.items.length}</span>
+                          </div>
+                          {group.items.map((result) => {
+                            const accent = accentMap[result.accent];
+                            const flatIndex = flatResults.indexOf(result);
+                            const active = flatIndex === searchActiveIndex;
+                            const Icon = result.icon;
+                            return (
+                              <button
+                                key={result.id}
+                                type="button"
+                                role="option"
+                                aria-selected={active}
+                                onMouseEnter={() => setSearchActiveIndex(flatIndex)}
+                                onClick={() => navigateToResult(result)}
+                                className={cn(
+                                  "flex w-full items-center gap-3 rounded-lg border border-transparent px-2 py-2 text-left transition",
+                                  active
+                                    ? "border-[#ef4444]/45 bg-[#ef4444]/10"
+                                    : "hover:border-white/8 hover:bg-white/[0.03]",
+                                )}
+                              >
+                                <span
+                                  className={cn(
+                                    "flex size-8 shrink-0 items-center justify-center rounded-md border",
+                                    accent.border,
+                                    accent.bg,
+                                  )}
+                                >
+                                  <Icon className={cn("size-4", accent.text)} />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex items-center gap-2">
+                                    <span className="truncate text-[0.82rem] font-bold text-[#f4eadc]">
+                                      {result.title}
+                                    </span>
+                                    {result.badge ? (
+                                      <span className={cn("rounded border border-white/10 px-1 py-0.5 font-mono text-[0.46rem] uppercase tracking-[0.18em]", accent.text)}>
+                                        {result.badge}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                  <span className="mt-0.5 flex items-center gap-2 truncate font-mono text-[0.56rem] uppercase tracking-[0.14em] text-[#8f8579]">
+                                    {result.vendor ? (
+                                      <>
+                                        <span className="text-[#b5ab9f]">{result.vendor}</span>
+                                        <span className="text-[#5e574e]">·</span>
+                                      </>
+                                    ) : null}
+                                    <span className="truncate normal-case tracking-normal text-[0.7rem] font-normal text-[#b5ab9f]">
+                                      {result.subtitle}
+                                    </span>
+                                  </span>
+                                </span>
+                                <ArrowRight className={cn("size-3.5 shrink-0 transition", active ? accent.text : "text-[#5e574e]")} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ) : null}
               </form>
 
               <div className="mt-3 flex flex-wrap gap-2">
@@ -1953,22 +2341,76 @@ export function HomeCommandSurface() {
 
       <form
         onSubmit={submitCommand}
-        className="fixed inset-x-3 bottom-3 z-40 flex items-center gap-2 rounded-lg border border-[#45a85d]/24 bg-[#070907]/94 p-2 shadow-[0_18px_58px_rgba(0,0,0,0.55),0_0_32px_rgba(69,168,93,0.12)] backdrop-blur-xl sm:hidden"
+        className="fixed inset-x-3 bottom-3 z-40 flex flex-col gap-2 sm:hidden"
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#45a85d]/30 bg-[#45a85d]/10 text-[#45a85d]">
-          <Send className="size-4" />
-        </span>
-        <input
-          value={commandInput}
-          onFocus={() => setCommandFocused(true)}
-          onBlur={() => setCommandFocused(false)}
-          onChange={(event) => setCommandInput(event.target.value)}
-          placeholder={copy.mobileCommandPlaceholder}
-          className="min-w-0 flex-1 bg-transparent text-sm text-[#f4eadc] outline-none placeholder:text-[#6f776d]"
-        />
-        <Button type="submit" size="icon" className="size-9 rounded-md bg-[#45a85d] text-[#061009] hover:bg-[#58c772]" aria-label={copy.mobileRun}>
-          <ArrowRight className="size-4" />
-        </Button>
+        <div className="flex items-center gap-2 rounded-lg border border-[#45a85d]/24 bg-[#070907]/94 p-2 shadow-[0_18px_58px_rgba(0,0,0,0.55),0_0_32px_rgba(69,168,93,0.12)] backdrop-blur-xl">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 text-[#ef4444]">
+            <Search className="size-4" />
+          </span>
+          <input
+            value={commandInput}
+            onFocus={() => {
+              setCommandFocused(true);
+              setSearchOpen(true);
+            }}
+            onBlur={() => setCommandFocused(false)}
+            onChange={(event) => {
+              setCommandInput(event.target.value);
+              setSearchOpen(true);
+            }}
+            onKeyDown={handleSearchKeyDown}
+            placeholder={copy.mobileCommandPlaceholder}
+            className="min-w-0 flex-1 bg-transparent text-sm text-[#f4eadc] outline-none placeholder:text-[#6f776d]"
+          />
+          <Button type="submit" size="icon" className="size-9 rounded-md bg-[#ef4444] text-[#090807] hover:bg-[#ff5b55]" aria-label={copy.mobileRun}>
+            <ArrowRight className="size-4" />
+          </Button>
+        </div>
+        {searchOpen ? (
+          <div
+            ref={mobileSearchPanelRef}
+            role="listbox"
+            onMouseDown={(event) => event.preventDefault()}
+            className="max-h-[60vh] overflow-y-auto rounded-lg border border-[#3a322a] bg-[#0a0907]/97 p-2 shadow-[0_18px_58px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+          >
+            {flatResults.length === 0 ? (
+              <div className="flex items-center justify-center px-3 py-6 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[#8f8579]">
+                {copy.searchEmpty}
+              </div>
+            ) : (
+              groupedResults.map((group) => (
+                <div key={group.category} className="mb-1 last:mb-0">
+                  <div className="px-2 pb-1 pt-1.5 font-mono text-[0.5rem] uppercase tracking-[0.22em] text-[#9a9087]">
+                    {searchCategoryCopy[language][group.category]}
+                  </div>
+                  {group.items.map((result) => {
+                    const accent = accentMap[result.accent];
+                    const Icon = result.icon;
+                    return (
+                      <button
+                        key={result.id}
+                        type="button"
+                        onClick={() => navigateToResult(result)}
+                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-white/[0.04]"
+                      >
+                        <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md border", accent.border, accent.bg)}>
+                          <Icon className={cn("size-4", accent.text)} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[0.82rem] font-bold text-[#f4eadc]">
+                            {result.title}
+                          </span>
+                          <span className="block truncate text-[0.7rem] text-[#b5ab9f]">{result.subtitle}</span>
+                        </span>
+                        <ArrowRight className={cn("size-3.5 shrink-0", accent.text)} />
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+          </div>
+        ) : null}
       </form>
 
       <AskAnythingChat key={language} language={language} />

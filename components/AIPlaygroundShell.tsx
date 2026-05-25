@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Check,
@@ -519,14 +520,34 @@ function ModelDropdown({
 
 export function AIPlaygroundShell() {
   const { language, setLanguage } = useLanguage();
+  const searchParams = useSearchParams();
   const copy = playgroundCopy[language];
-  const [capability, setCapability] = useState<FalCapability>("text-to-image");
-  const [modelByCapability, setModelByCapability] = useState<Record<FalCapability, string>>({
-    "text-to-image": textToImageModels[0].id,
-    "image-to-image": imageToImageModels[0].id,
-    "text-to-video": textToVideoModels[0].id,
-    "image-to-video": imageToVideoModels[0].id,
-    "motion-control": motionControlModels[0].id,
+  const initialCapabilityParam = searchParams?.get("capability");
+  const initialModelParam = searchParams?.get("model");
+  const validCapabilities: ReadonlyArray<FalCapability> = [
+    "text-to-image",
+    "image-to-image",
+    "text-to-video",
+    "image-to-video",
+    "motion-control",
+  ];
+  const initialCapability: FalCapability = validCapabilities.includes(initialCapabilityParam as FalCapability)
+    ? (initialCapabilityParam as FalCapability)
+    : "text-to-image";
+  const [capability, setCapability] = useState<FalCapability>(initialCapability);
+  const [modelByCapability, setModelByCapability] = useState<Record<FalCapability, string>>(() => {
+    const initial: Record<FalCapability, string> = {
+      "text-to-image": textToImageModels[0].id,
+      "image-to-image": imageToImageModels[0].id,
+      "text-to-video": textToVideoModels[0].id,
+      "image-to-video": imageToVideoModels[0].id,
+      "motion-control": motionControlModels[0].id,
+    };
+    if (initialModelParam) {
+      const matched = getModelsByCapability(initialCapability).find((m) => m.id === initialModelParam);
+      if (matched) initial[initialCapability] = matched.id;
+    }
+    return initial;
   });
   const [promptByCapability, setPromptByCapability] = useState<Record<FalCapability, string>>({
     "text-to-image": "",
@@ -564,6 +585,22 @@ export function AIPlaygroundShell() {
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+
+  useEffect(() => {
+    const cap = searchParams?.get("capability");
+    const mod = searchParams?.get("model");
+    if (cap && validCapabilities.includes(cap as FalCapability)) {
+      const nextCap = cap as FalCapability;
+      setCapability(nextCap);
+      if (mod) {
+        const matched = getModelsByCapability(nextCap).find((m) => m.id === mod);
+        if (matched) {
+          setModelByCapability((current) => ({ ...current, [nextCap]: matched.id }));
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [assets, setAssets] = useState<GeneratedAsset[]>(() => {
     if (typeof window === "undefined") return [];
     try {
