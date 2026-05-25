@@ -16,6 +16,7 @@ import {
   LoaderCircle,
   Lock,
   Menu,
+  MessageCircle,
   Moon,
   PenLine,
   Search,
@@ -1428,7 +1429,7 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
       {open ? (
         <section
           aria-label={copy.aria}
-          className="fixed bottom-28 left-5 z-50 flex h-[min(36rem,calc(100vh-8rem))] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-[#45a85d]/28 bg-[#080b08]/96 shadow-[0_24px_90px_rgba(0,0,0,0.58),0_0_44px_rgba(24,201,100,0.16)] backdrop-blur-xl"
+          className="fixed bottom-20 left-5 z-50 flex h-[min(36rem,calc(100vh-7rem))] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-[#45a85d]/28 bg-[#080b08]/96 shadow-[0_24px_90px_rgba(0,0,0,0.58),0_0_44px_rgba(24,201,100,0.16)] backdrop-blur-xl sm:bottom-24 lg:bottom-24"
         >
           <div className="flex items-center justify-between border-b border-white/10 bg-[#0b140d] px-4 py-3">
             <div>
@@ -1509,11 +1510,27 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
         type="button"
         onClick={() => setOpen(true)}
         aria-expanded={open}
-        className="ask-dock-wake group fixed bottom-14 left-5 z-40 hidden h-12 items-center gap-3 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-4 pr-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:flex lg:bottom-16"
+        aria-label={copy.button}
+        title={copy.button}
+        className="ask-dock-wake group fixed bottom-5 left-5 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-[#45a85d]/35 bg-[#071109]/92 text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:bottom-6 sm:left-6 lg:hidden"
+      >
+        <span className="flex size-7 items-center justify-center rounded-full border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/70 group-hover:bg-[#18c964]/18">
+          <MessageCircle className="size-4" />
+        </span>
+        <span className="pointer-events-none absolute -top-1 -right-1 flex size-3 items-center justify-center rounded-full bg-[#18c964] shadow-[0_0_10px_rgba(24,201,100,0.7)] animate-[pulse_1.4s_ease-in-out_infinite]" />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-expanded={open}
+        aria-label={copy.button}
+        title={copy.button}
+        className="ask-dock-wake group fixed bottom-6 left-6 z-40 hidden h-11 items-center gap-2.5 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-3.5 pr-4 font-mono text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 lg:flex"
       >
         <span className="pointer-events-none absolute inset-y-0 left-0 w-px bg-[#45a85d]/80 shadow-[0_0_18px_rgba(69,168,93,0.8)]" />
-        <span className="flex size-7 items-center justify-center rounded-md border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/70 group-hover:bg-[#18c964]/18">
-          <Send className="ask-icon-wake size-3.5" />
+        <span className="flex size-6 items-center justify-center rounded-md border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/70 group-hover:bg-[#18c964]/18">
+          <MessageCircle className="size-3.5" />
         </span>
         <span>{copy.button}</span>
         <span className="flex gap-0.5 text-[#45a85d]">
@@ -1543,8 +1560,10 @@ export function HomeCommandSurface() {
   const [authPromptForced, setAuthPromptForced] = useState(false);
   const heroRef = useRef<HTMLElement | null>(null);
   const commandInputRef = useRef<HTMLInputElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const searchPanelRef = useRef<HTMLDivElement | null>(null);
   const mobileSearchPanelRef = useRef<HTMLDivElement | null>(null);
+  const [searchPanelRect, setSearchPanelRect] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
   const activeTheme = interfaceThemes.find((theme) => theme.value === interfaceTheme) ?? interfaceThemes[0];
   const activeVisuals = themeVisuals[activeTheme.value];
   const PreviewIcon = previewModule?.icon;
@@ -1714,6 +1733,33 @@ export function HomeCommandSurface() {
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) {
+      setSearchPanelRect(null);
+      return;
+    }
+    function recalc() {
+      const form = formRef.current;
+      if (!form) return;
+      const rect = form.getBoundingClientRect();
+      const margin = 16;
+      const available = window.innerHeight - rect.bottom - margin;
+      setSearchPanelRect({
+        left: rect.left,
+        top: rect.bottom + 8,
+        width: rect.width,
+        maxHeight: Math.max(220, Math.min(available, 520)),
+      });
+    }
+    recalc();
+    window.addEventListener("resize", recalc);
+    window.addEventListener("scroll", recalc, true);
+    return () => {
+      window.removeEventListener("resize", recalc);
+      window.removeEventListener("scroll", recalc, true);
+    };
+  }, [searchOpen, commandInput, language]);
 
   function openModule(title: string) {
     const destinations: Record<string, string> = {
@@ -1942,6 +1988,7 @@ export function HomeCommandSurface() {
               </p>
 
               <form
+                ref={formRef}
                 onSubmit={submitCommand}
                 className={cn(
                   "command-control-line relative mt-7 max-w-3xl rounded-xl border-2 bg-[#0d0b08]/92 p-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_24px_80px_rgba(239,68,68,0.08),0_18px_70px_rgba(0,0,0,0.32)] backdrop-blur transition",
@@ -2014,13 +2061,20 @@ export function HomeCommandSurface() {
                   </span>
                 </div>
 
-                {searchOpen ? (
+                {searchOpen && searchPanelRect ? (
                   <div
                     ref={searchPanelRef}
                     id="mrnine-search-listbox"
                     role="listbox"
                     onMouseDown={(event) => event.preventDefault()}
-                    className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 max-h-[26rem] overflow-y-auto rounded-xl border border-[#3a322a] bg-[#0a0907]/97 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+                    style={{
+                      position: "fixed",
+                      left: searchPanelRect.left,
+                      top: searchPanelRect.top,
+                      width: searchPanelRect.width,
+                      maxHeight: searchPanelRect.maxHeight,
+                    }}
+                    className="z-[60] overflow-y-auto rounded-xl border border-[#3a322a] bg-[#0a0907]/97 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl"
                   >
                     {flatResults.length === 0 ? (
                       <div className="flex items-center justify-center px-3 py-6 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[#8f8579]">
