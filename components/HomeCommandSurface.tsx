@@ -13,6 +13,7 @@ import {
   Image as ImageLucide,
   ImageDown,
   Languages,
+  LineChart,
   LoaderCircle,
   Lock,
   Menu,
@@ -833,6 +834,15 @@ const extraFeatureEntries: ReadonlyArray<{
     href: "/video-studio",
     icon: Clapperboard,
     accent: "amber",
+  },
+  {
+    id: "markets",
+    title: "Markets",
+    subtitleVi: "Vàng · crypto · forex realtime",
+    subtitleEn: "Gold · crypto · forex realtime",
+    href: "/markets",
+    icon: LineChart,
+    accent: "lime",
   },
 ];
 

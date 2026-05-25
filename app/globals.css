@@ -1013,3 +1013,36 @@ a {
     animation: none !important;
   }
 }
+
+@keyframes marketsPulse {
+  0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(69,168,93,0.55); }
+  50%      { transform: scale(1.18); opacity: 0.82; box-shadow: 0 0 0 6px rgba(69,168,93,0); }
+}
+
+.markets-pulse {
+  animation: marketsPulse 1.8s ease-in-out infinite;
+}
+
+.markets-row {
+  position: relative;
+}
+
+.markets-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(69,168,93,0.05) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.markets-row:hover::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markets-pulse {
+    animation: none !important;
+  }
+}
