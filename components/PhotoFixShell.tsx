@@ -424,16 +424,20 @@ export function PhotoFixShell() {
         <Link
           href="/"
           aria-label="MrNine home"
-          className="flex items-center gap-2.5 rounded-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#d6a548]/70"
+          className="font-display text-xl font-black tracking-[-0.08em] text-[#f4eadc] outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#d6a548]/70 sm:text-2xl"
         >
-          <div className="flex size-9 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548]">
+          Mr<span className="text-[#d6a548]">Nine</span>
+        </Link>
+        <span aria-hidden="true" className="hidden h-6 w-px bg-white/10 sm:block" />
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548]">
             <ImageDown className="size-4" />
           </div>
           <div className="hidden min-w-0 sm:block">
             <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">MrNine Studio</p>
             <h1 className="truncate text-base font-black tracking-[-0.04em] text-[#f4eadc]">{copy.title}</h1>
           </div>
-        </Link>
+        </div>
 
         <nav className="ml-1 hidden flex-1 items-center justify-center gap-1 md:flex" aria-label="Operations">
           {OPS.map((item) => {

@@ -515,8 +515,12 @@ export function VoiceStudioShell() {
             <Link
               href="/"
               aria-label="MrNine home"
-              className="flex min-w-0 items-center gap-3 rounded-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#d6a548]/70"
+              className="font-display text-xl font-black tracking-[-0.08em] text-[#f4eadc] outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#d6a548]/70 sm:text-2xl"
             >
+              Mr<span className="text-[#d6a548]">Nine</span>
+            </Link>
+            <span aria-hidden="true" className="hidden h-6 w-px bg-white/10 sm:block" />
+            <div className="flex min-w-0 items-center gap-3">
               <div className="hidden size-9 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548] sm:flex">
                 <AudioLines className="size-4" />
               </div>
@@ -528,7 +532,7 @@ export function VoiceStudioShell() {
                   {copy.title as string}
                 </h1>
               </div>
-            </Link>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

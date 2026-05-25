@@ -723,8 +723,12 @@ export function StoryForgeStudioShell() {
             <Link
               href="/"
               aria-label="MrNine home"
-              className="flex min-w-0 items-center gap-3 rounded-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#45a85d]/70"
+              className="font-display text-xl font-black tracking-[-0.08em] text-[#f4eadc] outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#45a85d]/70 sm:text-2xl"
             >
+              Mr<span className="text-[#45a85d]">Nine</span>
+            </Link>
+            <span aria-hidden="true" className="hidden h-6 w-px bg-white/10 sm:block" />
+            <div className="flex min-w-0 items-center gap-3">
               <div className="hidden size-9 items-center justify-center rounded-md border border-[#45a85d]/30 bg-[#45a85d]/10 text-[#45a85d] sm:flex">
                 <PenLine className="size-4" />
               </div>
@@ -736,7 +740,7 @@ export function StoryForgeStudioShell() {
                   {copy.title}
                 </h1>
               </div>
-            </Link>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
