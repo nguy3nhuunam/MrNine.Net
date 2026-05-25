@@ -181,8 +181,8 @@ export function MysticDeckShell() {
         </div>
       </header>
 
-      <section className="relative z-10 mx-auto w-full max-w-[120rem] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      <section className="relative z-10 mx-auto flex w-full max-w-[120rem] flex-col gap-5 px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="font-mono text-[0.6rem] uppercase tracking-[0.28em] text-[#d6a548]">
               {language === "vi" ? "Bộ bài huyền học" : "Mystic toolkit"}
@@ -198,36 +198,30 @@ export function MysticDeckShell() {
           </p>
         </div>
 
-        <div className="mb-6 flex flex-wrap gap-1.5">
-          {TABS.map((entry) => {
-            const Icon = entry.icon;
-            const active = tab === entry.id;
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => setTab(entry.id)}
-                className={cn(
-                  "flex items-center gap-2 rounded-md border px-3 py-2 font-mono text-[0.62rem] uppercase tracking-[0.16em] transition",
-                  active
-                    ? "border-[#d6a548]/55 bg-[#d6a548]/14 text-[#fff2d3] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]"
-                    : "border-white/10 bg-white/[0.025] text-[#9a9087] hover:border-[#d6a548]/30 hover:text-[#f4eadc]",
-                )}
-              >
-                <Icon className="size-3.5" />
-                {language === "vi" ? entry.vi : entry.en}
-                {entry.id === "naming" ? (
-                  <span className="rounded border border-[#d6a548]/40 px-1 py-0.5 text-[0.46rem] tracking-[0.18em] text-[#d6a548]">
-                    SOON
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0">
+            <div className="flex gap-2 overflow-x-auto pb-3 lg:hidden">
+              {TABS.map((entry) => {
+                const Icon = entry.icon;
+                const active = tab === entry.id;
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => setTab(entry.id)}
+                    className={cn(
+                      "flex shrink-0 items-center gap-2 rounded-md border px-3 py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition",
+                      active
+                        ? "border-[#d6a548]/55 bg-[#d6a548]/14 text-[#fff2d3]"
+                        : "border-white/10 bg-white/[0.025] text-[#9a9087]",
+                    )}
+                  >
+                    <Icon className="size-3.5" />
+                    {language === "vi" ? entry.vi : entry.en}
+                  </button>
+                );
+              })}
+            </div>
             {tab === "ziwei" ? <ZiweiPanel language={language} /> : null}
             {tab === "numerology" ? <NumerologyPanel language={language} /> : null}
             {tab === "tarot" ? <TarotPanel language={language} /> : null}
@@ -878,9 +872,62 @@ function MysticSidePanel({
   }
 
   return (
-    <aside className="space-y-4">
-      <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4">
-        <div className="flex items-center justify-between gap-3">
+    <aside className="hidden flex-col gap-4 lg:flex">
+      <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-3">
+        <div className="mb-2 flex items-center gap-2 px-1 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
+          <Layers className="size-3.5" />
+          {language === "vi" ? "Chọn bộ bài" : "Pick a deck"}
+        </div>
+        <div className="grid gap-2">
+          {TAB_GUIDES.map((guide) => {
+            const Icon = guide.icon;
+            const active = guide.id === activeTab;
+            return (
+              <button
+                key={guide.id}
+                type="button"
+                onClick={() => onSwitchTab(guide.id)}
+                className={cn(
+                  "group flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left transition",
+                  active
+                    ? "border-[#d6a548]/55 bg-[#d6a548]/14 text-[#fff2d3] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]"
+                    : "border-white/10 bg-white/[0.025] hover:-translate-y-0.5 hover:border-[#d6a548]/35 hover:bg-white/[0.05]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border transition",
+                    active
+                      ? "border-[#d6a548]/55 bg-[#d6a548]/22 text-[#fff2d3]"
+                      : "border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548]",
+                  )}
+                >
+                  <Icon className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="text-[0.85rem] font-bold text-[#f4eadc]">
+                      {language === "vi" ? guide.titleVi : guide.titleEn}
+                    </span>
+                    {guide.id === "naming" ? (
+                      <span className="rounded border border-[#d6a548]/40 px-1 py-0.5 text-[0.44rem] uppercase tracking-[0.18em] text-[#d6a548]">
+                        SOON
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="mt-1 block text-[0.7rem] leading-5 text-[#b5ab9f]">
+                    {language === "vi" ? guide.bodyVi : guide.bodyEn}
+                  </span>
+                </span>
+                <ArrowRight className={cn("size-3.5 shrink-0 transition", active ? "text-[#d6a548]" : "text-[#5e574e] group-hover:text-[#d6a548]")} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-3">
+        <div className="flex items-center justify-between gap-3 px-1">
           <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
             <History className="size-3.5" />
             {language === "vi" ? "Lịch sử gần đây" : "Recent readings"}
@@ -896,7 +943,7 @@ function MysticSidePanel({
           ) : null}
         </div>
         {history.length === 0 ? (
-          <p className="mt-3 text-[0.78rem] text-[#b5ab9f]">
+          <p className="mt-3 px-1 text-[0.78rem] text-[#b5ab9f]">
             {language === "vi"
               ? "Chưa có bản đọc nào. Mỗi lần lập lá số / rút bài / tính số sẽ tự lưu vào đây (chỉ trên máy này, tối đa 12 mục)."
               : "No readings yet. Each cast / draw / compute is saved here (this device only, up to 12 entries)."}
@@ -923,47 +970,12 @@ function MysticSidePanel({
         )}
       </div>
 
-      <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4">
-        <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-          <BookOpenText className="size-3.5" />
-          {language === "vi" ? "Hướng dẫn các thẻ" : "Learn the tabs"}
-        </div>
-        <ul className="mt-3 space-y-2">
-          {TAB_GUIDES.map((guide) => {
-            const Icon = guide.icon;
-            const active = guide.id === activeTab;
-            return (
-              <li key={guide.id}>
-                <button
-                  type="button"
-                  onClick={() => onSwitchTab(guide.id)}
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition",
-                    active
-                      ? "border-[#d6a548]/45 bg-[#d6a548]/12 text-[#fff2d3]"
-                      : "border-white/8 bg-white/[0.025] hover:border-[#d6a548]/30 hover:bg-white/[0.05]",
-                  )}
-                >
-                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548]">
-                    <Icon className="size-3.5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[0.82rem] font-bold text-[#f4eadc]">{language === "vi" ? guide.titleVi : guide.titleEn}</span>
-                    <span className="mt-0.5 block text-[0.7rem] leading-5 text-[#b5ab9f]">{language === "vi" ? guide.bodyVi : guide.bodyEn}</span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      <div className="rounded-xl border border-[#45a85d]/22 bg-[#071109]/72 p-4">
-        <div className="flex items-center gap-2 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#7dd391]">
+      <div className="rounded-xl border border-[#45a85d]/22 bg-[#071109]/72 p-3">
+        <div className="flex items-center gap-2 px-1 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#7dd391]">
           <span className="size-1.5 rounded-full bg-[#45a85d]" />
           {language === "vi" ? "Mẹo dùng nhanh" : "Quick tips"}
         </div>
-        <ul className="mt-2 space-y-1.5 text-[0.74rem] leading-5 text-[#b5ab9f]">
+        <ul className="mt-2 space-y-1.5 px-1 text-[0.74rem] leading-5 text-[#b5ab9f]">
           <li>• {language === "vi" ? "Lập lá số xong, bấm Luận giải để AI viết bản đọc có cấu trúc." : "After casting, hit Interpret for an AI-written structured reading."}</li>
           <li>• {language === "vi" ? "Reload trang sẽ giữ lịch sử (lưu trên máy), nhưng không giữ kết quả AI." : "Reload preserves history (local) but not the AI reading."}</li>
           <li>• {language === "vi" ? "Tarot ra ngược → đọc theo nghĩa ngược, không phải xui." : "Reversed tarot reads inverted, not unlucky."}</li>
