@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Be_Vietnam_Pro, JetBrains_Mono, Oxanium, Teko } from "next/font/google";
 import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
+import { GlobalShortcuts } from "@/components/GlobalShortcuts";
 import "./globals.css";
 
 const displayFont = Oxanium({
@@ -95,6 +96,7 @@ export default function RootLayout({
       >
         <LanguageProvider>
           <AuthSessionProvider>{children}</AuthSessionProvider>
+          <GlobalShortcuts />
         </LanguageProvider>
       </body>
     </html>
