@@ -2158,19 +2158,7 @@ export function HomeCommandSurface() {
         </a>
 
         <div className="hidden flex-1 justify-center xl:flex">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 items-center gap-2.5 rounded-full border border-[#1f7d43]/35 bg-[#0b2114]/72 px-3.5 shadow-[0_0_22px_rgba(34,197,94,0.08)]">
-              <span className="flex size-6 items-center justify-center rounded-full bg-[conic-gradient(from_180deg,#ef4444,#45a85d,#47c9d9,#ef4444)]">
-                <Sparkles className="size-3 text-[#070604]" />
-              </span>
-              <div className="font-mono text-[0.6rem] uppercase leading-3 tracking-[0.14em]">
-                <div className="text-[#f4eadc]">009</div>
-                <div className="text-[#9a9087]">mrnine.net</div>
-              </div>
-            </div>
-            <DiscordActivity userId={session?.user?.discordId || "489092502998220812"} unlinked={!session?.user?.discordId} viewerName={session?.user?.name ?? null} />
-            <TabAudioVisualizer />
-          </div>
+          <TabAudioVisualizer />
         </div>
 
         <div className="ml-auto flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.025] p-1 shadow-[0_0_0_1px_rgba(255,255,255,0.018)_inset]">
@@ -2494,19 +2482,8 @@ export function HomeCommandSurface() {
               </div>
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(13.75rem,1fr))] gap-3 min-[1920px]:grid-cols-4">
-              {moduleGroups.map((group) => (
-                <div key={group.label} className="col-span-full mt-1 flex items-center gap-3 first:mt-0">
-                  <span className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#d6a548]">{group.label === "Create" ? copy.create : copy.tools}</span>
-                  <span className="h-px flex-1 bg-gradient-to-r from-[#2a251f] to-transparent" />
-                </div>
-              ))}
-            </div>
-
             <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(13.75rem,1fr))] gap-3 min-[1920px]:grid-cols-4">
-              {moduleGroups.flatMap((group) =>
-                group.modules.map((module) => ({ ...module, group: group.label })),
-              ).map((module, index) => {
+              {modules.map((module, index) => {
                   const Icon = module.icon;
                   const accent = accentMap[module.accent as keyof typeof accentMap];
                   const localizedModule = moduleCopy[language][module.title as keyof typeof moduleCopy.vi] ?? module;
@@ -2556,7 +2533,7 @@ export function HomeCommandSurface() {
                             <kbd className="hidden rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 font-mono text-[0.5rem] font-bold text-[#9f968b] sm:inline-block">
                               {module.shortcut}
                             </kbd>
-                            <span className="font-mono text-[0.46rem] uppercase tracking-[0.14em] text-[#6f675e]">{module.group === "Create" ? copy.create : copy.tools}</span>
+                            <span className="font-mono text-[0.46rem] uppercase tracking-[0.14em] text-[#6f675e]">{module.number}</span>
                           </div>
                         </div>
                         <h3 className="truncate text-[0.95rem] font-bold leading-tight text-[#f4eadc]">{localizedModule.title ?? module.title}</h3>

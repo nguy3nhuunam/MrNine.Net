@@ -46,6 +46,45 @@ function decodeHtml(text: string): string {
     .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(Number(code)));
 }
 
+async function fetchYouTubeMetadata(videoId: string): Promise<{ title: string; author?: string; description?: string }> {
+  // oEmbed for title + author (no captions needed, works without auth).
+  const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}&format=json`;
+  const meta = await fetch(oEmbedUrl).catch(() => null);
+  let title = "";
+  let author = "";
+  if (meta && meta.ok) {
+    const data = (await meta.json().catch(() => null)) as { title?: string; author_name?: string } | null;
+    title = data?.title ?? "";
+    author = data?.author_name ?? "";
+  }
+
+  // Pull description from the watch page meta tag.
+  let description = "";
+  const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+  const watchRes = await fetch(watchUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 MrNine/1.0",
+      "Accept-Language": "en-US,en;q=0.9,vi;q=0.8",
+    },
+  }).catch(() => null);
+  if (watchRes && watchRes.ok) {
+    const html = await watchRes.text();
+    if (!title) {
+      const titleMatch = html.match(/<meta name="title" content="([^"]+)"/);
+      if (titleMatch) title = decodeHtml(titleMatch[1]);
+    }
+    const descMatch = html.match(/<meta name="description" content="([^"]+)"/);
+    if (descMatch) description = decodeHtml(descMatch[1]);
+    else {
+      const ogDesc = html.match(/<meta property="og:description" content="([^"]+)"/);
+      if (ogDesc) description = decodeHtml(ogDesc[1]);
+    }
+  }
+
+  if (!title) throw new Error("Không lấy được thông tin video YouTube");
+  return { title, author, description };
+}
+
 async function fetchYouTubeTranscript(videoId: string): Promise<{ text: string; lang?: string; title?: string }> {
   const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
   const watchRes = await fetch(watchUrl, {
@@ -155,10 +194,30 @@ async function _handler_POST(request: Request) {
     try {
       const youtubeId = getYouTubeId(input);
       if (youtubeId) {
-        const transcript = await fetchYouTubeTranscript(youtubeId);
-        sourceText = transcript.text;
-        sourceLabel = "youtube";
-        sourceTitle = transcript.title;
+        try {
+          const transcript = await fetchYouTubeTranscript(youtubeId);
+          sourceText = transcript.text;
+          sourceLabel = "youtube";
+          sourceTitle = transcript.title;
+        } catch (transcriptError) {
+          // Fallback: no captions — summarize from video metadata so user
+          // gets at least a high-level recap instead of an outright error.
+          const meta = await fetchYouTubeMetadata(youtubeId);
+          const lines: string[] = [
+            `Tiêu đề: ${meta.title}`,
+            meta.author ? `Tác giả: ${meta.author}` : "",
+            `Link: https://www.youtube.com/watch?v=${youtubeId}`,
+            "",
+            meta.description ? `Mô tả từ YouTube:\n${meta.description}` : "",
+          ];
+          sourceText = lines.filter(Boolean).join("\n");
+          sourceLabel = "youtube-meta";
+          sourceTitle = meta.title;
+          // Surface the original captions issue to the client header.
+          if (!sourceText.trim()) {
+            throw transcriptError;
+          }
+        }
       } else {
         const page = await fetchPageText(input);
         sourceText = page.text;

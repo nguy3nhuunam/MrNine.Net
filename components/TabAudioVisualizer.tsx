@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AudioLines, Mic, MonitorSpeaker, Square } from "lucide-react";
+import { AudioLines, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type VisualizerState = "idle" | "starting" | "active" | "error";
-type VisualizerMode = "tab" | "mic";
 
 const BAR_COUNT = 24;
 
 export function TabAudioVisualizer() {
   const [state, setState] = useState<VisualizerState>("idle");
-  const [mode, setMode] = useState<VisualizerMode>("mic");
   const [error, setError] = useState("");
   const [bars, setBars] = useState<number[]>(() => new Array(BAR_COUNT).fill(0.05));
 
@@ -42,48 +40,27 @@ export function TabAudioVisualizer() {
     setState("idle");
   }
 
-  async function start(nextMode: VisualizerMode) {
-    if (typeof navigator === "undefined" || !navigator.mediaDevices) {
-      setError("Trình duyệt không hỗ trợ Web Audio.");
+  async function start() {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
+      setError("Trình duyệt không hỗ trợ chia sẻ audio tab.");
       setState("error");
       return;
     }
     setError("");
     setState("starting");
-    setMode(nextMode);
 
     try {
-      let audioTracks: MediaStreamTrack[] = [];
-      let stream: MediaStream;
-
-      if (nextMode === "tab") {
-        if (!navigator.mediaDevices.getDisplayMedia) {
-          setError("Trình duyệt không hỗ trợ chia sẻ audio tab.");
-          setState("error");
-          return;
-        }
-        stream = await navigator.mediaDevices.getDisplayMedia({
-          audio: { suppressLocalAudioPlayback: false } as MediaTrackConstraints,
-          video: { width: 1, height: 1, frameRate: 1 } as MediaTrackConstraints,
-        });
-        audioTracks = stream.getAudioTracks();
-        stream.getVideoTracks().forEach((track) => track.stop());
-        if (audioTracks.length === 0) {
-          stream.getTracks().forEach((track) => track.stop());
-          setError("Tab này không chia sẻ audio. Hãy tick 'Share tab audio'.");
-          setState("error");
-          return;
-        }
-      } else {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-          },
-          video: false,
-        });
-        audioTracks = stream.getAudioTracks();
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        audio: { suppressLocalAudioPlayback: false } as MediaTrackConstraints,
+        video: { width: 1, height: 1, frameRate: 1 } as MediaTrackConstraints,
+      });
+      const audioTracks = stream.getAudioTracks();
+      stream.getVideoTracks().forEach((track) => track.stop());
+      if (audioTracks.length === 0) {
+        stream.getTracks().forEach((track) => track.stop());
+        setError("Tab này không chia sẻ audio. Hãy tick 'Share tab audio'.");
+        setState("error");
+        return;
       }
 
       audioTracks[0].addEventListener("ended", () => stop());
@@ -122,7 +99,7 @@ export function TabAudioVisualizer() {
       rafRef.current = window.requestAnimationFrame(tick);
       setState("active");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Không thể bắt đầu trực quan hoá.";
+      const message = err instanceof Error ? err.message : "Không thể bắt đầu chia sẻ audio.";
       if (!/permission|denied|NotAllowed/i.test(message)) {
         setError(message);
         setState("error");
@@ -132,38 +109,31 @@ export function TabAudioVisualizer() {
     }
   }
 
-  if (state === "idle" || state === "error") {
+  if (state === "idle" || state === "error" || state === "starting") {
     return (
-      <div className="flex h-9 items-center gap-1 rounded-full border border-[#1db954]/35 bg-[#071109]/82 p-1 pr-1.5">
-        <button
-          type="button"
-          onClick={() => start("mic")}
-          title="Bật mic — nghe nhạc qua loa"
-          className="flex h-7 items-center gap-1.5 rounded-full px-2 font-mono text-[0.55rem] uppercase tracking-[0.14em] text-[#cfeed6] transition hover:bg-[#0e1f12] hover:text-[#dff8e4]"
-        >
-          <Mic className="size-3 text-[#1db954]" />
-          <span className="hidden md:inline">Mic</span>
-        </button>
-        <span className="h-3 w-px bg-white/10" />
-        <button
-          type="button"
-          onClick={() => start("tab")}
-          title="Chia sẻ tab — sóng chính xác từ tab phát nhạc"
-          className="flex h-7 items-center gap-1.5 rounded-full px-2 font-mono text-[0.55rem] uppercase tracking-[0.14em] text-[#cfeed6] transition hover:bg-[#0e1f12] hover:text-[#dff8e4]"
-        >
-          <MonitorSpeaker className="size-3 text-[#1db954]" />
-          <span className="hidden md:inline">Tab</span>
-        </button>
-        {state === "error" && error ? (
-          <span className="ml-1 hidden font-mono text-[0.5rem] normal-case tracking-normal text-[#ffb4ad] md:inline">{error}</span>
-        ) : null}
-      </div>
+      <button
+        type="button"
+        onClick={start}
+        disabled={state === "starting"}
+        title="Chia sẻ tab có nhạc — vẽ sóng theo audio của tab đó"
+        className="flex h-9 items-center gap-2 rounded-full border border-[#1db954]/35 bg-[#071109]/82 px-3 font-mono text-[0.58rem] uppercase tracking-[0.14em] text-[#cfeed6] transition hover:border-[#1db954]/65 hover:bg-[#0a1a0d] hover:text-[#dff8e4] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <AudioLines className="size-3.5 text-[#1db954]" />
+        <span className="hidden md:flex md:flex-col md:leading-tight md:text-left">
+          <span className="text-[0.58rem] font-bold normal-case tracking-normal text-[#dff8e4]">
+            {state === "starting" ? "Đang yêu cầu..." : "Trực quan hoá"}
+          </span>
+          <span className="text-[0.46rem] normal-case tracking-normal text-[#7da38a]">
+            {state === "error" && error ? error : "audio của tab"}
+          </span>
+        </span>
+      </button>
     );
   }
 
   return (
     <div
-      title={mode === "mic" ? "Mic đang nghe — bấm để dừng" : "Tab audio đang phát — bấm để dừng"}
+      title="Audio tab đang phát — bấm Stop để dừng"
       className="flex h-9 max-w-[16rem] items-center gap-2 rounded-full border border-[#1db954]/45 bg-[#071109]/88 px-3 font-mono text-[0.58rem] uppercase tracking-[0.14em] text-[#dff8e4] shadow-[0_0_22px_rgba(29,185,84,0.18)]"
     >
       <button
@@ -186,10 +156,7 @@ export function TabAudioVisualizer() {
           />
         ))}
       </div>
-      <span className="hidden font-bold normal-case tracking-normal text-[#9bd1a8] md:flex md:items-center md:gap-1">
-        {mode === "mic" ? <Mic className="size-3" /> : <MonitorSpeaker className="size-3" />}
-        LIVE
-      </span>
+      <span className="hidden font-bold normal-case tracking-normal text-[#9bd1a8] md:inline">LIVE</span>
     </div>
   );
 }
