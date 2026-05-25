@@ -369,13 +369,13 @@ const modules = [
     number: "09",
     title: "Markets",
     detail: "Vàng · crypto · forex realtime",
-    summary: "Giá realtime vàng (PAXG), Bitcoin, Ethereum, BNB, SOL, XRP, DOGE và tỉ giá USD/VND. Cập nhật mỗi 60s.",
+    summary: "Giá realtime vàng (PAXG), bạc, top 10 crypto và 4 cặp ngoại tệ vs VND. Cập nhật mỗi 60s.",
     signal: "Market feed",
     action: "Open markets",
     icon: LineChart,
     accent: "lime",
     shortcut: "9",
-    lastUsed: "live",
+    lastUsed: "ready",
   },
 ];
 
@@ -412,6 +412,38 @@ const ticker = [
   "TASK QUEUE + CLEAR",
   "MEMORY VAULT + ACTIVE",
 ];
+
+type MarketTick = {
+  id: string;
+  symbol: string;
+  name: string;
+  kind: "crypto" | "metal" | "forex";
+  usd: number;
+  vnd: number;
+  change24h: number | null;
+};
+
+function formatTickerPrice(row: MarketTick): string {
+  if (row.kind === "forex") {
+    const v = row.vnd;
+    const formatted = v >= 1000 ? Math.round(v).toLocaleString("vi-VN") : v.toFixed(0);
+    return `${row.symbol} + ${formatted} VND`;
+  }
+  const usd = row.usd;
+  const priceStr = usd >= 1 ? `$${usd.toLocaleString("en-US", { maximumFractionDigits: 2 })}` : `$${usd.toFixed(4)}`;
+  if (row.change24h === null) return `${row.symbol} + ${priceStr}`;
+  const sign = row.change24h >= 0 ? "+" : "";
+  return `${row.symbol} + ${priceStr} ${sign}${row.change24h.toFixed(2)}%`;
+}
+
+function shuffle<T>(arr: ReadonlyArray<T>): T[] {
+  const out = arr.slice();
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
 
 const moduleGroups = [
   { label: "Create", modules: modules.slice(1, 4) },
@@ -593,7 +625,7 @@ const moduleCopy = {
     "Markets": {
       title: "Markets",
       detail: "Vàng · crypto · forex realtime",
-      summary: "Giá realtime vàng (PAXG), Bitcoin, Ethereum, BNB, SOL, XRP, DOGE và tỉ giá USD/VND. Cập nhật mỗi 60s.",
+      summary: "Giá realtime vàng (PAXG), bạc, top 10 crypto và 4 cặp ngoại tệ vs VND. Cập nhật mỗi 60s.",
       signal: "Bảng giá realtime",
       action: "Mở Markets",
     },
@@ -1940,9 +1972,59 @@ export function HomeCommandSurface() {
   const PreviewIcon = previewModule?.icon;
   const copy = homeCopy[language];
   const allSearchResults = useMemo(() => buildSearchResults(language), [language]);
+  const [marketsTicker, setMarketsTicker] = useState<MarketTick[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const r = await fetch("/api/markets", { cache: "no-store" });
+        const j = (await r.json().catch(() => null)) as { rows?: MarketTick[] } | null;
+        if (!cancelled && j?.rows) setMarketsTicker(j.rows);
+      } catch {
+        // silent — fallback ticker is fine
+      }
+    }
+    void load();
+    const id = window.setInterval(load, 90_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
+
+  const tickerItems = useMemo(() => {
+    if (!marketsTicker.length) return ticker;
+    const priced = shuffle(marketsTicker).map(formatTickerPrice);
+    // Mix 6 randomized market lines + 4 system status lines so the ticker still
+    // shows the original "queue/router" vibe but real prices headline.
+    const status = shuffle(ticker).slice(0, 4);
+    return shuffle([...priced.slice(0, 6), ...status]);
+  }, [marketsTicker]);
+
+  const enrichedSearchResults = useMemo(() => {
+    if (!marketsTicker.length) return allSearchResults;
+    const extras: SearchResult[] = marketsTicker.map((row) => ({
+      id: `market-${row.id}`,
+      title: `${row.symbol} · ${row.name}`,
+      subtitle:
+        row.kind === "forex"
+          ? `1 ${row.symbol} ≈ ${Math.round(row.vnd).toLocaleString("vi-VN")} VND`
+          : `${row.usd >= 1 ? `$${row.usd.toLocaleString("en-US", { maximumFractionDigits: 2 })}` : `$${row.usd.toFixed(4)}`}${
+              row.change24h !== null ? ` · ${row.change24h >= 0 ? "+" : ""}${row.change24h.toFixed(2)}%` : ""
+            }`,
+      badge: row.kind === "metal" ? "Metal" : row.kind === "forex" ? "FX" : "Crypto",
+      category: "feature",
+      icon: LineChart,
+      accent: row.change24h !== null && row.change24h < 0 ? "red" : "lime",
+      href: "/markets",
+    }));
+    return [...allSearchResults, ...extras];
+  }, [allSearchResults, marketsTicker]);
+
   const searchResults = useMemo(
-    () => filterAndRankResults(commandInput, allSearchResults),
-    [commandInput, allSearchResults],
+    () => filterAndRankResults(commandInput, enrichedSearchResults),
+    [commandInput, enrichedSearchResults],
   );
   const slashMode = commandInput.trimStart().startsWith("/");
   const groupedResults = useMemo(() => {
@@ -2549,14 +2631,14 @@ export function HomeCommandSurface() {
 
           <div className="relative flex h-7 shrink-0 items-center overflow-hidden border-b border-[#25211b]/60 font-mono text-[0.56rem] uppercase tracking-[0.18em] text-[#9a9087] opacity-50 transition-opacity hover:opacity-100">
             <div className="flex min-w-max animate-[marquee_32s_linear_infinite] gap-8">
-              {[...ticker, ...ticker].map((item, index) => (
+              {[...tickerItems, ...tickerItems].map((item, index) => (
                 <span key={`${item}-${index}`} className="flex items-center gap-2">
                   <span
                     className={cn(
                       "ticker-dot-signal size-1 rounded-full",
                       index % 3 === 0 ? "bg-[#d6a548]" : index % 3 === 1 ? "bg-[#45a85d]" : "bg-[#ef4444]",
                     )}
-                    style={{ animationDelay: `${(index % ticker.length) * 0.18}s` }}
+                    style={{ animationDelay: `${(index % tickerItems.length) * 0.18}s` }}
                   />
                   {item}
                 </span>

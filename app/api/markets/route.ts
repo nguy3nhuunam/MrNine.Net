@@ -146,10 +146,11 @@ async function _handler_GET() {
     });
   }
 
-  // CNY/VND and TWD/VND need their own base lookups.
-  const [cnyRes, twdRes] = await Promise.all([
+  // CNY/VND, TWD/VND, JPY/VND need their own base lookups.
+  const [cnyRes, twdRes, jpyRes] = await Promise.all([
     fetch("https://open.er-api.com/v6/latest/CNY", { next: { revalidate: 600 } }).catch(() => null),
     fetch("https://open.er-api.com/v6/latest/TWD", { next: { revalidate: 600 } }).catch(() => null),
+    fetch("https://open.er-api.com/v6/latest/JPY", { next: { revalidate: 600 } }).catch(() => null),
   ]);
 
   const cnyToVnd = await readRateToVnd(cnyRes);
@@ -177,6 +178,20 @@ async function _handler_GET() {
       vnd: twdToVnd,
       change24h: null,
       sparkline: synthFlatSparkline(twdToVnd, 0.005),
+    });
+  }
+
+  const jpyToVnd = await readRateToVnd(jpyRes);
+  if (jpyToVnd) {
+    rows.push({
+      id: "forex-jpy-vnd",
+      symbol: "JPY",
+      name: "JPY / VND",
+      kind: "forex",
+      usd: jpyToVnd / usdToVnd,
+      vnd: jpyToVnd,
+      change24h: null,
+      sparkline: synthFlatSparkline(jpyToVnd, 0.006),
     });
   }
 

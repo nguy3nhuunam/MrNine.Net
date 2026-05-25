@@ -191,8 +191,8 @@ export function MarketsShell() {
           </h2>
           <p className="mt-3 max-w-3xl text-[0.85rem] leading-7 text-[#c4b9ad] sm:text-base">
             {language === "vi"
-              ? "Giá realtime + biểu đồ 7 ngày cho top 10 crypto, vàng (PAXG), bạc (XAG), và 3 cặp ngoại tệ lớn (USD/VND, CNY/VND, TWD/VND). Tự cập nhật mỗi 60 giây."
-              : "Realtime prices + 7-day sparkline for the top 10 cryptos, gold (PAXG), silver (XAG), and 3 forex pairs (USD/VND, CNY/VND, TWD/VND). Auto-refresh every 60s."}
+              ? "Giá realtime + biểu đồ 7 ngày cho top 10 crypto, vàng (PAXG), bạc (XAG), và 4 cặp ngoại tệ lớn (USD/VND, CNY/VND, TWD/VND, JPY/VND). Tự cập nhật mỗi 60 giây."
+              : "Realtime prices + 7-day sparkline for the top 10 cryptos, gold (PAXG), silver (XAG), and 4 forex pairs (USD/VND, CNY/VND, TWD/VND, JPY/VND). Auto-refresh every 60s."}
           </p>
           {data ? (
             <div className="mt-3 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#7dd391]">
