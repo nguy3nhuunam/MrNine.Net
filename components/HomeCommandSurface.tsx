@@ -1198,6 +1198,7 @@ function BangkokClock({ copy }: Readonly<{ copy: (typeof homeCopy)[WebLanguage] 
 
 function HeroParticleNetwork() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mouseRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1279,6 +1280,7 @@ function HeroParticleNetwork() {
       }
 
       const connectionDistance = Math.min(120, Math.max(78, width * 0.065));
+      const mouseDistance = connectionDistance * 1.6;
 
       for (let firstIndex = 0; firstIndex < particles.length; firstIndex += 1) {
         for (let secondIndex = firstIndex + 1; secondIndex < particles.length; secondIndex += 1) {
@@ -1296,6 +1298,33 @@ function HeroParticleNetwork() {
             currentContext.stroke();
           }
         }
+      }
+
+      // Mouse-attracted connections — draw brighter lines from any
+      // particle within mouseDistance of the cursor, plus a faint
+      // halo at the cursor itself.
+      const mouse = mouseRef.current;
+      if (mouse) {
+        for (const particle of particles) {
+          const distance = Math.hypot(particle.x - mouse.x, particle.y - mouse.y);
+          if (distance < mouseDistance) {
+            const opacity = Math.pow(1 - distance / mouseDistance, 2) * 0.55;
+            currentContext.beginPath();
+            currentContext.moveTo(particle.x, particle.y);
+            currentContext.lineTo(mouse.x, mouse.y);
+            currentContext.strokeStyle = `rgba(244, 234, 220, ${opacity})`;
+            currentContext.lineWidth = 0.7;
+            currentContext.stroke();
+          }
+        }
+        currentContext.beginPath();
+        currentContext.arc(mouse.x, mouse.y, 14, 0, Math.PI * 2);
+        currentContext.fillStyle = "rgba(244, 234, 220, 0.05)";
+        currentContext.fill();
+        currentContext.beginPath();
+        currentContext.arc(mouse.x, mouse.y, 2.6, 0, Math.PI * 2);
+        currentContext.fillStyle = "rgba(244, 234, 220, 0.55)";
+        currentContext.fill();
       }
 
       for (const particle of particles) {
@@ -1317,6 +1346,23 @@ function HeroParticleNetwork() {
     window.addEventListener("resize", resize);
     animationFrame = window.requestAnimationFrame(draw);
 
+    function handleMouseMove(event: globalThis.MouseEvent) {
+      const rect = currentCanvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+        mouseRef.current = null;
+        return;
+      }
+      mouseRef.current = { x, y };
+    }
+    function clearMouse() {
+      mouseRef.current = null;
+    }
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    window.addEventListener("mouseout", clearMouse);
+    document.addEventListener("mouseleave", clearMouse);
+
     function handleVisibility() {
       if (document.hidden) {
         if (animationFrame) window.cancelAnimationFrame(animationFrame);
@@ -1330,6 +1376,9 @@ function HeroParticleNetwork() {
 
     return () => {
       window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseout", clearMouse);
+      document.removeEventListener("mouseleave", clearMouse);
       document.removeEventListener("visibilitychange", handleVisibility);
       window.cancelAnimationFrame(animationFrame);
     };
