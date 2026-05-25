@@ -22,6 +22,9 @@ import {
   Search,
   Send,
   Sparkles,
+  Sun,
+  Sunrise,
+  Sunset,
   Wrench,
   X,
   type LucideIcon,
@@ -37,7 +40,7 @@ import { DiscordActivity } from "@/components/DiscordActivity";
 import { TabAudioVisualizer } from "@/components/TabAudioVisualizer";
 import { allModels as falAllModels, type FalCapability } from "@/lib/fal-models";
 
-type InterfaceTheme = "auto" | "crimson" | "signal" | "gold" | "frost";
+type InterfaceTheme = "auto" | "crimson" | "signal" | "gold" | "frost" | "eclipse" | "plasma";
 type AskMessage = {
   role: "user" | "assistant";
   content: string;
@@ -122,6 +125,30 @@ const interfaceThemes: ReadonlyArray<{
     selector: "border-[#47c9d9]/36 bg-[#061b20] text-[#79ddeb]",
     selected: "border-[#47c9d9]/70 bg-[#47c9d9]/16 text-[#e9fcff]",
   },
+  {
+    value: "eclipse",
+    label: "Eclipse",
+    title: "Deep violet mystic interface",
+    swatch: "bg-[#a78bfa]",
+    main: "bg-[#0b0814] text-[#ece6ff]",
+    ambient: "bg-[radial-gradient(circle_at_18%_10%,rgba(167,139,250,0.22),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(214,165,72,0.06),transparent_22%),linear-gradient(180deg,#10081f_0%,#030107_100%)]",
+    grid: "bg-[linear-gradient(rgba(167,139,250,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(167,139,250,0.05)_1px,transparent_1px)]",
+    header: "border-[#2a1d4a] bg-[#0b0716]/92",
+    selector: "border-[#a78bfa]/36 bg-[#1a1133] text-[#c4b3ff]",
+    selected: "border-[#a78bfa]/70 bg-[#a78bfa]/16 text-[#f1ebff]",
+  },
+  {
+    value: "plasma",
+    label: "Plasma",
+    title: "Neon magenta cyberpunk interface",
+    swatch: "bg-[#ec4899]",
+    main: "bg-[#0d0610] text-[#ffd9ec]",
+    ambient: "bg-[radial-gradient(circle_at_18%_10%,rgba(236,72,153,0.22),transparent_30%),radial-gradient(circle_at_80%_22%,rgba(71,201,217,0.12),transparent_24%),linear-gradient(180deg,#160820_0%,#04020a_100%)]",
+    grid: "bg-[linear-gradient(rgba(236,72,153,0.075)_1px,transparent_1px),linear-gradient(90deg,rgba(236,72,153,0.05)_1px,transparent_1px)]",
+    header: "border-[#3b1334] bg-[#10071a]/92",
+    selector: "border-[#ec4899]/36 bg-[#26102a] text-[#ff8fc4]",
+    selected: "border-[#ec4899]/70 bg-[#ec4899]/16 text-[#ffe0f0]",
+  },
 ];
 
 const themeVisuals: Record<
@@ -204,6 +231,34 @@ const themeVisuals: Record<
     header: { backgroundColor: "rgba(5,13,16,0.92)", borderColor: "#12323a" },
     selector: { backgroundColor: "#061b20", borderColor: "rgba(71,201,217,0.36)", color: "#79ddeb" },
     selected: { backgroundColor: "rgba(71,201,217,0.16)", borderColor: "rgba(71,201,217,0.7)", color: "#e9fcff" },
+  },
+  eclipse: {
+    main: { backgroundColor: "#0b0814", color: "#ece6ff" },
+    ambient: {
+      background:
+        "radial-gradient(circle at 18% 10%, rgba(167,139,250,0.22), transparent 30%), radial-gradient(circle at 82% 18%, rgba(214,165,72,0.06), transparent 22%), linear-gradient(180deg, #10081f 0%, #030107 100%)",
+    },
+    grid: {
+      backgroundImage:
+        "linear-gradient(rgba(167,139,250,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(167,139,250,0.05) 1px, transparent 1px)",
+    },
+    header: { backgroundColor: "rgba(11,7,22,0.92)", borderColor: "#2a1d4a" },
+    selector: { backgroundColor: "#1a1133", borderColor: "rgba(167,139,250,0.36)", color: "#c4b3ff" },
+    selected: { backgroundColor: "rgba(167,139,250,0.16)", borderColor: "rgba(167,139,250,0.7)", color: "#f1ebff" },
+  },
+  plasma: {
+    main: { backgroundColor: "#0d0610", color: "#ffd9ec" },
+    ambient: {
+      background:
+        "radial-gradient(circle at 18% 10%, rgba(236,72,153,0.22), transparent 30%), radial-gradient(circle at 80% 22%, rgba(71,201,217,0.12), transparent 24%), linear-gradient(180deg, #160820 0%, #04020a 100%)",
+    },
+    grid: {
+      backgroundImage:
+        "linear-gradient(rgba(236,72,153,0.075) 1px, transparent 1px), linear-gradient(90deg, rgba(236,72,153,0.05) 1px, transparent 1px)",
+    },
+    header: { backgroundColor: "rgba(16,7,26,0.92)", borderColor: "#3b1334" },
+    selector: { backgroundColor: "#26102a", borderColor: "rgba(236,72,153,0.36)", color: "#ff8fc4" },
+    selected: { backgroundColor: "rgba(236,72,153,0.16)", borderColor: "rgba(236,72,153,0.7)", color: "#ffe0f0" },
   },
 };
 
@@ -593,6 +648,8 @@ const themeCopy = {
     signal: { label: "Signal", title: "Green operations interface" },
     gold: { label: "Gold", title: "Amber market interface" },
     frost: { label: "Frost", title: "Cold visual engine interface" },
+    eclipse: { label: "Eclipse", title: "Deep violet mystic interface" },
+    plasma: { label: "Plasma", title: "Neon magenta cyberpunk interface" },
   },
   vi: {
     auto: { label: "Auto", title: "Bề mặt điều khiển cân bằng" },
@@ -600,6 +657,8 @@ const themeCopy = {
     signal: { label: "Tín hiệu", title: "Giao diện vận hành xanh" },
     gold: { label: "Vàng", title: "Giao diện thị trường amber" },
     frost: { label: "Băng", title: "Giao diện visual engine lạnh" },
+    eclipse: { label: "Nguyệt thực", title: "Giao diện huyền học tím sâu" },
+    plasma: { label: "Plasma", title: "Giao diện cyberpunk neon hồng" },
   },
 } satisfies Record<WebLanguage, Record<InterfaceTheme, { label: string; title: string }>>;
 
@@ -1035,8 +1094,35 @@ function DailyTypeHeadline({ language }: Readonly<{ language: WebLanguage }>) {
   );
 }
 
+function getBangkokHour(): number {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Bangkok",
+  });
+  return Number(formatter.format(now)) || 0;
+}
+
+type DayPhase = "dawn" | "day" | "dusk" | "night";
+
+function getDayPhase(hour: number): DayPhase {
+  if (hour >= 5 && hour < 9) return "dawn";
+  if (hour >= 9 && hour < 17) return "day";
+  if (hour >= 17 && hour < 20) return "dusk";
+  return "night";
+}
+
+function getAutoTheme(phase: DayPhase): InterfaceTheme {
+  if (phase === "dawn") return "gold";
+  if (phase === "day") return "frost";
+  if (phase === "dusk") return "crimson";
+  return "eclipse";
+}
+
 function BangkokClock({ copy }: Readonly<{ copy: (typeof homeCopy)[WebLanguage] }>) {
   const [time, setTime] = useState("");
+  const [phase, setPhase] = useState<DayPhase>("day");
 
   useEffect(() => {
     const formatter = new Intl.DateTimeFormat("en-GB", {
@@ -1049,6 +1135,7 @@ function BangkokClock({ copy }: Readonly<{ copy: (typeof homeCopy)[WebLanguage] 
 
     function updateTime() {
       setTime(formatter.format(new Date()));
+      setPhase(getDayPhase(getBangkokHour()));
     }
 
     updateTime();
@@ -1057,14 +1144,29 @@ function BangkokClock({ copy }: Readonly<{ copy: (typeof homeCopy)[WebLanguage] 
     return () => window.clearInterval(interval);
   }, []);
 
+  const phaseStyle: Record<DayPhase, { bg: string; ring: string; text: string; sub: string; icon: LucideIcon; iconClass: string }> = {
+    dawn: { bg: "bg-[#1f1408]", ring: "border-[#f0a060]/30", text: "text-[#f0c86d]", sub: "text-[#a07b48]", icon: Sunrise, iconClass: "text-[#ffb87a]" },
+    day: { bg: "bg-[#06181c]", ring: "border-[#47c9d9]/26", text: "text-[#a8e8f0]", sub: "text-[#5a8a92]", icon: Sun, iconClass: "text-[#ffd966]" },
+    dusk: { bg: "bg-[#1f0a08]", ring: "border-[#ef4444]/30", text: "text-[#ffb8a8]", sub: "text-[#a06e5a]", icon: Sunset, iconClass: "text-[#ff7e5f]" },
+    night: { bg: "bg-[#0f0a1f]", ring: "border-[#a78bfa]/30", text: "text-[#c4b3ff]", sub: "text-[#7a6f9c]", icon: Moon, iconClass: "text-[#c4b3ff]" },
+  };
+  const style = phaseStyle[phase];
+  const Icon = style.icon;
+
   return (
     <time
       dateTime={time}
       aria-label={`${copy.bangkokAria}: ${time || "loading"}`}
-      className="hidden min-w-[8.25rem] rounded-full border border-[#d6a548]/24 bg-[#201707] px-3 py-1.5 font-mono text-[0.78rem] font-bold tabular-nums text-[#e4c56b] xl:block"
+      className={cn(
+        "hidden min-w-[9.25rem] items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-[0.78rem] font-bold tabular-nums xl:flex",
+        style.bg,
+        style.ring,
+        style.text,
+      )}
       suppressHydrationWarning
     >
-      {time || "--:--:--"} <span className="ml-2 text-[0.55rem] text-[#7b7369]">{copy.bangkok}</span>
+      <Icon className={cn("size-3.5 shrink-0", style.iconClass)} />
+      {time || "--:--:--"} <span className={cn("ml-1 text-[0.55rem]", style.sub)}>{copy.bangkok}</span>
     </time>
   );
 }
@@ -1608,7 +1710,20 @@ export function HomeCommandSurface() {
   const searchPanelRef = useRef<HTMLDivElement | null>(null);
   const mobileSearchPanelRef = useRef<HTMLDivElement | null>(null);
   const [searchPanelRect, setSearchPanelRect] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
-  const activeTheme = interfaceThemes.find((theme) => theme.value === interfaceTheme) ?? interfaceThemes[0];
+  const [autoPhase, setAutoPhase] = useState<DayPhase>(() =>
+    typeof window === "undefined" ? "day" : getDayPhase(getBangkokHour()),
+  );
+
+  useEffect(() => {
+    if (interfaceTheme !== "auto") return;
+    const tick = () => setAutoPhase(getDayPhase(getBangkokHour()));
+    tick();
+    const id = window.setInterval(tick, 5 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [interfaceTheme]);
+
+  const resolvedTheme: InterfaceTheme = interfaceTheme === "auto" ? getAutoTheme(autoPhase) : interfaceTheme;
+  const activeTheme = interfaceThemes.find((theme) => theme.value === resolvedTheme) ?? interfaceThemes[0];
   const activeVisuals = themeVisuals[activeTheme.value];
   const PreviewIcon = previewModule?.icon;
   const copy = homeCopy[language];
