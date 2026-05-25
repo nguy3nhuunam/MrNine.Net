@@ -60,23 +60,46 @@ function normalizeMessages(value: unknown): ChatMessage[] {
 function extractAssistantText(json: unknown) {
   const response = json as {
     choices?: Array<{
-      message?: { content?: string | Array<{ text?: string; content?: string }> };
+      finish_reason?: string;
+      message?: {
+        content?: string | Array<{ text?: string; content?: string; type?: string }> | null;
+        reasoning_content?: string | null;
+        refusal?: string | null;
+      };
     }>;
   };
-  const content = response.choices?.[0]?.message?.content;
+  const choice = response.choices?.[0];
+  const message = choice?.message;
+  const content = message?.content;
 
-  if (typeof content === "string") {
+  if (typeof content === "string" && content.trim()) {
     return content.trim();
   }
 
   if (Array.isArray(content)) {
-    return content
+    const joined = content
       .map((part) => part.text || part.content || "")
       .join("")
       .trim();
+    if (joined) return joined;
+  }
+
+  // Some providers (DeepSeek-R1, gpt-5 reasoning variants on Yunwu) put the
+  // visible answer in reasoning_content when content is empty.
+  if (typeof message?.reasoning_content === "string" && message.reasoning_content.trim()) {
+    return message.reasoning_content.trim();
+  }
+
+  if (typeof message?.refusal === "string" && message.refusal.trim()) {
+    return message.refusal.trim();
   }
 
   return "";
+}
+
+function extractFinishReason(json: unknown) {
+  const response = json as { choices?: Array<{ finish_reason?: string }> };
+  return response.choices?.[0]?.finish_reason ?? "unknown";
 }
 
 async function _handler_POST(request: Request) {
@@ -132,16 +155,16 @@ async function _handler_POST(request: Request) {
             "<<ACTION>>{\"type\":\"navigate\",\"label\":\"Mở Photo Fix\",\"href\":\"/photo-fix\",\"reason\":\"Xoá nền ảnh dùng Photo Fix\"}<<END>>\n\n" +
             "Loại action hỗ trợ:\n" +
             "- navigate: { type, label, href, reason } — đưa user đến route phù hợp.\n" +
-            "  Ví dụ href: /ai-playground?capability=text-to-image&model=flux-2-pro , /photo-fix , /smart-recap , /docsense , /story-writer , /mystic-deck , /voice-studio , /video-studio.\n" +
+            "  Ví dụ href: /ai-playground?capability=text-to-image&model=flux-2-pro , /photo-fix , /smart-recap , /docsense , /story-writer , /mystic-deck , /voice-studio , /video-studio , /markets.\n" +
             "- compose: { type, label, steps:[{label,href}], reason } — workflow nhiều bước.\n\n" +
-            "Chỉ phát ACTION khi user thực sự muốn LÀM (ví dụ 'tạo ảnh sunset', 'tóm tắt video này'). Đừng phát khi user chỉ hỏi nói chuyện thông thường hoặc chỉ hỏi cách dùng. Một câu trả lời tối đa một ACTION.\n\n" +
+            "Chỉ phát ACTION khi user thực sự muốn LÀM (ví dụ 'tạo ảnh sunset', 'tóm tắt video này', 'xem giá vàng/bitcoin'). Đừng phát khi user chỉ hỏi nói chuyện thông thường hoặc chỉ hỏi cách dùng. Một câu trả lời tối đa một ACTION.\n\n" +
             "Khi user hỏi về tính năng/cách dùng/module/model của trang, dùng kiến thức website cung cấp dưới đây thay vì đoán.\n\n" +
             SITE_KNOWLEDGE_PROMPT,
         },
         ...messages,
       ],
-      temperature: 0.7,
-      max_tokens: 1200,
+      max_tokens: 4096,
+      max_completion_tokens: 4096,
       stream: false,
     }),
   });
@@ -157,10 +180,17 @@ async function _handler_POST(request: Request) {
   }
 
   const text = extractAssistantText(json);
+  const finishReason = extractFinishReason(json);
 
   if (!text) {
     if (userId && charge > 0) await refundCredits(userId, charge);
-    return NextResponse.json({ error: "Model returned an empty response." }, { status: 502 });
+    const message =
+      finishReason === "length"
+        ? "Model bị cắt do quá dài. Hãy thử câu hỏi ngắn hơn."
+        : finishReason === "content_filter"
+        ? "Câu trả lời bị bộ lọc nội dung chặn. Hãy thử cách diễn đạt khác."
+        : "Model returned an empty response.";
+    return NextResponse.json({ error: message, finishReason }, { status: 502 });
   }
 
   // Parse the optional action marker so the client doesn't have to.
