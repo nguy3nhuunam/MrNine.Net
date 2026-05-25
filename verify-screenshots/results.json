@@ -1,0 +1,114 @@
+[
+  {
+    "route": "/",
+    "status": "OK",
+    "details": "http=200 title=\"MrNine | Future AI Control Deck\" textLen=15438 took=1992ms",
+    "consoleErrors": [
+      "[http://localhost:3000/] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)"
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/ai-playground",
+    "status": "OK",
+    "details": "http=200 title=\"AI Playground · MrNine\" textLen=13734 took=1720ms",
+    "consoleErrors": [
+      "[http://localhost:3000/ai-playground] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/ai-playground] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/ai-playground] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/ai-playground] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)"
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/photo-fix",
+    "status": "OK",
+    "details": "http=200 title=\"Photo Fix · MrNine\" textLen=13609 took=2219ms",
+    "consoleErrors": [
+      "[http://localhost:3000/photo-fix] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/photo-fix] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/photo-fix] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/photo-fix] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)"
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/smart-recap",
+    "status": "OK",
+    "details": "http=200 title=\"Smart Recap · MrNine\" textLen=13556 took=2244ms",
+    "consoleErrors": [
+      "[http://localhost:3000/smart-recap] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/smart-recap] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/smart-recap] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/smart-recap] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)"
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/docsense",
+    "status": "OK",
+    "details": "http=200 title=\"DocSense · MrNine\" textLen=13610 took=2358ms",
+    "consoleErrors": [
+      "[http://localhost:3000/docsense] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/docsense] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/docsense] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/docsense] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)"
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/story-writer",
+    "status": "OK",
+    "details": "http=200 title=\"Story Writer · MrNine\" textLen=13561 took=2457ms",
+    "consoleErrors": [
+      "[http://localhost:3000/story-writer] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/story-writer] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/story-writer] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/story-writer] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/story-writer] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/story-forge",
+    "status": "OK",
+    "details": "http=200 title=\"MrNine | Future AI Control Deck\" textLen=13564 took=2126ms",
+    "consoleErrors": [
+      "[http://localhost:3000/story-forge] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/story-forge] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/story-forge] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/story-forge] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/story-forge] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/voice-studio",
+    "status": "OK",
+    "details": "http=200 title=\"MrNine | Future AI Control Deck\" textLen=13675 took=2098ms",
+    "consoleErrors": [
+      "[http://localhost:3000/voice-studio] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/voice-studio] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/voice-studio] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/voice-studio] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/voice-studio] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "pageErrors": []
+  },
+  {
+    "route": "/video-studio",
+    "status": "OK",
+    "details": "http=200 title=\"MrNine | Future AI Control Deck\" textLen=13696 took=2096ms",
+    "consoleErrors": [
+      "[http://localhost:3000/video-studio] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/video-studio] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/video-studio] Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      "[http://localhost:3000/video-studio] ClientFetchError: There was a problem with the server configuration. Check the server logs for more information.. Read more at https://errors.authjs.dev#autherror\n    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:514:22)\n    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:681:21)\n    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_12-5a~~._.js:824:51)",
+      "[http://localhost:3000/video-studio] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "pageErrors": []
+  }
+]

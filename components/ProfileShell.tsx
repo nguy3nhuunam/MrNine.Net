@@ -91,20 +91,70 @@ export function ProfileShell() {
   const { language } = useLanguage();
   const { data: session, status } = useSession();
   const copy = COPY[language];
-  const [creditsUsed, setCreditsUsed] = useState(0);
-  const limit = FREE_PLAN_CREDITS;
+  const [creditsState, setCreditsState] = useState<{ used: number; limit: number; plan: "free" | "pro"; resetAt: string } | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponMsg, setCouponMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem("mrnine-credits-used");
-      if (raw) setCreditsUsed(Math.min(limit, Math.max(0, Number(raw) || 0)));
-    } catch {
-      // ignore
-    }
-  }, [limit]);
+    if (status !== "authenticated") return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/credits/me", { cache: "no-store" });
+        const data = await response.json().catch(() => null);
+        if (!cancelled && data?.ok) {
+          setCreditsState({ used: data.used, limit: data.limit, plan: data.plan, resetAt: data.resetAt });
+        }
+      } catch {
+        // network blip — fall back to defaults
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
 
-  const remaining = Math.max(0, limit - creditsUsed);
-  const percentUsed = limit > 0 ? Math.round((creditsUsed / limit) * 100) : 0;
+  async function redeem(event: React.FormEvent) {
+    event.preventDefault();
+    if (!couponCode.trim() || couponLoading) return;
+    setCouponLoading(true);
+    setCouponMsg(null);
+    try {
+      const response = await fetch("/api/credits/me", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.trim() }),
+      });
+      const data = await response.json().catch(() => null);
+      if (data?.ok) {
+        setCreditsState({ used: data.used, limit: data.limit, plan: data.plan, resetAt: data.resetAt });
+        setCouponMsg({ kind: "ok", text: data.message || "Đã đổi coupon." });
+        setCouponCode("");
+      } else {
+        const reasonCopy: Record<string, string> = {
+          "not-found": "Mã không hợp lệ.",
+          expired: "Mã đã hết hạn.",
+          "used-up": "Mã đã hết lượt dùng.",
+          "already-redeemed": "Mã đã được dùng.",
+        };
+        setCouponMsg({ kind: "err", text: reasonCopy[data?.reason] || "Không đổi được mã." });
+      }
+    } catch {
+      setCouponMsg({ kind: "err", text: "Lỗi mạng." });
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  const remaining = creditsState ? Math.max(0, creditsState.limit - creditsState.used) : 0;
+  const limit = creditsState?.limit ?? FREE_PLAN_CREDITS;
+  const used = creditsState?.used ?? 0;
+  const plan = creditsState?.plan ?? "free";
+  const percentUsed = limit > 0 ? Math.round((used / limit) * 100) : 0;
+  const daysToReset = creditsState?.resetAt
+    ? Math.max(0, Math.ceil((new Date(creditsState.resetAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   if (status === "loading") {
     return (
@@ -177,15 +227,15 @@ export function ProfileShell() {
             {user?.name || (language === "vi" ? "Người dùng MrNine" : "MrNine user")}
           </h1>
           <p className="mt-1 text-[0.85rem] text-[#b5ab9f]">{user?.email}</p>
-          <span className="mt-3 rounded-full border border-[#45a85d]/35 bg-[#071109] px-3 py-1 font-mono text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[#7dd391]">
-            {copy.free}
+          <span className={cn("mt-3 rounded-full border px-3 py-1 font-mono text-[0.6rem] font-bold uppercase tracking-[0.18em]", plan === "pro" ? "border-[#d6a548]/55 bg-[#1f1408] text-[#f0c86d]" : "border-[#45a85d]/35 bg-[#071109] text-[#7dd391]")}>
+            {plan === "pro" ? copy.pro : copy.free}
           </span>
         </div>
 
         <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_18px_60px_rgba(0,0,0,0.4)]">
           <div className="flex items-center justify-between font-mono text-[0.58rem] uppercase tracking-[0.18em]">
             <span className="text-[#d6a548]">{copy.creditsCycle}</span>
-            <span className="text-[#9a9087]">{copy.resetsIn(PLAN_CYCLE_DAYS)}</span>
+            <span className="text-[#9a9087]">{copy.resetsIn(daysToReset ?? PLAN_CYCLE_DAYS)}</span>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="font-display text-5xl font-black tracking-[-0.06em] text-[#f4eadc]">{remaining}</span>
@@ -195,7 +245,7 @@ export function ProfileShell() {
             <div className="h-full bg-gradient-to-r from-[#45a85d] to-[#d6a548]" style={{ width: `${percentUsed}%` }} />
           </div>
           <div className="mt-1 flex items-center justify-between font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#9a9087]">
-            <span>{creditsUsed} {copy.used}</span>
+            <span>{used} {copy.used}</span>
             <span>{percentUsed}%</span>
           </div>
           <button
@@ -243,6 +293,10 @@ export function ProfileShell() {
           <button
             type="button"
             className="group flex w-full items-center justify-between rounded-md border border-[#3a322a] bg-[#100b04]/72 px-4 py-3 transition hover:-translate-y-0.5 hover:border-[#47c9d9]/35 hover:bg-[#06141a]"
+            onClick={() => {
+              const el = document.getElementById("redeem-form");
+              if (el) (el.querySelector("input") as HTMLInputElement | null)?.focus();
+            }}
           >
             <span className="flex items-center gap-3">
               <Ticket className="size-4 text-[#47c9d9]" />
@@ -250,6 +304,38 @@ export function ProfileShell() {
             </span>
             <span className="text-[0.7rem] text-[#9a9087]">{copy.redeemCouponHint}</span>
           </button>
+          <form
+            id="redeem-form"
+            onSubmit={redeem}
+            className="flex flex-col gap-2 rounded-md border border-[#3a322a] bg-[#06141a]/72 p-3 sm:flex-row"
+          >
+            <input
+              type="text"
+              value={couponCode}
+              onChange={(event) => setCouponCode(event.target.value)}
+              placeholder={language === "vi" ? "Nhập mã coupon" : "Enter coupon code"}
+              className="min-w-0 flex-1 rounded-md border border-white/10 bg-[#06141a] px-3 py-2 text-sm text-[#f4eadc] outline-none placeholder:text-[#5a8a92] focus:border-[#47c9d9]/55"
+            />
+            <button
+              type="submit"
+              disabled={!couponCode.trim() || couponLoading}
+              className="rounded-md bg-[#47c9d9] px-4 py-2 font-mono text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#062029] transition hover:bg-[#5cd9e8] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {couponLoading ? "..." : language === "vi" ? "Đổi mã" : "Redeem"}
+            </button>
+          </form>
+          {couponMsg ? (
+            <div
+              className={cn(
+                "rounded-md border px-3 py-2 text-[0.74rem]",
+                couponMsg.kind === "ok"
+                  ? "border-[#45a85d]/40 bg-[#071109] text-[#7dd391]"
+                  : "border-[#ef4444]/40 bg-[#1a0807] text-[#ffb4ad]",
+              )}
+            >
+              {couponMsg.text}
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={() => void signOut({ callbackUrl: "/" })}

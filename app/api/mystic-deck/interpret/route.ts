@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
 import { safeJsonRoute } from "@/lib/safe-json-route";
+import { getSessionUserId } from "@/lib/user-state";
+import { chargeCredits, refundCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -103,8 +105,22 @@ async function _handler_POST(request: Request) {
 
   const language = typeof body.language === "string" ? body.language : "vi";
 
+  const userId = await getSessionUserId();
+  let charge = 0;
+  if (userId) {
+    const result = await chargeCredits(userId, "mystic-interpret");
+    if (!result.ok && result.reason === "insufficient") {
+      return NextResponse.json(
+        { error: "Hết credits chu kỳ này. Hãy đợi reset hoặc dùng coupon." },
+        { status: 402 },
+      );
+    }
+    if (result.ok) charge = result.charged;
+  }
+
   const apiKey = await loadYunwuApiKey().catch(() => undefined);
   if (!apiKey) {
+    if (userId && charge > 0) await refundCredits(userId, charge);
     return NextResponse.json({ error: "Yunwu API key chưa cấu hình." }, { status: 500 });
   }
 
@@ -135,12 +151,14 @@ async function _handler_POST(request: Request) {
   };
 
   if (!response.ok) {
+    if (userId && charge > 0) await refundCredits(userId, charge);
     return NextResponse.json({ error: "Yunwu API thất bại.", detail: json }, { status: response.status });
   }
 
   const content = json.choices?.[0]?.message?.content?.trim();
 
   if (!content) {
+    if (userId && charge > 0) await refundCredits(userId, charge);
     return NextResponse.json({ error: "Mô hình trả về kết quả rỗng." }, { status: 502 });
   }
 

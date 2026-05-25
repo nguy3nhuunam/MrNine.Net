@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
 import { safeJsonRoute } from "@/lib/safe-json-route";
 import { SITE_KNOWLEDGE_PROMPT } from "@/lib/site-knowledge";
+import { getSessionUserId } from "@/lib/user-state";
+import { chargeCredits, refundCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -88,9 +90,26 @@ async function _handler_POST(request: Request) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
 
+  const userId = await getSessionUserId();
+  let charge = 0;
+  if (userId) {
+    const result = await chargeCredits(userId, "ask-anything");
+    if (!result.ok) {
+      if (result.reason === "insufficient") {
+        return NextResponse.json(
+          { error: "Hết credits chu kỳ này. Hãy đợi reset hoặc dùng coupon." },
+          { status: 402 },
+        );
+      }
+    } else {
+      charge = result.charged;
+    }
+  }
+
   const apiKey = await loadYunwuApiKey().catch(() => undefined);
 
   if (!apiKey) {
+    if (userId && charge > 0) await refundCredits(userId, charge);
     return NextResponse.json({ error: "Yunwu API key is not configured." }, { status: 500 });
   }
 
@@ -120,6 +139,7 @@ async function _handler_POST(request: Request) {
   const json = await response.json().catch(async () => ({ error: await response.text().catch(() => "") }));
 
   if (!response.ok) {
+    if (userId && charge > 0) await refundCredits(userId, charge);
     return NextResponse.json(
       { error: "Yunwu API request failed.", detail: json },
       { status: response.status },
@@ -129,6 +149,7 @@ async function _handler_POST(request: Request) {
   const text = extractAssistantText(json);
 
   if (!text) {
+    if (userId && charge > 0) await refundCredits(userId, charge);
     return NextResponse.json({ error: "Model returned an empty response." }, { status: 502 });
   }
 
