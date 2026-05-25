@@ -719,7 +719,8 @@ a {
 .module-anim-story::after,
 .module-anim-tutor::after,
 .module-anim-mystic::after,
-.module-anim-voice::after {
+.module-anim-voice::after,
+.module-anim-markets::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -737,7 +738,8 @@ a {
 .module-card-signal:hover.module-anim-story::after,
 .module-card-signal:hover.module-anim-tutor::after,
 .module-card-signal:hover.module-anim-mystic::after,
-.module-card-signal:hover.module-anim-voice::after {
+.module-card-signal:hover.module-anim-voice::after,
+.module-card-signal:hover.module-anim-markets::after {
   opacity: 0.78;
 }
 
@@ -885,6 +887,32 @@ a {
   50%      { transform: scaleY(1.05); }
 }
 
+/* Markets — candlestick ticker drift, green→amber gradient */
+.module-anim-markets::after {
+  background:
+    linear-gradient(180deg, transparent 28%, rgba(69, 168, 93, 0.14) 50%, transparent 72%),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 8px,
+      rgba(125, 211, 145, 0.22) 8px,
+      rgba(125, 211, 145, 0.22) 10px,
+      transparent 10px,
+      transparent 22px,
+      rgba(214, 165, 72, 0.18) 22px,
+      rgba(214, 165, 72, 0.18) 24px,
+      transparent 24px,
+      transparent 34px
+    );
+  background-size: 100% 100%, 200% 100%;
+  animation: marketsTicker 8s linear infinite;
+}
+
+@keyframes marketsTicker {
+  0%   { background-position: 0 0, 0% 0%; }
+  100% { background-position: 0 0, -200% 0%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .module-anim-playground::after,
   .module-anim-photo::after,
@@ -893,7 +921,8 @@ a {
   .module-anim-story::after,
   .module-anim-tutor::after,
   .module-anim-mystic::after,
-  .module-anim-voice::after {
+  .module-anim-voice::after,
+  .module-anim-markets::after {
     animation: none !important;
   }
 }

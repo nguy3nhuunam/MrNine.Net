@@ -365,6 +365,18 @@ const modules = [
     shortcut: "8",
     lastUsed: "—",
   },
+  {
+    number: "09",
+    title: "Markets",
+    detail: "Vàng · crypto · forex realtime",
+    summary: "Giá realtime vàng (PAXG), Bitcoin, Ethereum, BNB, SOL, XRP, DOGE và tỉ giá USD/VND. Cập nhật mỗi 60s.",
+    signal: "Market feed",
+    action: "Open markets",
+    icon: LineChart,
+    accent: "lime",
+    shortcut: "9",
+    lastUsed: "live",
+  },
 ];
 
 type ModuleCard = (typeof modules)[number];
@@ -386,6 +398,7 @@ const railItems: ReadonlyArray<RailItem> = [
   { label: "Language Tutor", icon: BookOpenText, shortcut: "6" },
   { label: "Mystic Deck", icon: Moon, href: "/mystic-deck", shortcut: "7" },
   { label: "Voice Lab", icon: AudioLines, shortcut: "8" },
+  { label: "Markets", icon: LineChart, href: "/markets", shortcut: "9" },
   { label: "Profile", icon: Bot, href: "/profile" },
 ];
 
@@ -576,6 +589,13 @@ const moduleCopy = {
       summary: "TTS đa giọng, voice cloning, dubbing và transcribe audio sang text/subtitle.",
       signal: "Hàng đợi giọng",
       action: "Sắp ra mắt",
+    },
+    "Markets": {
+      title: "Markets",
+      detail: "Vàng · crypto · forex realtime",
+      summary: "Giá realtime vàng (PAXG), Bitcoin, Ethereum, BNB, SOL, XRP, DOGE và tỉ giá USD/VND. Cập nhật mỗi 60s.",
+      signal: "Bảng giá realtime",
+      action: "Mở Markets",
     },
   },
 } satisfies Record<WebLanguage, Record<string, Partial<ModuleCard>>>;
@@ -797,6 +817,7 @@ const moduleNavMap: Record<string, string> = {
   "DocSense": "/docsense",
   "Story Writer": "/story-writer",
   "Mystic Deck": "/mystic-deck",
+  "Markets": "/markets",
 };
 
 const extraFeatureEntries: ReadonlyArray<{
@@ -834,15 +855,6 @@ const extraFeatureEntries: ReadonlyArray<{
     href: "/video-studio",
     icon: Clapperboard,
     accent: "amber",
-  },
-  {
-    id: "markets",
-    title: "Markets",
-    subtitleVi: "Vàng · crypto · forex realtime",
-    subtitleEn: "Gold · crypto · forex realtime",
-    href: "/markets",
-    icon: LineChart,
-    accent: "lime",
   },
 ];
 
@@ -883,6 +895,8 @@ function moduleAnimationClass(title: string): string {
       return "module-anim-mystic";
     case "Voice Lab":
       return "module-anim-voice";
+    case "Markets":
+      return "module-anim-markets";
     default:
       return "";
   }
@@ -2126,6 +2140,7 @@ export function HomeCommandSurface() {
       "DocSense": "/docsense",
       "Story Writer": "/story-writer",
       "Mystic Deck": "/mystic-deck",
+      "Markets": "/markets",
     };
     const destination = destinations[title];
 
