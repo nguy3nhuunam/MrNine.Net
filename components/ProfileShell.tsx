@@ -91,6 +91,7 @@ export function ProfileShell() {
   const { language } = useLanguage();
   const { data: session, status } = useSession();
   const copy = COPY[language];
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [creditsState, setCreditsState] = useState<{ used: number; limit: number; plan: "free" | "pro"; resetAt: string } | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [couponMsg, setCouponMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
@@ -250,11 +251,67 @@ export function ProfileShell() {
           </div>
           <button
             type="button"
+            onClick={() => setUpgradeOpen(true)}
             className="mt-5 flex h-11 w-full items-center justify-center rounded-md bg-gradient-to-r from-[#45a85d] to-[#22d29a] font-mono text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#061009] transition hover:from-[#52bd6c] hover:to-[#33dba5]"
           >
             {copy.upgradePlan}
           </button>
         </div>
+
+        {upgradeOpen ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Upgrade plan"
+            onClick={() => setUpgradeOpen(false)}
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 backdrop-blur-sm"
+          >
+            <div
+              onClick={(event) => event.stopPropagation()}
+              className="w-[min(32rem,calc(100vw-2rem))] rounded-xl border border-[#3b2a0d] bg-[#100b04]/96 p-5 shadow-[0_24px_90px_rgba(0,0,0,0.6)]"
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-[#3b2a0d] pb-3">
+                <div>
+                  <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">{copy.upgradePlan}</p>
+                  <h2 className="mt-1 font-display text-xl font-black tracking-[-0.04em] text-[#f4eadc]">MrNine Pro</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUpgradeOpen(false)}
+                  className="rounded-md border border-white/10 px-2.5 py-1 font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#9a9087] hover:border-white/30 hover:text-[#f4eadc]"
+                >
+                  ESC
+                </button>
+              </div>
+              <div className="mt-4 space-y-2 text-[0.82rem] text-[#dfd5c7]">
+                {[
+                  "5,000 credits / chu kỳ 30 ngày (gấp 25 lần Free)",
+                  "Mở khóa Sora 2, Veo 3.1, Kling 3 Pro và motion-control",
+                  "Ưu tiên hàng đợi render khi server bận",
+                  "Lịch sử cross-device không bị giới hạn",
+                  "Sớm sẽ có MrNine Agent — AI tự điều phối nhiều module",
+                ].map((line) => (
+                  <div key={line} className="flex gap-2">
+                    <span className="text-[#d6a548]">•</span>
+                    <span>{line}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-md border border-[#45a85d]/24 bg-[#071109]/72 px-3 py-2 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#7dd391]">
+                {language === "vi"
+                  ? "Pro chưa mở thanh toán công khai. Liên hệ hello@mrnine.net hoặc dùng coupon."
+                  : "Pro is not on public billing yet. Email hello@mrnine.net or redeem a coupon."}
+              </div>
+              <button
+                type="button"
+                onClick={() => setUpgradeOpen(false)}
+                className="mt-4 flex h-11 w-full items-center justify-center rounded-md bg-gradient-to-r from-[#45a85d] to-[#22d29a] font-mono text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#061009] transition hover:from-[#52bd6c] hover:to-[#33dba5]"
+              >
+                {language === "vi" ? "Đã hiểu" : "Got it"}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="rounded-xl border border-[#3a322a] bg-[#100b04]/72 p-5">
           <div className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#9a9087]">

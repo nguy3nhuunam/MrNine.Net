@@ -4,6 +4,7 @@ import { Be_Vietnam_Pro, JetBrains_Mono, Oxanium, Teko } from "next/font/google"
 import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { GlobalShortcuts } from "@/components/GlobalShortcuts";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const displayFont = Oxanium({
@@ -97,6 +98,7 @@ export default function RootLayout({
         <LanguageProvider>
           <AuthSessionProvider>{children}</AuthSessionProvider>
           <GlobalShortcuts />
+          <ServiceWorkerRegister />
         </LanguageProvider>
       </body>
     </html>
