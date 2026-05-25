@@ -34,6 +34,7 @@ import { languageOptions as appLanguageOptions, useLanguage, type WebLanguage } 
 import { cn } from "@/lib/utils";
 import { safeParseJson } from "@/lib/fetch-json";
 import { DiscordActivity } from "@/components/DiscordActivity";
+import { TabAudioVisualizer } from "@/components/TabAudioVisualizer";
 import { allModels as falAllModels, type FalCapability } from "@/lib/fal-models";
 
 type InterfaceTheme = "auto" | "crimson" | "signal" | "gold" | "frost";
@@ -1925,6 +1926,7 @@ export function HomeCommandSurface() {
               </div>
             </div>
             <DiscordActivity userId={session?.user?.discordId || "489092502998220812"} unlinked={!session?.user?.discordId} viewerName={session?.user?.name ?? null} />
+            <TabAudioVisualizer />
           </div>
         </div>
 
