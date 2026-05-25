@@ -126,15 +126,6 @@ const TABS: ReadonlyArray<{ id: DeckTab; vi: string; en: string; icon: typeof St
   { id: "naming", vi: "Đặt tên ngũ hành", en: "Naming", icon: Sparkles },
 ];
 
-const TICKER = [
-  "ZIWEI ENGINE + READY",
-  "TAROT DECK + 78 CARDS",
-  "NUMEROLOGY + PYTHAGORE",
-  "INTERPRET + GPT-5.5",
-  "HISTORY + LOCAL",
-  "MYSTIC DECK + 007",
-];
-
 export function MysticDeckShell() {
   const { language } = useLanguage();
   const [tab, setTab] = useState<DeckTab>("ziwei");
@@ -195,9 +186,9 @@ export function MysticDeckShell() {
         </div>
       </header>
 
-      <section className="relative z-10 mx-auto w-full max-w-[120rem] px-4 pb-6 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden border-b border-[#3b2a0d] py-5 sm:py-7">
-          <div className="relative z-[2] flex flex-wrap items-end justify-between gap-3">
+      <section className="relative z-10 mx-auto w-full px-4 pb-6 pt-5 sm:px-6 lg:px-10">
+        <div className="border-b border-[#3b2a0d] pb-5 sm:pb-7">
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">
                 {language === "vi" ? "Trang chủ" : "Home"}
@@ -216,24 +207,7 @@ export function MysticDeckShell() {
           </div>
         </div>
 
-        <div className="relative flex h-7 shrink-0 items-center overflow-hidden border-b border-[#3b2a0d]/60 font-mono text-[0.56rem] uppercase tracking-[0.18em] text-[#9a9087] opacity-55 transition-opacity hover:opacity-100">
-          <div className="flex min-w-max animate-[marquee_32s_linear_infinite] gap-8">
-            {[...TICKER, ...TICKER].map((item, index) => (
-              <span key={`${item}-${index}`} className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    "ticker-dot-signal size-1 rounded-full",
-                    index % 3 === 0 ? "bg-[#d6a548]" : index % 3 === 1 ? "bg-[#45a85d]" : "bg-[#ef4444]",
-                  )}
-                  style={{ animationDelay: `${(index % TICKER.length) * 0.18}s` }}
-                />
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="min-w-0 space-y-5">
             <div className="flex gap-2 overflow-x-auto lg:hidden">
               {TABS.map((entry) => {
@@ -640,7 +614,7 @@ function NumerologyPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="mystic-anim-numerology relative space-y-5 rounded-xl">
       <PanelHeader
         index="02"
         title={language === "vi" ? "Bộ chỉ số thần số học" : "Numerology profile"}
@@ -789,7 +763,7 @@ function TarotPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="mystic-anim-tarot relative space-y-5 rounded-xl">
       <PanelHeader
         index="03"
         title={language === "vi" ? "Trải bài tarot 3 lá" : "3-card tarot spread"}
@@ -967,7 +941,7 @@ function EmptyState({
 
 function NamingComingSoon({ language }: Readonly<{ language: "vi" | "en" }>) {
   return (
-    <div className="space-y-5">
+    <div className="mystic-anim-naming relative space-y-5 rounded-xl">
       <PanelHeader
         index="04"
         title={language === "vi" ? "Đặt tên ngũ hành" : "Five-element naming"}
