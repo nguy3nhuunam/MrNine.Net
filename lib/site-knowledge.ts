@@ -113,11 +113,17 @@ const moduleEntries: ReadonlyArray<ModuleEntry> = [
   },
   {
     title: "Mystic Deck",
-    status: "soon",
+    status: "live",
+    route: "/mystic-deck",
     shortcut: "7",
-    summaryVi: "Tử vi 2026, thần số học, tarot, đặt tên (con/brand) theo ngũ hành. Đang phát triển.",
-    capabilitiesVi: [],
-    howVi: "Chưa mở.",
+    summaryVi: "Bộ bài huyền học: lập lá số Tử Vi Đẩu Số 12 cung, thần số học Pythagore, trải bài tarot 3 lá. Đặt tên ngũ hành đang phát triển.",
+    capabilitiesVi: [
+      "Lập lá số Tử Vi từ ngày dương + giờ + giới tính (chạy bằng iztro local, không gọi API).",
+      "Thần số học: Life Path, Birthday, Expression, Soul Urge, Personality theo bảng Pythagore (master 11/22/33).",
+      "Tarot: trải bài 3 lá Past/Present/Future, hỗ trợ xuôi/ngược, ý nghĩa tiếng Việt.",
+      "Tab Đặt tên ngũ hành: coming soon.",
+    ],
+    howVi: "Mở /mystic-deck, chọn tab tương ứng. Tử vi: nhập ngày dương + giờ Tý-Hợi + giới tính rồi bấm Lập lá số. Thần số: ngày sinh + họ tên. Tarot: bấm Rút bài.",
   },
   {
     title: "Voice Lab",

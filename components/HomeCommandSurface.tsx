@@ -285,11 +285,11 @@ const modules = [
     detail: "Tử vi · thần số · tarot",
     summary: "Tử vi 2026, thần số học, tarot và đặt tên (con, brand) theo ngũ hành.",
     signal: "Mystic deck",
-    action: "Coming soon",
+    action: "Open Mystic Deck",
     icon: Moon,
     accent: "amber",
     shortcut: "7",
-    lastUsed: "—",
+    lastUsed: "ready",
   },
   {
     number: "08",
@@ -497,7 +497,7 @@ const moduleCopy = {
       detail: "Tử vi · thần số · tarot",
       summary: "Tử vi 2026, thần số học, tarot và đặt tên (con, brand) theo ngũ hành.",
       signal: "Bộ bài huyền học",
-      action: "Sắp ra mắt",
+      action: "Mở Mystic Deck",
     },
     "Voice Lab": {
       title: "Voice Lab",
@@ -719,6 +719,7 @@ const moduleNavMap: Record<string, string> = {
   "Smart Recap": "/smart-recap",
   "DocSense": "/docsense",
   "Story Writer": "/story-writer",
+  "Mystic Deck": "/mystic-deck",
 };
 
 const extraFeatureEntries: ReadonlyArray<{
@@ -1768,6 +1769,7 @@ export function HomeCommandSurface() {
       "Smart Recap": "/smart-recap",
       "DocSense": "/docsense",
       "Story Writer": "/story-writer",
+      "Mystic Deck": "/mystic-deck",
     };
     const destination = destinations[title];
 
@@ -2243,6 +2245,7 @@ export function HomeCommandSurface() {
                           module.title !== "Smart Recap" &&
                           module.title !== "DocSense" &&
                           module.title !== "Story Writer" &&
+                          module.title !== "Mystic Deck" &&
                           "cursor-default opacity-75",
                       )}
                     >
