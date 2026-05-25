@@ -622,6 +622,37 @@ export function AIPlaygroundShell() {
       return [];
     }
   });
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/playground/assets", { cache: "no-store" });
+        const data = await response.json().catch(() => null);
+        if (cancelled || !Array.isArray(data?.assets) || data.assets.length === 0) return;
+        const remote: GeneratedAsset[] = data.assets.map(
+          (entry: { assetId: string; url: string; kind: "image" | "video"; modelLabel: string; prompt: string; createdAt?: string }) => ({
+            id: entry.assetId,
+            url: entry.url,
+            kind: entry.kind,
+            modelLabel: entry.modelLabel,
+            prompt: entry.prompt,
+            createdAt: entry.createdAt ? new Date(entry.createdAt).getTime() : Date.now(),
+          }),
+        );
+        setAssets((current) => {
+          const map = new Map<string, GeneratedAsset>();
+          [...remote, ...current].forEach((entry) => map.set(entry.id, entry));
+          return Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt).slice(0, 80);
+        });
+      } catch {
+        // not authenticated or offline — keep local
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [activeAssetId, setActiveAssetId] = useState<string>(() => {
     if (typeof window === "undefined") return "";
     try {
@@ -651,6 +682,7 @@ export function AIPlaygroundShell() {
     } catch {
       // ignore
     }
+    void fetch("/api/playground/assets", { method: "DELETE" }).catch(() => null);
   }
   const [copiedId, setCopiedId] = useState("");
   const [uploadState, setUploadState] = useState<{ uploading: boolean; error: string }>({
@@ -772,6 +804,21 @@ export function AIPlaygroundShell() {
       setAssets((current) => [...next, ...current].slice(0, 80));
       setActiveAssetId(next[0]?.id ?? "");
       setStatus({ kind: "idle" });
+      // fire-and-forget persist to server
+      next.forEach((entry) => {
+        void fetch("/api/playground/assets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            assetId: entry.id,
+            url: entry.url,
+            kind: entry.kind,
+            modelId: model.id,
+            modelLabel: entry.modelLabel,
+            prompt: entry.prompt,
+          }),
+        }).catch(() => null);
+      });
     } catch (error) {
       setStatus({ kind: "error", message: error instanceof Error ? error.message : copy.statusError });
     }
