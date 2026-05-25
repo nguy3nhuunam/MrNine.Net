@@ -723,10 +723,10 @@ const dailyHeadlinesByLanguage = {
 } satisfies Record<WebLanguage, string[]>;
 
 const socialLinks = [
-  { label: "GitHub", icon: <GithubIcon /> },
-  { label: "Discord", icon: <DiscordIcon /> },
-  { label: "Facebook", icon: <FacebookIcon /> },
-  { label: "Instagram", icon: <InstagramIcon /> },
+  { label: "Facebook", icon: <FacebookIcon />, href: "https://www.facebook.com/nguyenhuunam.fb/" },
+  { label: "GitHub", icon: <GithubIcon />, href: "https://github.com/nguy3nhuunam" },
+  { label: "Email", icon: <MailIcon />, href: "mailto:mrnine.net@gmail.com" },
+  { label: "Telegram", icon: <TelegramIcon />, href: "https://t.me/mrninenet" },
 ];
 
 const accentMap = {
@@ -971,11 +971,15 @@ function filterAndRankResults(
     .map(({ result }) => result);
 }
 
-function SocialIconButton({ label, icon }: Readonly<{ label: string; icon: ReactNode }>) {
+function SocialIconButton({ label, icon, href }: Readonly<{ label: string; icon: ReactNode; href: string }>) {
+  const isExternal = /^https?:\/\//i.test(href);
   return (
     <a
-      href="#"
+      href={href}
       aria-label={label}
+      title={label}
+      target={isExternal ? "_blank" : undefined}
+      rel={isExternal ? "noreferrer noopener" : undefined}
       className="flex size-8 items-center justify-center rounded-full text-[#8d8780] transition hover:bg-white/[0.04] hover:text-[#efe6dc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
     >
       {icon}
@@ -1019,6 +1023,22 @@ function InstagramIcon() {
   return (
     <BrandIcon>
       <path d="M7.6 2.4h8.8a5.2 5.2 0 0 1 5.2 5.2v8.8a5.2 5.2 0 0 1-5.2 5.2H7.6a5.2 5.2 0 0 1-5.2-5.2V7.6a5.2 5.2 0 0 1 5.2-5.2Zm0 1.9a3.3 3.3 0 0 0-3.3 3.3v8.8a3.3 3.3 0 0 0 3.3 3.3h8.8a3.3 3.3 0 0 0 3.3-3.3V7.6a3.3 3.3 0 0 0-3.3-3.3H7.6Zm4.4 3.2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 1.9a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2Zm5.05-.96a1.08 1.08 0 1 1 0-2.16 1.08 1.08 0 0 1 0 2.16Z" />
+    </BrandIcon>
+  );
+}
+
+function MailIcon() {
+  return (
+    <BrandIcon>
+      <path d="M3 5.4h18c.66 0 1.2.54 1.2 1.2v10.8c0 .66-.54 1.2-1.2 1.2H3a1.2 1.2 0 0 1-1.2-1.2V6.6c0-.66.54-1.2 1.2-1.2Zm.6 1.92v.02L12 13.5l8.4-6.16v-.02H3.6Zm16.8 1.74L12.5 14.94c-.3.22-.7.22-1 0L3.6 9.06v8.4h16.8v-8.4Z" />
+    </BrandIcon>
+  );
+}
+
+function TelegramIcon() {
+  return (
+    <BrandIcon>
+      <path d="M21.4 4.32c.3-.13.62.16.55.49l-3.06 14.6c-.07.34-.45.52-.76.36l-4.4-2.32-2.34 2.31a.5.5 0 0 1-.84-.34l-.05-3.6 8.34-7.62c.18-.16-.04-.42-.24-.3l-10.31 6.5-3.6-1.18c-.32-.1-.34-.55-.04-.69L21.4 4.32Z" />
     </BrandIcon>
   );
 }
