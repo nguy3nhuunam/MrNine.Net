@@ -2697,6 +2697,7 @@ export function HomeCommandSurface() {
                           module.title !== "DocSense" &&
                           module.title !== "Story Writer" &&
                           module.title !== "Mystic Deck" &&
+                          module.title !== "Markets" &&
                           "cursor-default opacity-75",
                       )}
                     >
