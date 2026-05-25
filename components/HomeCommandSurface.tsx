@@ -1495,6 +1495,7 @@ function AuthControl({ language }: Readonly<{ language: WebLanguage }>) {
 
 function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
   const copy = chatCopy[language];
+  const { status: sessionStatus } = useSession();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1505,6 +1506,43 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
       content: "Tôi là MrNine AI. Bạn muốn viết, tạo ảnh, dựng video, xử lý tài liệu hay hỏi nhanh điều gì?",
     },
   ]);
+  const hydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated" || hydratedRef.current) return;
+    hydratedRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/chat-history", { cache: "no-store" });
+        const data = await response.json().catch(() => null);
+        if (cancelled) return;
+        const stored = Array.isArray(data?.messages) ? (data.messages as AskMessage[]) : [];
+        if (stored.length > 0) {
+          setMessages(stored);
+        }
+      } catch {
+        // ignore — keep the greeting
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionStatus]);
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated") return;
+    if (messages.length === 0) return;
+    if (messages.length === 1 && messages[0]?.role === "assistant") return;
+    const id = window.setTimeout(() => {
+      void fetch("/api/chat-history", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+      }).catch(() => null);
+    }, 800);
+    return () => window.clearTimeout(id);
+  }, [messages, sessionStatus]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {

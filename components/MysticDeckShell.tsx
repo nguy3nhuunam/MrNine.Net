@@ -62,6 +62,17 @@ function addMysticHistory(entry: Omit<MysticHistoryEntry, "id" | "at">) {
   } catch {
     // ignore
   }
+  // Also fire-and-forget to server when authenticated; silent if not.
+  void fetch("/api/mystic/readings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      readingId: next.id,
+      kind: entry.kind,
+      summary: entry.summary,
+      payload: null,
+    }),
+  }).catch(() => null);
 }
 
 type Star = {
@@ -1015,10 +1026,42 @@ function MysticSidePanel({
     return () => window.removeEventListener(MYSTIC_HISTORY_EVENT, onUpdate);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/mystic/readings", { cache: "no-store" });
+        const data = await response.json().catch(() => null);
+        if (cancelled || !Array.isArray(data?.readings)) return;
+        const remote: MysticHistoryEntry[] = data.readings.map((entry: { readingId: string; kind: MysticHistoryEntry["kind"]; summary: string; createdAt?: string }) => ({
+          id: entry.readingId,
+          kind: entry.kind,
+          summary: entry.summary,
+          at: entry.createdAt ? new Date(entry.createdAt).getTime() : Date.now(),
+        }));
+        if (remote.length > 0) {
+          setHistory((current) => {
+            const map = new Map<string, MysticHistoryEntry>();
+            [...remote, ...current].forEach((entry) => {
+              map.set(entry.id, entry);
+            });
+            return Array.from(map.values()).sort((a, b) => b.at - a.at).slice(0, 24);
+          });
+        }
+      } catch {
+        // not authenticated or offline — keep local
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function clearHistory() {
     window.localStorage.removeItem(MYSTIC_HISTORY_KEY);
     setHistory([]);
     window.dispatchEvent(new CustomEvent(MYSTIC_HISTORY_EVENT));
+    void fetch("/api/mystic/readings", { method: "DELETE" }).catch(() => null);
   }
 
   return (
