@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowLeft,
@@ -13,14 +13,17 @@ import {
 import { useLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
 
+type MarketKind = "crypto" | "metal" | "forex";
+
 type MarketRow = {
   id: string;
   symbol: string;
   name: string;
-  kind: "crypto" | "metal" | "forex";
+  kind: MarketKind;
   usd: number;
   vnd: number;
   change24h: number | null;
+  sparkline: number[];
 };
 
 type MarketsResponse = {
@@ -162,7 +165,7 @@ export function MarketsShell() {
             aria-pressed={autoUpdate}
           >
             <span className={cn("size-1.5 rounded-full", autoUpdate ? "bg-[#45a85d] markets-pulse" : "bg-[#9a9087]")} />
-            {autoUpdate ? (language === "vi" ? "Live · 60s" : "Live · 60s") : language === "vi" ? "Tạm dừng" : "Paused"}
+            {autoUpdate ? "Live · 60s" : language === "vi" ? "Tạm dừng" : "Paused"}
           </button>
           <button
             type="button"
@@ -176,7 +179,7 @@ export function MarketsShell() {
         </div>
       </header>
 
-      <section className="relative z-10 mx-auto w-full max-w-[120rem] px-4 pb-10 pt-5 sm:px-6 lg:px-10">
+      <section className="relative z-10 w-full px-4 pb-12 pt-5 sm:px-6 lg:px-10 xl:px-14 2xl:px-20">
         <div className="border-b border-[#15351e] pb-5 sm:pb-7">
           <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">
             {language === "vi" ? "Trang chủ" : "Home"}
@@ -184,12 +187,12 @@ export function MarketsShell() {
             {language === "vi" ? "Thị trường realtime" : "Realtime markets"}
           </p>
           <h2 className="mt-3 font-display text-[clamp(2.4rem,4.4vw,4.4rem)] font-black leading-[0.92] tracking-[-0.06em] text-[#f4eadc]">
-            {language === "vi" ? "vàng · crypto · ngoại tệ" : "gold · crypto · forex"}
+            {language === "vi" ? "vàng · bạc · top 10 crypto · forex" : "gold · silver · top 10 crypto · forex"}
           </h2>
-          <p className="mt-3 max-w-2xl text-[0.85rem] leading-7 text-[#c4b9ad] sm:text-base">
+          <p className="mt-3 max-w-3xl text-[0.85rem] leading-7 text-[#c4b9ad] sm:text-base">
             {language === "vi"
-              ? "Giá realtime từ CoinGecko (crypto + PAXG vàng) và Exchange-Rate-API (forex). Tự cập nhật mỗi 60 giây."
-              : "Realtime prices from CoinGecko (crypto + PAXG gold) and Exchange-Rate-API (forex). Auto-refresh every 60s."}
+              ? "Giá realtime + biểu đồ 7 ngày cho top 10 crypto, vàng (PAXG), bạc (XAG), và 3 cặp ngoại tệ lớn (USD/VND, CNY/VND, TWD/VND). Tự cập nhật mỗi 60 giây."
+              : "Realtime prices + 7-day sparkline for the top 10 cryptos, gold (PAXG), silver (XAG), and 3 forex pairs (USD/VND, CNY/VND, TWD/VND). Auto-refresh every 60s."}
           </p>
           {data ? (
             <div className="mt-3 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#7dd391]">
@@ -206,33 +209,30 @@ export function MarketsShell() {
           </div>
         ) : null}
 
-        <div className="mt-5 overflow-hidden rounded-xl border border-[#15351e] bg-[#050c07]/72">
-          <div className="grid grid-cols-[1.4fr_1fr_1fr_0.8fr] gap-3 border-b border-[#15351e] px-4 py-2.5 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#5e574e] sm:grid-cols-[1.6fr_1fr_1fr_0.7fr] sm:px-6">
-            <span>{language === "vi" ? "Tên" : "Name"}</span>
-            <span className="text-right">USD</span>
-            <span className="text-right">VND</span>
-            <span className="text-right">24h</span>
+        {!data && loading ? (
+          <div className="mt-10 flex h-40 items-center justify-center">
+            <LoaderCircle className="size-6 animate-spin text-[#45a85d]" />
           </div>
-          {!data && loading ? (
-            <div className="flex h-32 items-center justify-center">
-              <LoaderCircle className="size-5 animate-spin text-[#45a85d]" />
-            </div>
-          ) : null}
-          {data?.rows.map((row) => (
-            <MarketRowView key={row.id} row={row} language={language} />
-          ))}
-        </div>
+        ) : null}
 
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        {data ? (
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {data.rows.map((row) => (
+              <MarketCard key={row.id} row={row} language={language} />
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-8 grid gap-3 lg:grid-cols-2">
           <div className="rounded-xl border border-[#15351e] bg-[#050c07]/72 p-4">
             <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#7dd391]">
               <span className="size-1.5 rounded-full bg-[#45a85d]" />
               {language === "vi" ? "Nguồn" : "Sources"}
             </div>
             <ul className="mt-2 space-y-1 text-[0.78rem] leading-5 text-[#b5ab9f]">
-              <li>• <span className="text-[#7dd391]">CoinGecko</span> — crypto + PAX Gold (PAXG ≈ 1 oz vàng)</li>
+              <li>• <span className="text-[#7dd391]">CoinGecko</span> — Top 10 crypto + PAX Gold (PAXG ≈ 1 oz vàng) + sparkline 7 ngày</li>
+              <li>• <span className="text-[#7dd391]">gold-api.com</span> — giá bạc spot (XAG)</li>
               <li>• <span className="text-[#7dd391]">Exchange-Rate-API</span> — tỉ giá USD/VND</li>
-              <li>• {language === "vi" ? "PAXG là token bảo chứng vàng vật chất 1:1, dùng để ước lượng giá vàng quốc tế." : "PAXG is a gold-backed token (1:1) used as a proxy for international gold price."}</li>
             </ul>
           </div>
           <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4">
@@ -242,8 +242,8 @@ export function MarketsShell() {
             </div>
             <p className="mt-2 text-[0.78rem] leading-5 text-[#b5ab9f]">
               {language === "vi"
-                ? "Số liệu chỉ tham khảo. Giao dịch thật cần dùng broker chính thống. Không có giá xăng dầu vì không có nguồn realtime miễn phí ổn định cho VN."
-                : "Reference figures only. Real trading needs a regulated broker. Fuel prices not shown — no stable free realtime feed for Vietnam."}
+                ? "Số liệu chỉ tham khảo. Giao dịch thật cần broker chính thống. Sparkline của bạc là ước lượng từ giá mở/đóng cửa (free tier không có lịch sử 7 ngày)."
+                : "Reference figures only. Real trading needs a regulated broker. Silver sparkline is approximated from open/close (no 7d history on free tier)."}
             </p>
           </div>
         </div>
@@ -252,45 +252,119 @@ export function MarketsShell() {
   );
 }
 
-function MarketRowView({ row, language }: Readonly<{ row: MarketRow; language: "vi" | "en" }>) {
+function MarketCard({ row, language }: Readonly<{ row: MarketRow; language: "vi" | "en" }>) {
   const change = row.change24h;
   const tone = change === null ? "neutral" : change >= 0 ? "up" : "down";
+  const stroke = tone === "up" ? "#7dd391" : tone === "down" ? "#ffb4ad" : "#9a9087";
+  const fill = tone === "up" ? "rgba(125,211,145,0.18)" : tone === "down" ? "rgba(255,180,173,0.16)" : "rgba(154,144,135,0.14)";
+  const isForex = row.kind === "forex";
+
+  const badgeClass = (() => {
+    if (row.kind === "metal") {
+      if (row.symbol === "XAG") return "border-[#c0c0c0]/35 bg-[#c0c0c0]/10 text-[#e9e9e9]";
+      return "border-[#d6a548]/35 bg-[#d6a548]/12 text-[#fff2d3]";
+    }
+    if (row.kind === "forex") {
+      return "border-[#47c9d9]/35 bg-[#47c9d9]/12 text-[#cdf3fa]";
+    }
+    return "border-[#45a85d]/35 bg-[#45a85d]/12 text-[#dff8e4]";
+  })();
+
+  const kindLabel = (() => {
+    if (row.kind === "metal") return language === "vi" ? "Kim loại quý" : "Precious metal";
+    if (row.kind === "forex") return language === "vi" ? "Ngoại tệ" : "Forex";
+    return "Crypto";
+  })();
+
   return (
-    <div
-      className={cn(
-        "markets-row grid grid-cols-[1.4fr_1fr_1fr_0.8fr] items-center gap-3 border-b border-[#15351e] px-4 py-3 transition sm:grid-cols-[1.6fr_1fr_1fr_0.7fr] sm:px-6",
-        "last:border-b-0 hover:bg-white/[0.02]",
-      )}
-    >
+    <div className="markets-card group relative overflow-hidden rounded-xl border border-[#15351e] bg-[#050c07]/72 p-4 transition hover:border-[#45a85d]/45 hover:bg-[#0a1a0d]/72">
       <div className="flex items-center gap-3">
-        <span
-          className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-md border font-display text-[0.78rem] font-bold",
-            row.kind === "metal"
-              ? "border-[#d6a548]/35 bg-[#d6a548]/12 text-[#fff2d3]"
-              : "border-[#45a85d]/35 bg-[#45a85d]/12 text-[#dff8e4]",
-          )}
-        >
+        <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-md border font-display text-[0.75rem] font-bold tracking-tight", badgeClass)}>
           {row.symbol}
         </span>
-        <div className="min-w-0">
-          <div className="truncate text-[0.85rem] font-bold text-[#f4eadc]">{row.name}</div>
-          <div className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#5e574e]">
-            {row.kind === "metal" ? (language === "vi" ? "Kim loại quý" : "Precious metal") : "Crypto"}
-          </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[0.95rem] font-bold text-[#f4eadc]">{row.name}</div>
+          <div className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#5e574e]">{kindLabel}</div>
         </div>
+        {change !== null ? (
+          <div
+            className={cn(
+              "flex shrink-0 items-center gap-1 rounded-md px-2 py-1 font-mono text-[0.68rem] font-bold tabular-nums",
+              tone === "up"
+                ? "bg-[#45a85d]/14 text-[#7dd391]"
+                : tone === "down"
+                ? "bg-[#ef4444]/14 text-[#ffb4ad]"
+                : "bg-white/5 text-[#9a9087]",
+            )}
+          >
+            {tone === "up" ? <ArrowUp className="size-3" /> : tone === "down" ? <ArrowDown className="size-3" /> : null}
+            {fmtChange(change)}
+          </div>
+        ) : null}
       </div>
-      <div className="text-right font-mono text-[0.85rem] tabular-nums text-[#f4eadc]">{fmtUsd(row.usd)}</div>
-      <div className="text-right font-mono text-[0.74rem] tabular-nums text-[#b5ab9f]">{fmtVnd(row.vnd)}</div>
-      <div
-        className={cn(
-          "flex items-center justify-end gap-1 font-mono text-[0.74rem] font-bold tabular-nums",
-          tone === "up" ? "text-[#7dd391]" : tone === "down" ? "text-[#ffb4ad]" : "text-[#9a9087]",
+
+      <div className="mt-3 flex items-baseline justify-between gap-3">
+        {isForex ? (
+          <>
+            <div className="font-mono text-[1.25rem] font-bold tabular-nums text-[#f4eadc] sm:text-[1.4rem]">{fmtVnd(row.vnd)}</div>
+            <div className="font-mono text-[0.7rem] tabular-nums text-[#a79d91]">1 {row.symbol}</div>
+          </>
+        ) : (
+          <>
+            <div className="font-mono text-[1.25rem] font-bold tabular-nums text-[#f4eadc] sm:text-[1.4rem]">{fmtUsd(row.usd)}</div>
+            <div className="font-mono text-[0.7rem] tabular-nums text-[#a79d91]">{fmtVnd(row.vnd)}</div>
+          </>
         )}
-      >
-        {tone === "up" ? <ArrowUp className="size-3" /> : tone === "down" ? <ArrowDown className="size-3" /> : null}
-        {fmtChange(change)}
       </div>
+
+      <Sparkline points={row.sparkline} stroke={stroke} fill={fill} />
     </div>
   );
+}
+
+function Sparkline({ points, stroke, fill }: Readonly<{ points: number[]; stroke: string; fill: string }>) {
+  const path = useMemo(() => buildSparkline(points), [points]);
+  if (!path) {
+    return <div className="mt-3 h-14 rounded-md bg-white/[0.02]" />;
+  }
+  return (
+    <svg viewBox="0 0 200 60" preserveAspectRatio="none" className="mt-3 h-14 w-full" aria-hidden="true">
+      <path d={path.area} fill={fill} />
+      <path d={path.line} fill="none" stroke={stroke} strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function buildSparkline(points: number[]): { line: string; area: string } | null {
+  if (!points || points.length < 2) return null;
+  // Downsample to ~80 points so the SVG path stays small.
+  const max = 80;
+  const step = points.length > max ? points.length / max : 1;
+  const sampled: number[] = [];
+  for (let i = 0; i < points.length; i += step) sampled.push(points[Math.floor(i)]);
+  if (sampled.length < 2) return null;
+
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const v of sampled) {
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  const span = hi - lo || 1;
+  const w = 200;
+  const h = 60;
+  const pad = 4;
+  const drawW = w;
+  const drawH = h - pad * 2;
+
+  const line = sampled
+    .map((v, i) => {
+      const x = (i / (sampled.length - 1)) * drawW;
+      const y = pad + drawH - ((v - lo) / span) * drawH;
+      return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+
+  const area = `${line} L ${drawW.toFixed(2)} ${h} L 0 ${h} Z`;
+  return { line, area };
 }
