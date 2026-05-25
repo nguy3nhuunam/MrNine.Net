@@ -41,9 +41,14 @@ import { TabAudioVisualizer } from "@/components/TabAudioVisualizer";
 import { allModels as falAllModels, type FalCapability } from "@/lib/fal-models";
 
 type InterfaceTheme = "auto" | "crimson" | "signal" | "gold" | "frost" | "eclipse" | "plasma";
+type AskAction =
+  | { type: "navigate"; label: string; href: string; reason?: string }
+  | { type: "compose"; label: string; steps: Array<{ label: string; href: string }>; reason?: string };
+
 type AskMessage = {
   role: "user" | "assistant";
   content: string;
+  action?: AskAction | null;
 };
 
 const legacyLanguageOptions: ReadonlyArray<{ value: WebLanguage; label: string; title: string }> = [
@@ -1493,6 +1498,63 @@ function AuthControl({ language }: Readonly<{ language: WebLanguage }>) {
   );
 }
 
+function ActionChip({ action, onClose }: Readonly<{ action: AskAction; onClose: () => void }>) {
+  const router = useRouter();
+
+  if (action.type === "navigate") {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          router.push(action.href);
+        }}
+        className="group flex max-w-[85%] items-center justify-between gap-3 rounded-lg border border-[#18c964]/45 bg-[#071109]/82 px-3 py-2 text-left transition hover:-translate-y-0.5 hover:border-[#18c964]/70 hover:bg-[#0a1a0d]"
+      >
+        <span className="flex items-center gap-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-[#18c964]/45 bg-[#18c964]/12 font-mono text-[0.58rem] font-bold uppercase tracking-[0.16em] text-[#18c964]">
+            GO
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.85rem] font-bold text-[#f4eadc]">{action.label}</span>
+            {action.reason ? <span className="mt-0.5 block text-[0.7rem] text-[#9bd1a8]">{action.reason}</span> : null}
+          </span>
+        </span>
+        <ArrowRight className="size-3.5 shrink-0 text-[#18c964] transition group-hover:translate-x-0.5" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="max-w-[85%] rounded-lg border border-[#d6a548]/45 bg-[#1b1508]/72 p-3">
+      <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
+        <span className="size-1.5 rounded-full bg-[#d6a548]" />
+        {action.label}
+      </div>
+      {action.reason ? <p className="mt-1 text-[0.74rem] text-[#dfd5c7]">{action.reason}</p> : null}
+      <div className="mt-2 flex flex-col gap-1.5">
+        {action.steps.map((step, idx) => (
+          <button
+            key={`${step.href}-${idx}`}
+            type="button"
+            onClick={() => {
+              onClose();
+              router.push(step.href);
+            }}
+            className="flex items-center justify-between rounded-md border border-[#d6a548]/30 bg-[#100b04]/72 px-2.5 py-1.5 text-left transition hover:border-[#d6a548]/55 hover:bg-[#1c1209]"
+          >
+            <span className="flex items-center gap-2 text-[0.78rem] text-[#fff2d3]">
+              <span className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#d6a548]">{String(idx + 1).padStart(2, "0")}</span>
+              {step.label}
+            </span>
+            <ArrowRight className="size-3 text-[#d6a548]" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
   const copy = chatCopy[language];
   const { status: sessionStatus } = useSession();
@@ -1599,7 +1661,11 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
 
       setMessages((current) => [
         ...current,
-        { role: "assistant", content: data.message || "Tôi chưa nhận được nội dung phản hồi." },
+        {
+          role: "assistant",
+          content: data.message || "Tôi chưa nhận được nội dung phản hồi.",
+          action: data.action ?? null,
+        },
       ]);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : copy.failed);
@@ -1638,11 +1704,11 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
             {messages.map((message, index) => (
               <div
                 key={`${message.role}-${index}`}
-                className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
+                className={cn("flex flex-col gap-2", message.role === "user" ? "items-end" : "items-start")}
               >
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-lg border px-3 py-2 text-sm leading-6",
+                    "max-w-[85%] rounded-lg border px-3 py-2 text-sm leading-6 whitespace-pre-wrap",
                     message.role === "user"
                       ? "border-[#18c964]/35 bg-[#18c964]/14 text-[#edfff0]"
                       : "border-white/10 bg-white/[0.045] text-[#dfe8dc]",
@@ -1650,6 +1716,9 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
                 >
                   {message.content}
                 </div>
+                {message.role === "assistant" && message.action ? (
+                  <ActionChip action={message.action} onClose={() => setOpen(false)} />
+                ) : null}
               </div>
             ))}
             {loading ? (

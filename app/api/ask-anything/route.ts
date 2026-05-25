@@ -125,7 +125,17 @@ async function _handler_POST(request: Request) {
         {
           role: "system",
           content:
-            "Bạn là MrNine, trợ lý AI nội bộ của mrnine.net. Trả lời ngắn gọn, đúng trọng tâm, ưu tiên hướng dẫn cụ thể (bước, route, model). Match ngôn ngữ user. Khi user hỏi về tính năng/cách dùng/module/model của trang, dùng kiến thức website cung cấp dưới đây thay vì đoán.\n\n" +
+            "Bạn là MrNine, trợ lý AI điều phối của mrnine.net. Trả lời ngắn gọn, đúng trọng tâm. Match ngôn ngữ user.\n\n" +
+            "Khi user yêu cầu một việc khớp với một module có sẵn (tạo ảnh/video, sửa ảnh, tóm tắt, dịch tài liệu, viết truyện, lập lá số, tarot, thần số), hãy:\n" +
+            "1. Trả lời tự nhiên 1-2 câu xác nhận sẽ làm gì.\n" +
+            "2. Cuối câu trả lời thêm khối JSON action gói trong marker chính xác:\n" +
+            "<<ACTION>>{\"type\":\"navigate\",\"label\":\"Mở Photo Fix\",\"href\":\"/photo-fix\",\"reason\":\"Xoá nền ảnh dùng Photo Fix\"}<<END>>\n\n" +
+            "Loại action hỗ trợ:\n" +
+            "- navigate: { type, label, href, reason } — đưa user đến route phù hợp.\n" +
+            "  Ví dụ href: /ai-playground?capability=text-to-image&model=flux-2-pro , /photo-fix , /smart-recap , /docsense , /story-writer , /mystic-deck , /voice-studio , /video-studio.\n" +
+            "- compose: { type, label, steps:[{label,href}], reason } — workflow nhiều bước.\n\n" +
+            "Chỉ phát ACTION khi user thực sự muốn LÀM (ví dụ 'tạo ảnh sunset', 'tóm tắt video này'). Đừng phát khi user chỉ hỏi nói chuyện thông thường hoặc chỉ hỏi cách dùng. Một câu trả lời tối đa một ACTION.\n\n" +
+            "Khi user hỏi về tính năng/cách dùng/module/model của trang, dùng kiến thức website cung cấp dưới đây thay vì đoán.\n\n" +
             SITE_KNOWLEDGE_PROMPT,
         },
         ...messages,
@@ -153,7 +163,20 @@ async function _handler_POST(request: Request) {
     return NextResponse.json({ error: "Model returned an empty response." }, { status: 502 });
   }
 
-  return NextResponse.json({ message: text, model: YUNWU_MODEL });
+  // Parse the optional action marker so the client doesn't have to.
+  const match = text.match(/<<ACTION>>([\s\S]*?)<<END>>/);
+  let action: unknown = null;
+  let cleaned = text;
+  if (match) {
+    cleaned = text.replace(match[0], "").trim();
+    try {
+      action = JSON.parse(match[1].trim());
+    } catch {
+      action = null;
+    }
+  }
+
+  return NextResponse.json({ message: cleaned, model: YUNWU_MODEL, action });
 }
 
 export const POST = safeJsonRoute(_handler_POST);
