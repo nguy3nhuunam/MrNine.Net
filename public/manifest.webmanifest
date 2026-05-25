@@ -1,0 +1,17 @@
+{
+  "name": "MrNine — Personal AI control surface",
+  "short_name": "MrNine",
+  "description": "Tử vi · thần số · tarot · AI playground · và mọi thứ khác",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0a08",
+  "theme_color": "#0b0a08",
+  "categories": ["productivity", "utilities"],
+  "lang": "vi",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

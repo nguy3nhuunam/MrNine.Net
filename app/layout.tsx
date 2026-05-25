@@ -33,6 +33,13 @@ export const metadata: Metadata = {
   title: "MrNine | Future AI Control Deck",
   description:
     "The future mrnine.net AI control surface for writing, voice, image, video, documents, coding, and creative workflows.",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#0b0a08",
+  appleWebApp: {
+    capable: true,
+    title: "MrNine",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({

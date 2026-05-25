@@ -1297,8 +1297,20 @@ function HeroParticleNetwork() {
     window.addEventListener("resize", resize);
     animationFrame = window.requestAnimationFrame(draw);
 
+    function handleVisibility() {
+      if (document.hidden) {
+        if (animationFrame) window.cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+      } else if (!animationFrame) {
+        lastTime = performance.now();
+        animationFrame = window.requestAnimationFrame(draw);
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", handleVisibility);
       window.cancelAnimationFrame(animationFrame);
     };
   }, []);
