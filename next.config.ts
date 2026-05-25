@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
     "localhost",
     "26.18.20.106",
   ],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "cdn.discordapp.com" },
+      { protocol: "https", hostname: "avatars.githubusercontent.com" },
+    ],
+  },
   async rewrites() {
     return [
       {

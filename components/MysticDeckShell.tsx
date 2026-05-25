@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpenText,
+  Hash,
+  History,
+  Layers,
   LoaderCircle,
   Moon,
-  Hash,
+  RefreshCw,
   Sparkles,
   Star,
-  Layers,
-  RefreshCw,
   WandSparkles,
 } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -21,6 +23,45 @@ import { computeNumerology, NUMEROLOGY_MEANINGS_VI, type NumerologyReading } fro
 import { drawTarot, tarotPositions, type DrawnCard } from "@/lib/tarot";
 
 type DeckTab = "ziwei" | "numerology" | "tarot" | "naming";
+
+type MysticHistoryEntry = {
+  id: string;
+  kind: "ziwei" | "tarot" | "numerology";
+  summary: string;
+  at: number;
+};
+
+const MYSTIC_HISTORY_KEY = "mrnine-mystic-history";
+const MYSTIC_HISTORY_EVENT = "mrnine-mystic-history-update";
+
+function loadMysticHistory(): MysticHistoryEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(MYSTIC_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as MysticHistoryEntry[]).slice(0, 12) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addMysticHistory(entry: Omit<MysticHistoryEntry, "id" | "at">) {
+  if (typeof window === "undefined") return;
+  const next: MysticHistoryEntry = {
+    ...entry,
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    at: Date.now(),
+  };
+  const current = loadMysticHistory();
+  const updated = [next, ...current].slice(0, 12);
+  try {
+    window.localStorage.setItem(MYSTIC_HISTORY_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent(MYSTIC_HISTORY_EVENT));
+  } catch {
+    // ignore
+  }
+}
 
 type Star = {
   name: string;
@@ -140,14 +181,21 @@ export function MysticDeckShell() {
         </div>
       </header>
 
-      <section className="relative z-10 mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <p className="font-mono text-[0.6rem] uppercase tracking-[0.28em] text-[#d6a548]">
-            {language === "vi" ? "Bộ bài huyền học" : "Mystic toolkit"}
+      <section className="relative z-10 mx-auto w-full max-w-[120rem] px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="font-mono text-[0.6rem] uppercase tracking-[0.28em] text-[#d6a548]">
+              {language === "vi" ? "Bộ bài huyền học" : "Mystic toolkit"}
+            </p>
+            <h2 className="mt-2 font-display text-3xl font-black tracking-[-0.06em] text-[#f4eadc] sm:text-4xl">
+              {subhead}
+            </h2>
+          </div>
+          <p className="max-w-md text-[0.78rem] leading-6 text-[#b5ab9f]">
+            {language === "vi"
+              ? "Tử Vi Đẩu Số 12 cung, Numerology Pythagore và Tarot 78 lá. Mọi tính toán chạy cục bộ; AI luận giải dùng MrNine GPT."
+              : "12-palace Zi Wei chart, Pythagorean numerology, 78-card tarot. Local compute; AI interpretation by MrNine GPT."}
           </p>
-          <h2 className="mt-2 font-display text-3xl font-black tracking-[-0.06em] text-[#f4eadc] sm:text-4xl">
-            {subhead}
-          </h2>
         </div>
 
         <div className="mb-6 flex flex-wrap gap-1.5">
@@ -178,10 +226,15 @@ export function MysticDeckShell() {
           })}
         </div>
 
-        {tab === "ziwei" ? <ZiweiPanel language={language} /> : null}
-        {tab === "numerology" ? <NumerologyPanel language={language} /> : null}
-        {tab === "tarot" ? <TarotPanel language={language} /> : null}
-        {tab === "naming" ? <NamingComingSoon language={language} /> : null}
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="min-w-0">
+            {tab === "ziwei" ? <ZiweiPanel language={language} /> : null}
+            {tab === "numerology" ? <NumerologyPanel language={language} /> : null}
+            {tab === "tarot" ? <TarotPanel language={language} /> : null}
+            {tab === "naming" ? <NamingComingSoon language={language} /> : null}
+          </div>
+          <MysticSidePanel language={language} activeTab={tab} onSwitchTab={setTab} />
+        </div>
       </section>
     </main>
   );
@@ -214,6 +267,10 @@ function ZiweiPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
       const data = await safeParseJson(response);
       if (!response.ok) throw new Error(data?.error || "Lỗi tạo lá số.");
       setChart(data as Astrolabe);
+      addMysticHistory({
+        kind: "ziwei",
+        summary: `${(data as Astrolabe).soul} / ${(data as Astrolabe).body} · ${(data as Astrolabe).fiveElementsClass} · ${date}`,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Lỗi tạo lá số.");
       setChart(null);
@@ -476,9 +533,14 @@ function NumerologyPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!date) return;
-    setReading(computeNumerology(date, name));
+    const next = computeNumerology(date, name);
+    setReading(next);
     setAiReading("");
     setAiError("");
+    addMysticHistory({
+      kind: "numerology",
+      summary: `${language === "vi" ? "Đường đời" : "Life Path"} ${next.lifePath} · ${name || (language === "vi" ? "Không có tên" : "No name")}`,
+    });
   }
 
   async function interpret() {
@@ -618,9 +680,16 @@ function TarotPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   const [readingError, setReadingError] = useState("");
 
   function handleDraw() {
-    setDrawn(drawTarot(3));
+    const next = drawTarot(3);
+    setDrawn(next);
     setReading("");
     setReadingError("");
+    addMysticHistory({
+      kind: "tarot",
+      summary: next
+        .map((d, idx) => `${positions[idx]?.vi ?? `card${idx}`}: ${d.card.name}${d.reversed ? " (R)" : ""}`)
+        .join(" · "),
+    });
   }
 
   async function interpret() {
@@ -748,5 +817,158 @@ function NamingComingSoon({ language }: Readonly<{ language: "vi" | "en" }>) {
           : "Five-element balanced naming with Han-Viet suggestions and stem-branch analysis. Dataset in progress."}
       </p>
     </div>
+  );
+}
+
+const TAB_GUIDES = [
+  {
+    id: "ziwei" as DeckTab,
+    icon: Star,
+    titleVi: "Tử Vi Đẩu Số",
+    titleEn: "Zi Wei Dou Shu",
+    bodyVi: "Lá số 12 cung từ ngày dương + giờ Tý-Hợi + giới tính. Đỏ = Cung Mệnh, xanh = Cung Thân.",
+    bodyEn: "12-palace chart from solar date + hour-branch + gender. Amber = Soul, cyan = Body.",
+  },
+  {
+    id: "numerology" as DeckTab,
+    icon: Hash,
+    titleVi: "Thần số học",
+    titleEn: "Numerology",
+    bodyVi: "Pythagore: 5 chỉ số chính. Master 11/22/33 không bị rút gọn. Họ tên dùng để tính 3 số sau.",
+    bodyEn: "Pythagorean: 5 core numbers. Master 11/22/33 stay intact. Full name powers the last three.",
+  },
+  {
+    id: "tarot" as DeckTab,
+    icon: Layers,
+    titleVi: "Tarot 78 lá",
+    titleEn: "Tarot 78",
+    bodyVi: "Trải 3 lá Quá khứ / Hiện tại / Tương lai. Khoảng 40% có khả năng ra ngược.",
+    bodyEn: "3-card spread Past/Present/Future. Roughly 40% chance any card lands reversed.",
+  },
+  {
+    id: "naming" as DeckTab,
+    icon: Sparkles,
+    titleVi: "Đặt tên ngũ hành",
+    titleEn: "Five-element naming",
+    bodyVi: "Đang phát triển. Sẽ ghép can chi + ngũ hành + Hán Việt cho con, brand, sản phẩm.",
+    bodyEn: "In development. Will combine stem-branch, five elements, Han-Viet for kid/brand naming.",
+  },
+];
+
+function MysticSidePanel({
+  language,
+  activeTab,
+  onSwitchTab,
+}: Readonly<{ language: "vi" | "en"; activeTab: DeckTab; onSwitchTab: (tab: DeckTab) => void }>) {
+  const [history, setHistory] = useState<MysticHistoryEntry[]>([]);
+
+  useEffect(() => {
+    setHistory(loadMysticHistory());
+    function onUpdate() {
+      setHistory(loadMysticHistory());
+    }
+    window.addEventListener(MYSTIC_HISTORY_EVENT, onUpdate);
+    return () => window.removeEventListener(MYSTIC_HISTORY_EVENT, onUpdate);
+  }, []);
+
+  function clearHistory() {
+    window.localStorage.removeItem(MYSTIC_HISTORY_KEY);
+    setHistory([]);
+    window.dispatchEvent(new CustomEvent(MYSTIC_HISTORY_EVENT));
+  }
+
+  return (
+    <aside className="space-y-4">
+      <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
+            <History className="size-3.5" />
+            {language === "vi" ? "Lịch sử gần đây" : "Recent readings"}
+          </div>
+          {history.length > 0 ? (
+            <button
+              type="button"
+              onClick={clearHistory}
+              className="rounded border border-white/10 px-2 py-0.5 font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#9a9087] transition hover:border-[#ef4444]/40 hover:text-[#ffb4ad]"
+            >
+              {language === "vi" ? "Xoá" : "Clear"}
+            </button>
+          ) : null}
+        </div>
+        {history.length === 0 ? (
+          <p className="mt-3 text-[0.78rem] text-[#b5ab9f]">
+            {language === "vi"
+              ? "Chưa có bản đọc nào. Mỗi lần lập lá số / rút bài / tính số sẽ tự lưu vào đây (chỉ trên máy này, tối đa 12 mục)."
+              : "No readings yet. Each cast / draw / compute is saved here (this device only, up to 12 entries)."}
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-1.5">
+            {history.map((entry) => (
+              <li key={entry.id}>
+                <div className="flex items-center justify-between gap-2 rounded-md border border-white/8 bg-white/[0.025] px-2.5 py-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#d6a548]">
+                      {entry.kind === "ziwei" ? <Star className="size-3" /> : entry.kind === "tarot" ? <Layers className="size-3" /> : <Hash className="size-3" />}
+                      {entry.kind === "ziwei" ? (language === "vi" ? "Tử vi" : "Zi Wei") : entry.kind === "tarot" ? "Tarot" : language === "vi" ? "Số học" : "Numbers"}
+                    </div>
+                    <div className="mt-0.5 truncate text-[0.74rem] text-[#efe6dc]">{entry.summary}</div>
+                    <div className="mt-0.5 font-mono text-[0.46rem] uppercase tracking-[0.14em] text-[#756d64]">
+                      {new Date(entry.at).toLocaleString(language === "vi" ? "vi-VN" : "en-US")}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4">
+        <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
+          <BookOpenText className="size-3.5" />
+          {language === "vi" ? "Hướng dẫn các thẻ" : "Learn the tabs"}
+        </div>
+        <ul className="mt-3 space-y-2">
+          {TAB_GUIDES.map((guide) => {
+            const Icon = guide.icon;
+            const active = guide.id === activeTab;
+            return (
+              <li key={guide.id}>
+                <button
+                  type="button"
+                  onClick={() => onSwitchTab(guide.id)}
+                  className={cn(
+                    "flex w-full items-start gap-3 rounded-md border px-3 py-2 text-left transition",
+                    active
+                      ? "border-[#d6a548]/45 bg-[#d6a548]/12 text-[#fff2d3]"
+                      : "border-white/8 bg-white/[0.025] hover:border-[#d6a548]/30 hover:bg-white/[0.05]",
+                  )}
+                >
+                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548]">
+                    <Icon className="size-3.5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[0.82rem] font-bold text-[#f4eadc]">{language === "vi" ? guide.titleVi : guide.titleEn}</span>
+                    <span className="mt-0.5 block text-[0.7rem] leading-5 text-[#b5ab9f]">{language === "vi" ? guide.bodyVi : guide.bodyEn}</span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="rounded-xl border border-[#45a85d]/22 bg-[#071109]/72 p-4">
+        <div className="flex items-center gap-2 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#7dd391]">
+          <span className="size-1.5 rounded-full bg-[#45a85d]" />
+          {language === "vi" ? "Mẹo dùng nhanh" : "Quick tips"}
+        </div>
+        <ul className="mt-2 space-y-1.5 text-[0.74rem] leading-5 text-[#b5ab9f]">
+          <li>• {language === "vi" ? "Lập lá số xong, bấm Luận giải để AI viết bản đọc có cấu trúc." : "After casting, hit Interpret for an AI-written structured reading."}</li>
+          <li>• {language === "vi" ? "Reload trang sẽ giữ lịch sử (lưu trên máy), nhưng không giữ kết quả AI." : "Reload preserves history (local) but not the AI reading."}</li>
+          <li>• {language === "vi" ? "Tarot ra ngược → đọc theo nghĩa ngược, không phải xui." : "Reversed tarot reads inverted, not unlucky."}</li>
+        </ul>
+      </div>
+    </aside>
   );
 }

@@ -532,6 +532,7 @@ const authCopy = {
     accountAccess: "Account access",
     continueWith: "Continue with",
     oauthProvider: "OAuth provider",
+    viewProfile: "View profile",
   },
   vi: {
     account: "Tài khoản",
@@ -544,6 +545,7 @@ const authCopy = {
     accountAccess: "Truy cập tài khoản",
     continueWith: "Tiếp tục với",
     oauthProvider: "Nhà cung cấp OAuth",
+    viewProfile: "Xem hồ sơ",
   },
 } satisfies Record<WebLanguage, Record<string, string>>;
 
@@ -1276,11 +1278,19 @@ function AuthControl({ language }: Readonly<{ language: WebLanguage }>) {
                 {copy.mongoSession}
               </div>
             </div>
+            <a
+              role="menuitem"
+              href="/profile"
+              className="mt-2 flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[#dff8e4] transition hover:border-[#45a85d]/24 hover:bg-[#45a85d]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/70"
+            >
+              {copy.viewProfile}
+              <ArrowRight className="size-3.5" />
+            </a>
             <button
               type="button"
               role="menuitem"
               onClick={() => void signOut()}
-              className="mt-2 flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[#ffb4ad] transition hover:border-[#ef4444]/24 hover:bg-[#ef4444]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
+              className="mt-1 flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[#ffb4ad] transition hover:border-[#ef4444]/24 hover:bg-[#ef4444]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
             >
               {copy.signOut}
               <ArrowRight className="size-3.5" />
