@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { safeParseJson } from "@/lib/fetch-json";
 import { computeNumerology, NUMEROLOGY_MEANINGS_VI, type NumerologyReading } from "@/lib/numerology";
 import { drawTarot, tarotPositions, type DrawnCard } from "@/lib/tarot";
+import { formatLunarDateVi } from "@/lib/lunar-format";
 
 type DeckTab = "ziwei" | "numerology" | "tarot" | "naming";
 
@@ -125,15 +126,20 @@ const TABS: ReadonlyArray<{ id: DeckTab; vi: string; en: string; icon: typeof St
   { id: "naming", vi: "Đặt tên ngũ hành", en: "Naming", icon: Sparkles },
 ];
 
+const TICKER = [
+  "ZIWEI ENGINE + READY",
+  "TAROT DECK + 78 CARDS",
+  "NUMEROLOGY + PYTHAGORE",
+  "INTERPRET + GPT-5.5",
+  "HISTORY + LOCAL",
+  "MYSTIC DECK + 007",
+];
+
 export function MysticDeckShell() {
   const { language } = useLanguage();
   const [tab, setTab] = useState<DeckTab>("ziwei");
 
   const heading = language === "vi" ? "Mystic Deck" : "Mystic Deck";
-  const subhead =
-    language === "vi"
-      ? "Tử vi · thần số · tarot · đặt tên"
-      : "Astrology · numerology · tarot · naming";
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#0e0b06] text-[#eee2cc]">
@@ -153,8 +159,9 @@ export function MysticDeckShell() {
             "linear-gradient(rgba(214,165,72,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(214,165,72,0.045) 1px, transparent 1px)",
         }}
       />
+      <div className="blueprint-layer pointer-events-none absolute inset-0" aria-hidden="true" />
 
-      <header className="relative z-20 flex h-14 shrink-0 items-center gap-3 border-b border-[#3b2a0d] bg-[#100b04]/92 px-3 backdrop-blur md:px-5">
+      <header className="relative z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[#3b2a0d] bg-[#100b04]/92 px-3 backdrop-blur md:px-5">
         <Link
           href="/"
           aria-label={language === "vi" ? "Quay lại trang chủ" : "Back to home"}
@@ -179,28 +186,62 @@ export function MysticDeckShell() {
             <h1 className="truncate text-base font-black tracking-[-0.04em] text-[#f4eadc]">{heading}</h1>
           </div>
         </div>
+
+        <div className="ml-auto hidden items-center gap-2 font-mono text-[0.56rem] uppercase tracking-[0.2em] text-[#d6a548] md:flex">
+          <span className="size-1 rounded-full bg-[#d6a548]" />
+          {language === "vi" ? "Bộ bài huyền học" : "Mystic toolkit"}
+          <span className="text-[#6f675e]">/</span>
+          Exp 007
+        </div>
       </header>
 
-      <section className="relative z-10 mx-auto flex w-full max-w-[120rem] flex-col gap-5 px-4 pb-10 pt-6 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="font-mono text-[0.6rem] uppercase tracking-[0.28em] text-[#d6a548]">
-              {language === "vi" ? "Bộ bài huyền học" : "Mystic toolkit"}
-            </p>
-            <h2 className="mt-2 font-display text-3xl font-black tracking-[-0.06em] text-[#f4eadc] sm:text-4xl">
-              {subhead}
-            </h2>
+      <section className="relative z-10 mx-auto w-full max-w-[120rem] px-4 pb-6 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden border-b border-[#3b2a0d] py-5 sm:py-7">
+          <div
+            aria-hidden="true"
+            className="hero-numeral-scan absolute -right-1 top-2 z-[1] hidden text-[18vw] font-bold leading-[0.86] tracking-[0.015em] text-[#d6a548]/[0.07] xl:block"
+          >
+            007
           </div>
-          <p className="max-w-md text-[0.78rem] leading-6 text-[#b5ab9f]">
-            {language === "vi"
-              ? "Tử Vi Đẩu Số 12 cung, Numerology Pythagore và Tarot 78 lá. Mọi tính toán chạy cục bộ; AI luận giải dùng MrNine GPT."
-              : "12-palace Zi Wei chart, Pythagorean numerology, 78-card tarot. Local compute; AI interpretation by MrNine GPT."}
-          </p>
+          <div className="relative z-[2] flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">
+                {language === "vi" ? "Trang chủ" : "Home"}
+                <span className="mx-2 text-[#5e574e]">/</span>
+                {language === "vi" ? "Bộ bài huyền học" : "Mystic toolkit"}
+              </p>
+              <h2 className="mt-3 font-display text-[clamp(2.4rem,4.4vw,4.4rem)] font-black leading-[0.92] tracking-[-0.06em] text-[#f4eadc]">
+                {language === "vi" ? "tử vi · thần số · tarot" : "astrology · numerology · tarot"}
+              </h2>
+              <p className="mt-3 max-w-2xl text-[0.85rem] leading-7 text-[#c4b9ad] sm:text-base">
+                {language === "vi"
+                  ? "Lá số 12 cung Tử Vi Đẩu Số, Pythagore numerology, và 78 lá tarot — tính toán cục bộ, AI luận giải có cấu trúc."
+                  : "12-palace Zi Wei chart, Pythagorean numerology, and 78-card tarot — local compute, structured AI interpretation."}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="min-w-0">
-            <div className="flex gap-2 overflow-x-auto pb-3 lg:hidden">
+        <div className="relative flex h-7 shrink-0 items-center overflow-hidden border-b border-[#3b2a0d]/60 font-mono text-[0.56rem] uppercase tracking-[0.18em] text-[#9a9087] opacity-55 transition-opacity hover:opacity-100">
+          <div className="flex min-w-max animate-[marquee_32s_linear_infinite] gap-8">
+            {[...TICKER, ...TICKER].map((item, index) => (
+              <span key={`${item}-${index}`} className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "ticker-dot-signal size-1 rounded-full",
+                    index % 3 === 0 ? "bg-[#d6a548]" : index % 3 === 1 ? "bg-[#45a85d]" : "bg-[#ef4444]",
+                  )}
+                  style={{ animationDelay: `${(index % TICKER.length) * 0.18}s` }}
+                />
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="min-w-0 space-y-5">
+            <div className="flex gap-2 overflow-x-auto lg:hidden">
               {TABS.map((entry) => {
                 const Icon = entry.icon;
                 const active = tab === entry.id;
@@ -234,6 +275,81 @@ export function MysticDeckShell() {
   );
 }
 
+function ReadingCard({
+  reading,
+  loading,
+  error,
+  language,
+}: Readonly<{ reading: string; loading: boolean; error: string; language: "vi" | "en" }>) {
+  if (!reading && !loading && !error) return null;
+  return (
+    <div className="rounded-xl border border-[#d6a548]/24 bg-[#1b1508]/72 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_18px_60px_rgba(214,165,72,0.08)]">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
+          <WandSparkles className="size-3.5" />
+          {language === "vi" ? "Luận giải bằng AI" : "AI interpretation"}
+        </div>
+        <span className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#756d64]">GPT-5.5</span>
+      </div>
+      {loading ? (
+        <div className="flex items-center gap-2 text-[0.78rem] text-[#b5ab9f]">
+          <LoaderCircle className="size-3.5 animate-spin text-[#d6a548]" />
+          {language === "vi" ? "Đang luận giải..." : "Interpreting..."}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-[0.74rem] text-[#ffb4ad]">{error}</div>
+      ) : null}
+      {reading ? <div className="mt-1 whitespace-pre-wrap text-[0.92rem] leading-7 text-[#efe6dc]">{reading}</div> : null}
+    </div>
+  );
+}
+
+async function fetchInterpretation(
+  kind: "ziwei" | "tarot" | "numerology",
+  payload: unknown,
+  language: string,
+): Promise<string> {
+  const response = await fetch("/api/mystic-deck/interpret", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kind, payload, language }),
+  });
+  const data = await safeParseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Lỗi luận giải.");
+  return String(data?.reading ?? "");
+}
+
+function PanelHeader({
+  index,
+  title,
+  subtitle,
+  language,
+  accent = "amber",
+}: Readonly<{
+  index: string;
+  title: string;
+  subtitle: string;
+  language: "vi" | "en";
+  accent?: "amber" | "cyan" | "lime";
+}>) {
+  void language;
+  const colors = {
+    amber: "text-[#d6a548]",
+    cyan: "text-[#47c9d9]",
+    lime: "text-[#7dd391]",
+  };
+  return (
+    <div className="flex items-end justify-between gap-3 border-b border-[#3b2a0d] pb-3">
+      <div className="flex items-baseline gap-3">
+        <span className={cn("font-mono text-[0.62rem] uppercase tracking-[0.28em]", colors[accent])}>{index}</span>
+        <h3 className="font-display text-xl font-black tracking-[-0.04em] text-[#f4eadc] sm:text-2xl">{title}</h3>
+      </div>
+      <p className="hidden max-w-md text-right text-[0.74rem] leading-5 text-[#9a9087] sm:block">{subtitle}</p>
+    </div>
+  );
+}
+
 function ZiweiPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   const [date, setDate] = useState("");
   const [hourIndex, setHourIndex] = useState(0);
@@ -263,7 +379,7 @@ function ZiweiPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
       setChart(data as Astrolabe);
       addMysticHistory({
         kind: "ziwei",
-        summary: `${(data as Astrolabe).soul} / ${(data as Astrolabe).body} · ${(data as Astrolabe).fiveElementsClass} · ${date}`,
+        summary: `${(data as Astrolabe).soul} / ${(data as Astrolabe).body} · ${date}`,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Lỗi tạo lá số.");
@@ -289,175 +405,187 @@ function ZiweiPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
-      <form
-        onSubmit={submit}
-        className="space-y-3 rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_18px_60px_rgba(0,0,0,0.4)]"
-      >
-        <div>
-          <label className="mb-1.5 block font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-            {language === "vi" ? "Ngày sinh dương lịch" : "Solar birth date"}
-          </label>
-          <input
-            type="date"
-            value={date}
-            required
-            onChange={(event) => setDate(event.target.value)}
-            className="w-full rounded-md border border-white/10 bg-[#1b1508]/85 px-3 py-2 text-sm text-[#f4eadc] outline-none focus:border-[#d6a548]/55"
-          />
-        </div>
-        <div>
-          <label className="mb-1.5 block font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-            {language === "vi" ? "Giờ sinh" : "Birth hour"}
-          </label>
-          <select
-            value={hourIndex}
-            onChange={(event) => setHourIndex(Number(event.target.value))}
-            className="w-full rounded-md border border-white/10 bg-[#1b1508]/85 px-3 py-2 text-sm text-[#f4eadc] outline-none focus:border-[#d6a548]/55"
-          >
-            {HOURS.map((hour) => (
-              <option key={hour.value} value={hour.value}>
-                {hour.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1.5 block font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-            {language === "vi" ? "Giới tính" : "Gender"}
-          </label>
-          <div className="flex gap-2">
-            {(["female", "male"] as const).map((value) => (
-              <button
-                type="button"
-                key={value}
-                onClick={() => setGender(value)}
-                className={cn(
-                  "flex-1 rounded-md border px-3 py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition",
-                  gender === value
-                    ? "border-[#d6a548]/55 bg-[#d6a548]/14 text-[#fff2d3]"
-                    : "border-white/10 bg-white/[0.025] text-[#9a9087] hover:border-[#d6a548]/30 hover:text-[#f4eadc]",
-                )}
-              >
-                {value === "female" ? (language === "vi" ? "Nữ" : "Female") : language === "vi" ? "Nam" : "Male"}
-              </button>
-            ))}
+    <div className="space-y-5">
+      <PanelHeader
+        index="01"
+        title={language === "vi" ? "Lá số Tử Vi Đẩu Số" : "Zi Wei chart"}
+        subtitle={language === "vi" ? "Nhập ngày dương + giờ + giới tính. Render bằng iztro local." : "Solar date + hour + gender. Rendered locally with iztro."}
+        language={language}
+        accent="amber"
+      />
+
+      <form onSubmit={submit} className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+        <div className="grid gap-3 md:grid-cols-[1fr_1.4fr_1fr_auto]">
+          <div>
+            <label className="mb-1.5 block font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#d6a548]">
+              {language === "vi" ? "Ngày sinh dương lịch" : "Solar birth date"}
+            </label>
+            <input
+              type="date"
+              value={date}
+              required
+              onChange={(event) => setDate(event.target.value)}
+              className="w-full rounded-md border border-white/10 bg-[#1b1508]/85 px-3 py-2.5 text-sm text-[#f4eadc] outline-none focus:border-[#d6a548]/55"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#d6a548]">
+              {language === "vi" ? "Giờ sinh" : "Birth hour"}
+            </label>
+            <select
+              value={hourIndex}
+              onChange={(event) => setHourIndex(Number(event.target.value))}
+              className="w-full rounded-md border border-white/10 bg-[#1b1508]/85 px-3 py-2.5 text-sm text-[#f4eadc] outline-none focus:border-[#d6a548]/55"
+            >
+              {HOURS.map((hour) => (
+                <option key={hour.value} value={hour.value}>
+                  {hour.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#d6a548]">
+              {language === "vi" ? "Giới tính" : "Gender"}
+            </label>
+            <div className="flex gap-2">
+              {(["female", "male"] as const).map((value) => (
+                <button
+                  type="button"
+                  key={value}
+                  onClick={() => setGender(value)}
+                  className={cn(
+                    "flex-1 rounded-md border px-3 py-2.5 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition",
+                    gender === value
+                      ? "border-[#d6a548]/55 bg-[#d6a548]/14 text-[#fff2d3]"
+                      : "border-white/10 bg-white/[0.025] text-[#9a9087] hover:border-[#d6a548]/30 hover:text-[#f4eadc]",
+                  )}
+                >
+                  {value === "female" ? (language === "vi" ? "Nữ" : "Female") : language === "vi" ? "Nam" : "Male"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={loading || !date}
+              className="flex h-[42px] w-full items-center justify-center gap-2 rounded-md bg-[#d6a548] px-5 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] transition hover:bg-[#e6b758] disabled:cursor-not-allowed disabled:opacity-55 md:w-auto"
+            >
+              {loading ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
+              {language === "vi" ? "Lập lá số" : "Cast chart"}
+            </button>
           </div>
         </div>
-        <button
-          type="submit"
-          disabled={loading || !date}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[#d6a548] font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] hover:bg-[#e6b758] disabled:cursor-not-allowed disabled:opacity-55"
-        >
-          {loading ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-          {language === "vi" ? "Lập lá số" : "Cast chart"}
-        </button>
         {error ? (
-          <div className="rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-[0.72rem] text-[#ffb4ad]">
+          <div className="mt-3 rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-[0.74rem] text-[#ffb4ad]">
             {error}
           </div>
         ) : null}
       </form>
 
-      <div className="space-y-4">
-        {chart ? (
-          <>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                { label: "Mệnh", value: chart.soul },
-                { label: "Thân", value: chart.body },
-                { label: "Cục", value: chart.fiveElementsClass },
-                { label: "Cung Mệnh", value: chart.earthlyBranchOfSoulPalace },
-              ].map((item) => (
-                <div key={item.label} className="rounded-md border border-[#3b2a0d] bg-[#100b04]/72 p-3">
-                  <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#9a9087]">{item.label}</div>
-                  <div className="mt-1 truncate text-[0.85rem] font-bold text-[#f4eadc]">{item.value}</div>
-                </div>
-              ))}
-            </div>
-            <div className="rounded-md border border-[#3b2a0d] bg-[#100b04]/72 p-3 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#b5ab9f]">
-              <span className="text-[#d6a548]">Dương lịch:</span> {chart.solarDate} <span className="ml-2 text-[#d6a548]">Âm:</span>{" "}
-              {chart.lunarDate} <span className="ml-2 text-[#d6a548]">Can chi:</span> {chart.chineseDate}{" "}
-              <span className="ml-2 text-[#d6a548]">Giờ:</span> {chart.time}
-            </div>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
-              {chart.palaces.map((palace) => (
-                <PalaceCard key={palace.index} palace={palace} />
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#d6a548]/24 bg-[#100b04]/72 p-4">
-              <div>
-                <div className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-                  {language === "vi" ? "Đọc lá số" : "Read this chart"}
-                </div>
-                <div className="text-[0.78rem] text-[#b5ab9f]">
-                  {language === "vi"
-                    ? "AI tổng hợp 12 cung thành bản luận giải có cấu trúc."
-                    : "AI summarizes the 12 palaces into a structured reading."}
-                </div>
+      {chart ? (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: language === "vi" ? "Mệnh chủ" : "Soul", value: chart.soul },
+              { label: language === "vi" ? "Thân chủ" : "Body", value: chart.body },
+              { label: language === "vi" ? "Cục" : "Element", value: chart.fiveElementsClass },
+              { label: language === "vi" ? "Cung Mệnh" : "Soul Branch", value: chart.earthlyBranchOfSoulPalace },
+            ].map((item) => (
+              <div key={item.label} className="rounded-lg border border-[#3b2a0d] bg-[#100b04]/72 p-4">
+                <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#9a9087]">{item.label}</div>
+                <div className="mt-2 truncate font-display text-2xl font-black tracking-[-0.04em] text-[#fff2d3]">{item.value}</div>
               </div>
-              <button
-                type="button"
-                onClick={interpret}
-                disabled={readingLoading}
-                className="flex h-10 items-center gap-2 rounded-md bg-[#d6a548] px-4 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] hover:bg-[#e6b758] disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                {readingLoading ? <LoaderCircle className="size-4 animate-spin" /> : <WandSparkles className="size-3.5" />}
-                {language === "vi" ? "Luận giải" : "Interpret"}
-              </button>
-            </div>
-            <ReadingCard reading={reading} loading={readingLoading} error={readingError} language={language} />
-          </>
-        ) : (
-          <div className="flex h-full min-h-[16rem] items-center justify-center rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40 p-6 text-center">
-            <div>
-              <Star className="mx-auto size-6 text-[#d6a548]" />
-              <p className="mt-3 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#9a9087]">
-                {language === "vi" ? "Nhập thông tin để lập lá số" : "Enter birth info to cast"}
-              </p>
-              <p className="mt-2 max-w-md text-[0.78rem] text-[#b5ab9f]">
-                {language === "vi"
-                  ? "Lá số 12 cung Tử Vi Đẩu Số tính toán hoàn toàn cục bộ bằng iztro, không gọi API ngoài."
-                  : "12-palace Zi Wei chart computed locally with iztro, no external API."}
-              </p>
-            </div>
+            ))}
           </div>
-        )}
-      </div>
+
+          <div className="rounded-lg border border-[#3b2a0d] bg-[#100b04]/72 px-4 py-3 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[#b5ab9f]">
+            <span className="text-[#d6a548]">{language === "vi" ? "Dương lịch" : "Solar"}:</span> {chart.solarDate}
+            <span className="ml-3 text-[#d6a548]">{language === "vi" ? "Âm lịch" : "Lunar"}:</span>{" "}
+            {formatLunarDateVi(chart.lunarDate, chart.chineseDate)}
+            <span className="ml-3 text-[#d6a548]">{language === "vi" ? "Giờ" : "Hour"}:</span> {chart.time}
+            {chart.zodiac ? (
+              <>
+                <span className="ml-3 text-[#d6a548]">{language === "vi" ? "Cung" : "Sign"}:</span> {chart.zodiac}
+              </>
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {chart.palaces.map((palace) => (
+              <PalaceCard key={palace.index} palace={palace} language={language} />
+            ))}
+          </div>
+
+          <InterpretBar
+            language={language}
+            loading={readingLoading}
+            onClick={interpret}
+            titleVi="Đọc lá số"
+            titleEn="Read this chart"
+            bodyVi="AI tổng hợp 12 cung thành bản luận giải có cấu trúc."
+            bodyEn="AI weaves the 12 palaces into a structured reading."
+          />
+          <ReadingCard reading={reading} loading={readingLoading} error={readingError} language={language} />
+        </>
+      ) : (
+        <EmptyState
+          icon={Star}
+          titleVi="Nhập thông tin để lập lá số"
+          titleEn="Enter birth info to cast"
+          bodyVi="Lá số 12 cung Tử Vi Đẩu Số tính toán hoàn toàn cục bộ bằng iztro, không gọi API ngoài. Bấm Luận giải sau khi có lá số để AI đọc."
+          bodyEn="12-palace Zi Wei chart computed locally with iztro, no external API. Hit Interpret afterwards for an AI reading."
+        />
+      )}
     </div>
   );
 }
 
-function PalaceCard({ palace }: Readonly<{ palace: Palace }>) {
-  const accent = palace.isOriginalPalace ? "text-[#d6a548]" : palace.isBodyPalace ? "text-[#47c9d9]" : "text-[#b5ab9f]";
+function PalaceCard({ palace, language }: Readonly<{ palace: Palace; language: "vi" | "en" }>) {
+  const accent = palace.isOriginalPalace
+    ? "border-[#d6a548]/55 bg-[#d6a548]/8"
+    : palace.isBodyPalace
+      ? "border-[#47c9d9]/45 bg-[#47c9d9]/8"
+      : "border-[#3b2a0d] bg-[#100b04]/72";
+  const titleAccent = palace.isOriginalPalace ? "text-[#fff2d3]" : palace.isBodyPalace ? "text-[#cef0f6]" : "text-[#efe6dc]";
   return (
-    <div className="rounded-md border border-[#3b2a0d] bg-[#100b04]/76 p-2.5">
+    <div className={cn("flex h-full flex-col rounded-lg border p-4", accent)}>
       <div className="flex items-baseline justify-between gap-2">
-        <div className={cn("text-[0.78rem] font-bold tracking-[-0.02em]", accent)}>{palace.name}</div>
-        <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#9a9087]">
+        <div className={cn("font-display text-lg font-black tracking-[-0.03em]", titleAccent)}>{palace.name}</div>
+        <div className="font-mono text-[0.52rem] uppercase tracking-[0.18em] text-[#9a9087]">
           {palace.heavenlyStem} {palace.earthlyBranch}
         </div>
       </div>
+      {(palace.isOriginalPalace || palace.isBodyPalace) ? (
+        <div className="mt-1 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#d6a548]">
+          {palace.isOriginalPalace ? (language === "vi" ? "Mệnh" : "Soul") : language === "vi" ? "Thân" : "Body"}
+        </div>
+      ) : null}
       {palace.majorStars.length ? (
-        <div className="mt-1.5 flex flex-wrap gap-1">
+        <div className="mt-3 flex flex-wrap gap-1">
           {palace.majorStars.map((star) => (
             <span
               key={`${star.name}-${star.type ?? ""}`}
-              className="rounded border border-[#d6a548]/40 bg-[#d6a548]/12 px-1.5 py-0.5 font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#fff2d3]"
+              className="rounded border border-[#d6a548]/40 bg-[#d6a548]/12 px-1.5 py-0.5 font-mono text-[0.54rem] uppercase tracking-[0.14em] text-[#fff2d3]"
             >
               {star.name}
-              {star.brightness ? <span className="ml-0.5 text-[#d6a548]">·{star.brightness}</span> : null}
-              {star.mutagen ? <span className="ml-0.5 text-[#ef4444]">·{star.mutagen}</span> : null}
+              {star.brightness ? <span className="ml-1 text-[#d6a548]">·{star.brightness}</span> : null}
+              {star.mutagen ? <span className="ml-1 text-[#ef4444]">·{star.mutagen}</span> : null}
             </span>
           ))}
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-3 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#6f675e]">
+          {language === "vi" ? "Cung trống" : "Empty"}
+        </div>
+      )}
       {palace.minorStars.length ? (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {palace.minorStars.slice(0, 6).map((star) => (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {palace.minorStars.slice(0, 8).map((star) => (
             <span
               key={`${star.name}-${star.type ?? ""}`}
-              className="rounded border border-white/8 bg-white/[0.025] px-1.5 py-0.5 font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#b5ab9f]"
+              className="rounded border border-white/10 bg-white/[0.025] px-1.5 py-0.5 font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#b5ab9f]"
             >
               {star.name}
             </span>
@@ -465,55 +593,20 @@ function PalaceCard({ palace }: Readonly<{ palace: Palace }>) {
         </div>
       ) : null}
       {palace.adjectiveStars.length ? (
-        <div className="mt-1 truncate font-mono text-[0.46rem] uppercase tracking-[0.14em] text-[#756d64]">
-          {palace.adjectiveStars.slice(0, 4).map((s) => s.name).join(" · ")}
+        <div className="mt-2 truncate font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#756d64]">
+          {palace.adjectiveStars.slice(0, 6).map((s) => s.name).join(" · ")}
         </div>
       ) : null}
-      {palace.decadal?.range ? (
-        <div className="mt-1.5 border-t border-white/8 pt-1.5 font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#9a9087]">
-          Đại hạn {palace.decadal.range[0]}-{palace.decadal.range[1]}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function ReadingCard({
-  reading,
-  loading,
-  error,
-  language,
-}: Readonly<{ reading: string; loading: boolean; error: string; language: "vi" | "en" }>) {
-  if (!reading && !loading && !error) return null;
-  return (
-    <div className="rounded-xl border border-[#d6a548]/24 bg-[#1b1508]/72 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_18px_60px_rgba(214,165,72,0.08)]">
-      <div className="mb-2 flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
-        <WandSparkles className="size-3.5" />
-        {language === "vi" ? "Luận giải bằng AI" : "AI interpretation"}
+      <div className="mt-auto flex items-center justify-between gap-2 border-t border-white/8 pt-3 font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#9a9087]">
+        {palace.decadal?.range ? (
+          <span>{language === "vi" ? "Đại hạn" : "Decadal"} {palace.decadal.range[0]}-{palace.decadal.range[1]}</span>
+        ) : (
+          <span>—</span>
+        )}
+        {palace.changsheng12 ? <span className="text-[#d6a548]">{palace.changsheng12}</span> : null}
       </div>
-      {loading ? (
-        <div className="flex items-center gap-2 text-[0.78rem] text-[#b5ab9f]">
-          <LoaderCircle className="size-3.5 animate-spin text-[#d6a548]" />
-          {language === "vi" ? "Đang luận giải..." : "Interpreting..."}
-        </div>
-      ) : null}
-      {error ? (
-        <div className="rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-[0.74rem] text-[#ffb4ad]">{error}</div>
-      ) : null}
-      {reading ? <div className="mt-1 whitespace-pre-wrap text-[0.85rem] leading-7 text-[#efe6dc]">{reading}</div> : null}
     </div>
   );
-}
-
-async function fetchInterpretation(kind: "ziwei" | "tarot" | "numerology", payload: unknown, language: string): Promise<string> {
-  const response = await fetch("/api/mystic-deck/interpret", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, payload, language }),
-  });
-  const data = await safeParseJson(response);
-  if (!response.ok) throw new Error(data?.error || "Lỗi luận giải.");
-  return String(data?.reading ?? "");
 }
 
 function NumerologyPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
@@ -553,115 +646,106 @@ function NumerologyPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
-      <form
-        onSubmit={submit}
-        className="space-y-3 rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_18px_60px_rgba(0,0,0,0.4)]"
-      >
-        <div>
-          <label className="mb-1.5 block font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-            {language === "vi" ? "Ngày sinh" : "Birth date"}
-          </label>
-          <input
-            type="date"
-            value={date}
-            required
-            onChange={(event) => setDate(event.target.value)}
-            className="w-full rounded-md border border-white/10 bg-[#1b1508]/85 px-3 py-2 text-sm text-[#f4eadc] outline-none focus:border-[#d6a548]/55"
-          />
+    <div className="space-y-5">
+      <PanelHeader
+        index="02"
+        title={language === "vi" ? "Bộ chỉ số thần số học" : "Numerology profile"}
+        subtitle={language === "vi" ? "Pythagore: Life Path, Birthday, Expression, Soul Urge, Personality." : "Pythagorean: 5 core numbers including master 11/22/33."}
+        language={language}
+        accent="cyan"
+      />
+
+      <form onSubmit={submit} className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+        <div className="grid gap-3 md:grid-cols-[1fr_2fr_auto]">
+          <div>
+            <label className="mb-1.5 block font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#47c9d9]">
+              {language === "vi" ? "Ngày sinh" : "Birth date"}
+            </label>
+            <input
+              type="date"
+              value={date}
+              required
+              onChange={(event) => setDate(event.target.value)}
+              className="w-full rounded-md border border-white/10 bg-[#06161a]/85 px-3 py-2.5 text-sm text-[#f4eadc] outline-none focus:border-[#47c9d9]/55"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#47c9d9]">
+              {language === "vi" ? "Họ và tên" : "Full name"}
+            </label>
+            <input
+              type="text"
+              value={name}
+              placeholder={language === "vi" ? "Nguyễn Văn An" : "Jane Doe"}
+              onChange={(event) => setName(event.target.value)}
+              className="w-full rounded-md border border-white/10 bg-[#06161a]/85 px-3 py-2.5 text-sm text-[#f4eadc] outline-none focus:border-[#47c9d9]/55 placeholder:text-[#6f675e]"
+            />
+          </div>
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={!date}
+              className="flex h-[42px] w-full items-center justify-center gap-2 rounded-md bg-[#47c9d9] px-5 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#062029] transition hover:bg-[#5cd9e8] disabled:cursor-not-allowed disabled:opacity-55 md:w-auto"
+            >
+              <ArrowRight className="size-4" />
+              {language === "vi" ? "Tính số" : "Compute"}
+            </button>
+          </div>
         </div>
-        <div>
-          <label className="mb-1.5 block font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-            {language === "vi" ? "Họ và tên" : "Full name"}
-          </label>
-          <input
-            type="text"
-            value={name}
-            placeholder={language === "vi" ? "Ví dụ: Nguyễn Văn An" : "e.g. Jane Doe"}
-            onChange={(event) => setName(event.target.value)}
-            className="w-full rounded-md border border-white/10 bg-[#1b1508]/85 px-3 py-2 text-sm text-[#f4eadc] outline-none focus:border-[#d6a548]/55 placeholder:text-[#6f675e]"
-          />
-          <p className="mt-1 font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#756d64]">
-            {language === "vi" ? "Tự loại bỏ dấu, dùng bảng Pythagore" : "Diacritics stripped automatically, Pythagorean"}
-          </p>
-        </div>
-        <button
-          type="submit"
-          disabled={!date}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[#d6a548] font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] hover:bg-[#e6b758] disabled:cursor-not-allowed disabled:opacity-55"
-        >
-          <ArrowRight className="size-4" />
-          {language === "vi" ? "Tính số" : "Compute"}
-        </button>
+        <p className="mt-2 font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#756d64]">
+          {language === "vi" ? "Tự loại bỏ dấu, dùng bảng Pythagore. Master 11/22/33 không bị rút gọn." : "Diacritics stripped automatically. Pythagorean table. Master 11/22/33 stay intact."}
+        </p>
       </form>
 
-      <div className="space-y-3">
-        {reading ? (
-          <>
-            <div className="grid gap-2 sm:grid-cols-2">
+      {reading ? (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { key: "lifePath", label: "Đường đời (Life Path)", value: reading.lifePath },
-              { key: "birthday", label: "Số sinh nhật (Birthday)", value: reading.birthday },
-              { key: "expression", label: "Biểu hiện (Expression)", value: reading.expression },
-              { key: "soulUrge", label: "Linh hồn (Soul Urge)", value: reading.soulUrge },
-              { key: "personality", label: "Nhân cách (Personality)", value: reading.personality },
+              { key: "lifePath", labelVi: "Đường đời", labelEn: "Life Path", value: reading.lifePath },
+              { key: "birthday", labelVi: "Số sinh nhật", labelEn: "Birthday", value: reading.birthday },
+              { key: "expression", labelVi: "Biểu hiện", labelEn: "Expression", value: reading.expression },
+              { key: "soulUrge", labelVi: "Linh hồn", labelEn: "Soul Urge", value: reading.soulUrge },
+              { key: "personality", labelVi: "Nhân cách", labelEn: "Personality", value: reading.personality },
             ].map((entry) => (
-              <div
-                key={entry.key}
-                className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-3"
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <div className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#d6a548]">{entry.label}</div>
-                  <div className="font-display text-3xl font-black tracking-[-0.06em] text-[#f4eadc]">
-                    {entry.value ?? "—"}
-                  </div>
+              <div key={entry.key} className="flex h-full flex-col rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-5">
+                <div className="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#47c9d9]">
+                  {language === "vi" ? entry.labelVi : entry.labelEn}
+                </div>
+                <div className="mt-3 font-display text-[5rem] font-black leading-none tracking-[-0.06em] text-[#f4eadc]">
+                  {entry.value ?? "—"}
                 </div>
                 {entry.value !== null && entry.value !== undefined ? (
-                  <p className="mt-2 text-[0.78rem] leading-5 text-[#b5ab9f]">
-                    {NUMEROLOGY_MEANINGS_VI[entry.value] ?? "—"}
-                  </p>
+                  <p className="mt-3 text-[0.78rem] leading-5 text-[#b5ab9f]">{NUMEROLOGY_MEANINGS_VI[entry.value] ?? "—"}</p>
                 ) : (
-                  <p className="mt-2 text-[0.72rem] text-[#756d64]">
+                  <p className="mt-3 text-[0.7rem] text-[#756d64]">
                     {language === "vi" ? "Cần họ tên để tính số này." : "Requires a full name."}
                   </p>
                 )}
               </div>
             ))}
           </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#d6a548]/24 bg-[#100b04]/72 p-4">
-              <div>
-                <div className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-                  {language === "vi" ? "Đọc bộ chỉ số" : "Read these numbers"}
-                </div>
-                <div className="text-[0.78rem] text-[#b5ab9f]">
-                  {language === "vi"
-                    ? "AI gắn các số thành một bức tranh và đề xuất hành động."
-                    : "AI weaves the numbers into a single picture and actions."}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={interpret}
-                disabled={aiLoading}
-                className="flex h-10 items-center gap-2 rounded-md bg-[#d6a548] px-4 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] hover:bg-[#e6b758] disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                {aiLoading ? <LoaderCircle className="size-4 animate-spin" /> : <WandSparkles className="size-3.5" />}
-                {language === "vi" ? "Luận giải" : "Interpret"}
-              </button>
-            </div>
-            <ReadingCard reading={aiReading} loading={aiLoading} error={aiError} language={language} />
-          </>
-        ) : (
-          <div className="flex h-full min-h-[14rem] items-center justify-center rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40 p-6 text-center">
-            <div>
-              <Hash className="mx-auto size-6 text-[#d6a548]" />
-              <p className="mt-3 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#9a9087]">
-                {language === "vi" ? "Nhập ngày sinh để bắt đầu" : "Enter birth date to begin"}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+
+          <InterpretBar
+            language={language}
+            loading={aiLoading}
+            onClick={interpret}
+            titleVi="Đọc bộ chỉ số"
+            titleEn="Read these numbers"
+            bodyVi="AI gắn các số thành một bức tranh và đề xuất hành động."
+            bodyEn="AI weaves the numbers into a single picture and actions."
+            accent="cyan"
+          />
+          <ReadingCard reading={aiReading} loading={aiLoading} error={aiError} language={language} />
+        </>
+      ) : (
+        <EmptyState
+          icon={Hash}
+          titleVi="Nhập ngày sinh để bắt đầu"
+          titleEn="Enter birth date to begin"
+          bodyVi="Ngày sinh đủ để tính Đường đời và Số sinh nhật. Thêm họ tên để có thêm Biểu hiện, Linh hồn và Nhân cách."
+          bodyEn="Date alone fills Life Path and Birthday. Add a name for Expression, Soul Urge, and Personality."
+        />
+      )}
     </div>
   );
 }
@@ -711,20 +795,28 @@ function TarotPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <PanelHeader
+        index="03"
+        title={language === "vi" ? "Trải bài tarot 3 lá" : "3-card tarot spread"}
+        subtitle={language === "vi" ? "Quá khứ · Hiện tại · Tương lai. Bộ 78 lá Major + Minor Arcana." : "Past · Present · Future from a 78-card deck."}
+        language={language}
+        accent="amber"
+      />
+
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4">
         <div>
           <div className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
             {language === "vi" ? "Trải bài 3 lá" : "3-card spread"}
           </div>
           <div className="text-[0.85rem] text-[#b5ab9f]">
-            {language === "vi" ? "Quá khứ · Hiện tại · Tương lai" : "Past · Present · Future"}
+            {language === "vi" ? "Quá khứ · Hiện tại · Tương lai. ~40% lá có thể ra ngược." : "Past · Present · Future. ~40% chance any card lands reversed."}
           </div>
         </div>
         <button
           type="button"
           onClick={handleDraw}
-          className="flex h-10 items-center gap-2 rounded-md bg-[#d6a548] px-4 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] hover:bg-[#e6b758]"
+          className="flex h-11 items-center gap-2 rounded-md bg-[#d6a548] px-5 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] transition hover:bg-[#e6b758]"
         >
           <RefreshCw className="size-3.5" />
           {language === "vi" ? "Rút bài" : "Draw"}
@@ -733,83 +825,173 @@ function TarotPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
 
       {drawn ? (
         <>
-        <div className="grid gap-3 md:grid-cols-3">
-          {drawn.map((entry, index) => (
-            <div
-              key={`${entry.card.id}-${index}`}
-              className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4"
-            >
-              <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#d6a548]">
-                {language === "vi" ? positions[index].vi : positions[index].id}
-              </div>
-              <div className="mt-2 flex items-baseline justify-between gap-2">
-                <div className="text-[0.95rem] font-bold text-[#f4eadc]">{entry.card.name}</div>
-                <div
-                  className={cn(
-                    "rounded border px-1.5 py-0.5 font-mono text-[0.46rem] uppercase tracking-[0.18em]",
-                    entry.reversed
-                      ? "border-[#ef4444]/40 bg-[#ef4444]/10 text-[#ffb4ad]"
-                      : "border-[#45a85d]/40 bg-[#45a85d]/10 text-[#bee5c4]",
-                  )}
-                >
-                  {entry.reversed ? (language === "vi" ? "Ngược" : "Reversed") : language === "vi" ? "Xuôi" : "Upright"}
-                </div>
-              </div>
-              <p className="mt-2 text-[0.78rem] leading-5 text-[#dfd5c7]">
-                {entry.reversed ? entry.card.reversed : entry.card.upright}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#d6a548]/24 bg-[#100b04]/72 p-4">
-          <div>
-            <div className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-              {language === "vi" ? "Đọc bài" : "Read the spread"}
-            </div>
-            <div className="text-[0.78rem] text-[#b5ab9f]">
-              {language === "vi"
-                ? "AI ghép 3 lá thành câu chuyện và đề xuất hành động trong 30 ngày."
-                : "AI weaves the 3 cards into a story with 30-day actions."}
-            </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {drawn.map((entry, index) => (
+              <TarotCardView key={`${entry.card.id}-${index}`} entry={entry} positionLabel={language === "vi" ? positions[index].vi : positions[index].id} language={language} />
+            ))}
           </div>
-          <button
-            type="button"
+
+          <InterpretBar
+            language={language}
+            loading={readingLoading}
             onClick={interpret}
-            disabled={readingLoading}
-            className="flex h-10 items-center gap-2 rounded-md bg-[#d6a548] px-4 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] hover:bg-[#e6b758] disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            {readingLoading ? <LoaderCircle className="size-4 animate-spin" /> : <WandSparkles className="size-3.5" />}
-            {language === "vi" ? "Luận giải" : "Interpret"}
-          </button>
-        </div>
-        <ReadingCard reading={reading} loading={readingLoading} error={readingError} language={language} />
+            titleVi="Đọc bài"
+            titleEn="Read the spread"
+            bodyVi="AI ghép 3 lá thành câu chuyện và đề xuất hành động trong 30 ngày."
+            bodyEn="AI weaves the 3 cards into a story with 30-day actions."
+          />
+          <ReadingCard reading={reading} loading={readingLoading} error={readingError} language={language} />
         </>
       ) : (
-        <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40 p-6 text-center">
-          <div>
-            <Layers className="mx-auto size-6 text-[#d6a548]" />
-            <p className="mt-3 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#9a9087]">
-              {language === "vi" ? "Bấm Rút bài để bắt đầu" : "Hit Draw to begin"}
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Layers}
+          titleVi="Bấm Rút bài để bắt đầu"
+          titleEn="Hit Draw to begin"
+          bodyVi="3 lá rút ngẫu nhiên không trùng. Mỗi lá có ~40% xác suất xuôi/ngược. Reading không lưu."
+          bodyEn="3 unique cards drawn at random, ~40% reversed odds. The reading itself is not persisted."
+        />
       )}
+    </div>
+  );
+}
+
+function TarotCardView({
+  entry,
+  positionLabel,
+  language,
+}: Readonly<{ entry: DrawnCard; positionLabel: string; language: "vi" | "en" }>) {
+  return (
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-5 transition hover:-translate-y-0.5 hover:border-[#d6a548]/55">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-30 transition group-hover:opacity-60"
+        style={{
+          background: entry.reversed
+            ? "radial-gradient(circle at 50% 110%, rgba(239,68,68,0.32), transparent 65%)"
+            : "radial-gradient(circle at 50% -10%, rgba(214,165,72,0.32), transparent 65%)",
+        }}
+      />
+      <div className="relative z-[1] flex items-center justify-between">
+        <span className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#d6a548]">{positionLabel}</span>
+        <span
+          className={cn(
+            "rounded border px-1.5 py-0.5 font-mono text-[0.48rem] uppercase tracking-[0.18em]",
+            entry.reversed
+              ? "border-[#ef4444]/45 bg-[#ef4444]/10 text-[#ffb4ad]"
+              : "border-[#45a85d]/45 bg-[#45a85d]/10 text-[#bee5c4]",
+          )}
+        >
+          {entry.reversed ? (language === "vi" ? "Ngược" : "Reversed") : language === "vi" ? "Xuôi" : "Upright"}
+        </span>
+      </div>
+      <div className="relative z-[1] mt-4 flex aspect-[3/4] flex-col items-center justify-center rounded-md border border-[#3b2a0d] bg-[#1b1508]/60">
+        <Layers className={cn("size-10 transition", entry.reversed ? "rotate-180 text-[#ef4444]" : "text-[#d6a548]")} aria-hidden="true" />
+        <div className="mt-3 px-3 text-center font-display text-lg font-black tracking-[-0.04em] text-[#fff2d3]">
+          {entry.card.name}
+        </div>
+        <div className="mt-1 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#9a9087]">
+          {entry.card.arcana === "major" ? "Major Arcana" : entry.card.suit?.toUpperCase()}
+        </div>
+      </div>
+      <p className="relative z-[1] mt-4 text-[0.85rem] leading-6 text-[#dfd5c7]">
+        {entry.reversed ? entry.card.reversed : entry.card.upright}
+      </p>
+    </article>
+  );
+}
+
+function InterpretBar({
+  language,
+  loading,
+  onClick,
+  titleVi,
+  titleEn,
+  bodyVi,
+  bodyEn,
+  accent = "amber",
+}: Readonly<{
+  language: "vi" | "en";
+  loading: boolean;
+  onClick: () => void;
+  titleVi: string;
+  titleEn: string;
+  bodyVi: string;
+  bodyEn: string;
+  accent?: "amber" | "cyan";
+}>) {
+  const colors = {
+    amber: { btn: "bg-[#d6a548] text-[#0b0905] hover:bg-[#e6b758]", border: "border-[#d6a548]/24", label: "text-[#d6a548]" },
+    cyan: { btn: "bg-[#47c9d9] text-[#062029] hover:bg-[#5cd9e8]", border: "border-[#47c9d9]/24", label: "text-[#47c9d9]" },
+  };
+  const c = colors[accent];
+  return (
+    <div className={cn("flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-[#100b04]/72 p-4", c.border)}>
+      <div>
+        <div className={cn("font-mono text-[0.58rem] uppercase tracking-[0.18em]", c.label)}>
+          {language === "vi" ? titleVi : titleEn}
+        </div>
+        <div className="text-[0.78rem] text-[#b5ab9f]">{language === "vi" ? bodyVi : bodyEn}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={loading}
+        className={cn(
+          "flex h-10 items-center gap-2 rounded-md px-4 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-55",
+          c.btn,
+        )}
+      >
+        {loading ? <LoaderCircle className="size-4 animate-spin" /> : <WandSparkles className="size-3.5" />}
+        {language === "vi" ? "Luận giải" : "Interpret"}
+      </button>
+    </div>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  titleVi,
+  titleEn,
+  bodyVi,
+  bodyEn,
+}: Readonly<{ icon: typeof Star; titleVi: string; titleEn: string; bodyVi: string; bodyEn: string }>) {
+  const { language } = useLanguage();
+  return (
+    <div className="flex min-h-[20rem] items-center justify-center rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40 p-8 text-center">
+      <div>
+        <Icon className="mx-auto size-8 text-[#d6a548]" />
+        <p className="mt-4 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#9a9087]">
+          {language === "vi" ? titleVi : titleEn}
+        </p>
+        <p className="mx-auto mt-3 max-w-xl text-[0.85rem] leading-6 text-[#b5ab9f]">
+          {language === "vi" ? bodyVi : bodyEn}
+        </p>
+      </div>
     </div>
   );
 }
 
 function NamingComingSoon({ language }: Readonly<{ language: "vi" | "en" }>) {
   return (
-    <div className="rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40 p-6 text-center">
-      <Sparkles className="mx-auto size-6 text-[#d6a548]" />
-      <h3 className="mt-3 font-display text-2xl font-black tracking-[-0.04em] text-[#f4eadc]">
-        {language === "vi" ? "Đặt tên ngũ hành — sắp ra mắt" : "Five-element naming — coming soon"}
-      </h3>
-      <p className="mx-auto mt-2 max-w-xl text-[0.85rem] leading-6 text-[#b5ab9f]">
-        {language === "vi"
-          ? "Đặt tên (con, brand, sản phẩm) cân bằng theo ngũ hành Kim - Mộc - Thuỷ - Hoả - Thổ, có gợi ý tên Hán Việt và phân tích thiên can địa chi. Đang xây dataset."
-          : "Five-element balanced naming with Han-Viet suggestions and stem-branch analysis. Dataset in progress."}
-      </p>
+    <div className="space-y-5">
+      <PanelHeader
+        index="04"
+        title={language === "vi" ? "Đặt tên ngũ hành" : "Five-element naming"}
+        subtitle={language === "vi" ? "Sắp ra mắt." : "Coming soon."}
+        language={language}
+        accent="lime"
+      />
+      <div className="rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40 p-8 text-center">
+        <Sparkles className="mx-auto size-8 text-[#d6a548]" />
+        <h3 className="mt-4 font-display text-2xl font-black tracking-[-0.04em] text-[#f4eadc]">
+          {language === "vi" ? "Đặt tên ngũ hành — sắp ra mắt" : "Five-element naming — coming soon"}
+        </h3>
+        <p className="mx-auto mt-3 max-w-xl text-[0.85rem] leading-6 text-[#b5ab9f]">
+          {language === "vi"
+            ? "Đặt tên (con, brand, sản phẩm) cân bằng theo ngũ hành Kim · Mộc · Thuỷ · Hoả · Thổ, có gợi ý tên Hán Việt và phân tích thiên can địa chi. Đang xây dataset."
+            : "Five-element balanced naming with Han-Viet suggestions and stem-branch analysis. Dataset in progress."}
+        </p>
+      </div>
     </div>
   );
 }
@@ -820,32 +1002,32 @@ const TAB_GUIDES = [
     icon: Star,
     titleVi: "Tử Vi Đẩu Số",
     titleEn: "Zi Wei Dou Shu",
-    bodyVi: "Lá số 12 cung từ ngày dương + giờ Tý-Hợi + giới tính. Đỏ = Cung Mệnh, xanh = Cung Thân.",
-    bodyEn: "12-palace chart from solar date + hour-branch + gender. Amber = Soul, cyan = Body.",
+    bodyVi: "12 cung từ ngày dương + giờ + giới tính.",
+    bodyEn: "12 palaces from solar date, hour, gender.",
   },
   {
     id: "numerology" as DeckTab,
     icon: Hash,
     titleVi: "Thần số học",
     titleEn: "Numerology",
-    bodyVi: "Pythagore: 5 chỉ số chính. Master 11/22/33 không bị rút gọn. Họ tên dùng để tính 3 số sau.",
-    bodyEn: "Pythagorean: 5 core numbers. Master 11/22/33 stay intact. Full name powers the last three.",
+    bodyVi: "Pythagore — 5 chỉ số chính, master 11/22/33.",
+    bodyEn: "Pythagorean — 5 core numbers, master 11/22/33.",
   },
   {
     id: "tarot" as DeckTab,
     icon: Layers,
     titleVi: "Tarot 78 lá",
     titleEn: "Tarot 78",
-    bodyVi: "Trải 3 lá Quá khứ / Hiện tại / Tương lai. Khoảng 40% có khả năng ra ngược.",
-    bodyEn: "3-card spread Past/Present/Future. Roughly 40% chance any card lands reversed.",
+    bodyVi: "Trải 3 lá Past / Present / Future.",
+    bodyEn: "3-card Past / Present / Future spread.",
   },
   {
     id: "naming" as DeckTab,
     icon: Sparkles,
     titleVi: "Đặt tên ngũ hành",
     titleEn: "Five-element naming",
-    bodyVi: "Đang phát triển. Sẽ ghép can chi + ngũ hành + Hán Việt cho con, brand, sản phẩm.",
-    bodyEn: "In development. Will combine stem-branch, five elements, Han-Viet for kid/brand naming.",
+    bodyVi: "Đang phát triển.",
+    bodyEn: "In development.",
   },
 ];
 
@@ -874,9 +1056,12 @@ function MysticSidePanel({
   return (
     <aside className="hidden flex-col gap-4 lg:flex">
       <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-3">
-        <div className="mb-2 flex items-center gap-2 px-1 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
-          <Layers className="size-3.5" />
-          {language === "vi" ? "Chọn bộ bài" : "Pick a deck"}
+        <div className="mb-2 flex items-center justify-between gap-3 border-b border-white/8 px-1 pb-2 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
+          <span className="flex items-center gap-2">
+            <BookOpenText className="size-3.5" />
+            {language === "vi" ? "Chọn bộ bài" : "Pick a deck"}
+          </span>
+          <span className="text-[#5e574e]">/ 04</span>
         </div>
         <div className="grid gap-2">
           {TAB_GUIDES.map((guide) => {
@@ -927,7 +1112,7 @@ function MysticSidePanel({
       </div>
 
       <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-3">
-        <div className="flex items-center justify-between gap-3 px-1">
+        <div className="flex items-center justify-between gap-3 border-b border-white/8 px-1 pb-2">
           <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
             <History className="size-3.5" />
             {language === "vi" ? "Lịch sử gần đây" : "Recent readings"}
@@ -940,10 +1125,12 @@ function MysticSidePanel({
             >
               {language === "vi" ? "Xoá" : "Clear"}
             </button>
-          ) : null}
+          ) : (
+            <span className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#5e574e]">/ 0</span>
+          )}
         </div>
         {history.length === 0 ? (
-          <p className="mt-3 px-1 text-[0.78rem] text-[#b5ab9f]">
+          <p className="mt-3 px-1 text-[0.78rem] leading-5 text-[#b5ab9f]">
             {language === "vi"
               ? "Chưa có bản đọc nào. Mỗi lần lập lá số / rút bài / tính số sẽ tự lưu vào đây (chỉ trên máy này, tối đa 12 mục)."
               : "No readings yet. Each cast / draw / compute is saved here (this device only, up to 12 entries)."}
@@ -971,7 +1158,7 @@ function MysticSidePanel({
       </div>
 
       <div className="rounded-xl border border-[#45a85d]/22 bg-[#071109]/72 p-3">
-        <div className="flex items-center gap-2 px-1 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#7dd391]">
+        <div className="flex items-center gap-2 border-b border-white/8 px-1 pb-2 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#7dd391]">
           <span className="size-1.5 rounded-full bg-[#45a85d]" />
           {language === "vi" ? "Mẹo dùng nhanh" : "Quick tips"}
         </div>
