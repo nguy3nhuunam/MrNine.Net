@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
 import { safeJsonRoute } from "@/lib/safe-json-route";
+import { SITE_KNOWLEDGE_PROMPT } from "@/lib/site-knowledge";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -105,7 +106,8 @@ async function _handler_POST(request: Request) {
         {
           role: "system",
           content:
-            "You are MrNine, a concise AI assistant inside mrnine.net. Help with writing, images, video, voice, documents, coding, planning, and web workflows. Match the user's language.",
+            "Bạn là MrNine, trợ lý AI nội bộ của mrnine.net. Trả lời ngắn gọn, đúng trọng tâm, ưu tiên hướng dẫn cụ thể (bước, route, model). Match ngôn ngữ user. Khi user hỏi về tính năng/cách dùng/module/model của trang, dùng kiến thức website cung cấp dưới đây thay vì đoán.\n\n" +
+            SITE_KNOWLEDGE_PROMPT,
         },
         ...messages,
       ],
