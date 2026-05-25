@@ -12,6 +12,7 @@ import {
   Star,
   Layers,
   RefreshCw,
+  WandSparkles,
 } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
@@ -193,12 +194,17 @@ function ZiweiPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   const [chart, setChart] = useState<Astrolabe | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [reading, setReading] = useState("");
+  const [readingLoading, setReadingLoading] = useState(false);
+  const [readingError, setReadingError] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!date) return;
     setLoading(true);
     setError("");
+    setReading("");
+    setReadingError("");
     try {
       const response = await fetch("/api/mystic-deck/zi-wei", {
         method: "POST",
@@ -213,6 +219,21 @@ function ZiweiPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
       setChart(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function interpret() {
+    if (!chart || readingLoading) return;
+    setReadingLoading(true);
+    setReadingError("");
+    setReading("");
+    try {
+      const text = await fetchInterpretation("ziwei", chart, language);
+      setReading(text);
+    } catch (err) {
+      setReadingError(err instanceof Error ? err.message : "Lỗi luận giải.");
+    } finally {
+      setReadingLoading(false);
     }
   }
 
@@ -313,6 +334,28 @@ function ZiweiPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
                 <PalaceCard key={palace.index} palace={palace} />
               ))}
             </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#d6a548]/24 bg-[#100b04]/72 p-4">
+              <div>
+                <div className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
+                  {language === "vi" ? "Đọc lá số" : "Read this chart"}
+                </div>
+                <div className="text-[0.78rem] text-[#b5ab9f]">
+                  {language === "vi"
+                    ? "AI tổng hợp 12 cung thành bản luận giải có cấu trúc."
+                    : "AI summarizes the 12 palaces into a structured reading."}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={interpret}
+                disabled={readingLoading}
+                className="flex h-10 items-center gap-2 rounded-md bg-[#d6a548] px-4 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] hover:bg-[#e6b758] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {readingLoading ? <LoaderCircle className="size-4 animate-spin" /> : <WandSparkles className="size-3.5" />}
+                {language === "vi" ? "Luận giải" : "Interpret"}
+              </button>
+            </div>
+            <ReadingCard reading={reading} loading={readingLoading} error={readingError} language={language} />
           </>
         ) : (
           <div className="flex h-full min-h-[16rem] items-center justify-center rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40 p-6 text-center">
@@ -384,15 +427,73 @@ function PalaceCard({ palace }: Readonly<{ palace: Palace }>) {
   );
 }
 
+function ReadingCard({
+  reading,
+  loading,
+  error,
+  language,
+}: Readonly<{ reading: string; loading: boolean; error: string; language: "vi" | "en" }>) {
+  if (!reading && !loading && !error) return null;
+  return (
+    <div className="rounded-xl border border-[#d6a548]/24 bg-[#1b1508]/72 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_18px_60px_rgba(214,165,72,0.08)]">
+      <div className="mb-2 flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
+        <WandSparkles className="size-3.5" />
+        {language === "vi" ? "Luận giải bằng AI" : "AI interpretation"}
+      </div>
+      {loading ? (
+        <div className="flex items-center gap-2 text-[0.78rem] text-[#b5ab9f]">
+          <LoaderCircle className="size-3.5 animate-spin text-[#d6a548]" />
+          {language === "vi" ? "Đang luận giải..." : "Interpreting..."}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 px-3 py-2 text-[0.74rem] text-[#ffb4ad]">{error}</div>
+      ) : null}
+      {reading ? <div className="mt-1 whitespace-pre-wrap text-[0.85rem] leading-7 text-[#efe6dc]">{reading}</div> : null}
+    </div>
+  );
+}
+
+async function fetchInterpretation(kind: "ziwei" | "tarot" | "numerology", payload: unknown, language: string): Promise<string> {
+  const response = await fetch("/api/mystic-deck/interpret", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kind, payload, language }),
+  });
+  const data = await safeParseJson(response);
+  if (!response.ok) throw new Error(data?.error || "Lỗi luận giải.");
+  return String(data?.reading ?? "");
+}
+
 function NumerologyPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   const [date, setDate] = useState("");
   const [name, setName] = useState("");
   const [reading, setReading] = useState<NumerologyReading | null>(null);
+  const [aiReading, setAiReading] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!date) return;
     setReading(computeNumerology(date, name));
+    setAiReading("");
+    setAiError("");
+  }
+
+  async function interpret() {
+    if (!reading || aiLoading) return;
+    setAiLoading(true);
+    setAiError("");
+    setAiReading("");
+    try {
+      const text = await fetchInterpretation("numerology", { reading, name, date }, language);
+      setAiReading(text);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Lỗi luận giải.");
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   return (
@@ -440,7 +541,8 @@ function NumerologyPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
 
       <div className="space-y-3">
         {reading ? (
-          <div className="grid gap-2 sm:grid-cols-2">
+          <>
+            <div className="grid gap-2 sm:grid-cols-2">
             {[
               { key: "lifePath", label: "Đường đời (Life Path)", value: reading.lifePath },
               { key: "birthday", label: "Số sinh nhật (Birthday)", value: reading.birthday },
@@ -470,6 +572,29 @@ function NumerologyPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
               </div>
             ))}
           </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#d6a548]/24 bg-[#100b04]/72 p-4">
+              <div>
+                <div className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
+                  {language === "vi" ? "Đọc bộ chỉ số" : "Read these numbers"}
+                </div>
+                <div className="text-[0.78rem] text-[#b5ab9f]">
+                  {language === "vi"
+                    ? "AI gắn các số thành một bức tranh và đề xuất hành động."
+                    : "AI weaves the numbers into a single picture and actions."}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={interpret}
+                disabled={aiLoading}
+                className="flex h-10 items-center gap-2 rounded-md bg-[#d6a548] px-4 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] hover:bg-[#e6b758] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {aiLoading ? <LoaderCircle className="size-4 animate-spin" /> : <WandSparkles className="size-3.5" />}
+                {language === "vi" ? "Luận giải" : "Interpret"}
+              </button>
+            </div>
+            <ReadingCard reading={aiReading} loading={aiLoading} error={aiError} language={language} />
+          </>
         ) : (
           <div className="flex h-full min-h-[14rem] items-center justify-center rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40 p-6 text-center">
             <div>
@@ -488,9 +613,38 @@ function NumerologyPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
 function TarotPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
   const [drawn, setDrawn] = useState<DrawnCard[] | null>(null);
   const positions = tarotPositions;
+  const [reading, setReading] = useState("");
+  const [readingLoading, setReadingLoading] = useState(false);
+  const [readingError, setReadingError] = useState("");
 
   function handleDraw() {
     setDrawn(drawTarot(3));
+    setReading("");
+    setReadingError("");
+  }
+
+  async function interpret() {
+    if (!drawn || readingLoading) return;
+    setReadingLoading(true);
+    setReadingError("");
+    setReading("");
+    try {
+      const payload = drawn.map((entry, index) => ({
+        position: positions[index]?.id ?? `card-${index}`,
+        positionVi: positions[index]?.vi ?? "",
+        name: entry.card.name,
+        arcana: entry.card.arcana,
+        suit: entry.card.suit,
+        reversed: entry.reversed,
+        meaning: entry.reversed ? entry.card.reversed : entry.card.upright,
+      }));
+      const text = await fetchInterpretation("tarot", { spread: payload }, language);
+      setReading(text);
+    } catch (err) {
+      setReadingError(err instanceof Error ? err.message : "Lỗi luận giải.");
+    } finally {
+      setReadingLoading(false);
+    }
   }
 
   return (
@@ -515,6 +669,7 @@ function TarotPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
       </div>
 
       {drawn ? (
+        <>
         <div className="grid gap-3 md:grid-cols-3">
           {drawn.map((entry, index) => (
             <div
@@ -543,6 +698,29 @@ function TarotPanel({ language }: Readonly<{ language: "vi" | "en" }>) {
             </div>
           ))}
         </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#d6a548]/24 bg-[#100b04]/72 p-4">
+          <div>
+            <div className="font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#d6a548]">
+              {language === "vi" ? "Đọc bài" : "Read the spread"}
+            </div>
+            <div className="text-[0.78rem] text-[#b5ab9f]">
+              {language === "vi"
+                ? "AI ghép 3 lá thành câu chuyện và đề xuất hành động trong 30 ngày."
+                : "AI weaves the 3 cards into a story with 30-day actions."}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={interpret}
+            disabled={readingLoading}
+            className="flex h-10 items-center gap-2 rounded-md bg-[#d6a548] px-4 font-mono text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#0b0905] hover:bg-[#e6b758] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {readingLoading ? <LoaderCircle className="size-4 animate-spin" /> : <WandSparkles className="size-3.5" />}
+            {language === "vi" ? "Luận giải" : "Interpret"}
+          </button>
+        </div>
+        <ReadingCard reading={reading} loading={readingLoading} error={readingError} language={language} />
+        </>
       ) : (
         <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40 p-6 text-center">
           <div>

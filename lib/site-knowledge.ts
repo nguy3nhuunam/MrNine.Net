@@ -122,6 +122,7 @@ const moduleEntries: ReadonlyArray<ModuleEntry> = [
       "Thần số học: Life Path, Birthday, Expression, Soul Urge, Personality theo bảng Pythagore (master 11/22/33).",
       "Tarot: trải bài 3 lá Past/Present/Future, hỗ trợ xuôi/ngược, ý nghĩa tiếng Việt.",
       "Tab Đặt tên ngũ hành: coming soon.",
+      "Mỗi tab Tử Vi / Numerology / Tarot có nút Luận giải dùng AI để tổng hợp dữ liệu thành bản đọc có cấu trúc + lời khuyên hành động.",
     ],
     howVi: "Mở /mystic-deck, chọn tab tương ứng. Tử vi: nhập ngày dương + giờ Tý-Hợi + giới tính rồi bấm Lập lá số. Thần số: ngày sinh + họ tên. Tarot: bấm Rút bài.",
   },
