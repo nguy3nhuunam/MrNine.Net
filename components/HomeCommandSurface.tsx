@@ -308,15 +308,24 @@ const modules = [
 
 type ModuleCard = (typeof modules)[number];
 
-const railItems = [
-  { label: "Home", icon: Lock, active: true },
-  { label: "Command", icon: Sparkles },
-  { label: "Create", icon: PenLine },
-  { label: "Photo", icon: ImageLucide },
-  { label: "Voice", icon: AudioLines },
-  { label: "Vault", icon: Bot },
-  { label: "History", icon: Wrench },
-  { label: "Settings", icon: Check },
+type RailItem = {
+  label: string;
+  icon: LucideIcon;
+  href?: string;
+  shortcut?: string;
+};
+
+const railItems: ReadonlyArray<RailItem> = [
+  { label: "Home", icon: Lock, href: "/" },
+  { label: "AI Playground", icon: Sparkles, href: "/ai-playground", shortcut: "1" },
+  { label: "Photo Fix", icon: ImageDown, href: "/photo-fix", shortcut: "2" },
+  { label: "Smart Recap", icon: FileSearch, href: "/smart-recap", shortcut: "3" },
+  { label: "DocSense", icon: Languages, href: "/docsense", shortcut: "4" },
+  { label: "Story Writer", icon: PenLine, href: "/story-writer", shortcut: "5" },
+  { label: "Language Tutor", icon: BookOpenText, shortcut: "6" },
+  { label: "Mystic Deck", icon: Moon, href: "/mystic-deck", shortcut: "7" },
+  { label: "Voice Lab", icon: AudioLines, shortcut: "8" },
+  { label: "Profile", icon: Bot, href: "/profile" },
 ];
 
 const ticker = [
@@ -1962,26 +1971,45 @@ export function HomeCommandSurface() {
       <div className="relative z-10 grid min-h-[calc(100vh-3.5rem)] grid-cols-1 lg:h-[calc(100vh-3.5rem)] lg:min-h-0 lg:grid-cols-[68px_minmax(0,1fr)]">
         <aside className="hidden border-r border-[#25211b] bg-[#090807]/76 lg:flex lg:flex-col">
           <div className="flex flex-1 flex-col items-center gap-2 pt-4">
-            {railItems.map(({ label, icon: Icon, active }, index) => (
-              <button
-                key={label}
-                type="button"
-                aria-label={label}
-                title={label}
-                className={cn(
-                  "group relative flex size-11 items-center justify-center rounded-lg text-[#817a71] transition hover:bg-white/[0.04] hover:text-[#f2e9dd]",
-                  active && "rail-active-signal border border-[#f2e9dd]/64 bg-white/[0.12] text-[#f2e9dd]",
-                )}
-              >
-                <Icon className="size-4" />
-                <span className="absolute -bottom-2 font-mono text-[0.45rem] tracking-[0.18em] text-[#6e675f] opacity-55 transition group-hover:opacity-100">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 z-40 -translate-y-1/2 rounded-md border border-[#2a251f] bg-[#0b0907]/95 px-2.5 py-1.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#d8cfc4] opacity-0 shadow-[0_12px_34px_rgba(0,0,0,0.32)] transition group-hover:translate-x-0.5 group-hover:opacity-100">
-                  {label}
-                </span>
-              </button>
-            ))}
+            {railItems.map((item, index) => {
+              const Icon = item.icon;
+              const isHome = item.label === "Home";
+              const className = cn(
+                "group relative flex size-11 items-center justify-center rounded-lg text-[#817a71] transition hover:bg-white/[0.04] hover:text-[#f2e9dd]",
+                isHome && "rail-active-signal border border-[#f2e9dd]/64 bg-white/[0.12] text-[#f2e9dd]",
+                !item.href && "opacity-55 cursor-not-allowed hover:bg-transparent hover:text-[#817a71]",
+              );
+              const inner = (
+                <>
+                  <Icon className="size-4" />
+                  <span className="absolute -bottom-2 font-mono text-[0.45rem] tracking-[0.18em] text-[#6e675f] opacity-55 transition group-hover:opacity-100">
+                    {item.shortcut ?? String(index).padStart(2, "0")}
+                  </span>
+                  <span className="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 z-40 -translate-y-1/2 rounded-md border border-[#2a251f] bg-[#0b0907]/95 px-2.5 py-1.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#d8cfc4] opacity-0 shadow-[0_12px_34px_rgba(0,0,0,0.32)] transition group-hover:translate-x-0.5 group-hover:opacity-100">
+                    {item.label}
+                  </span>
+                </>
+              );
+              if (item.href) {
+                return (
+                  <a key={item.label} href={item.href} aria-label={item.label} title={item.label} className={className}>
+                    {inner}
+                  </a>
+                );
+              }
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  aria-label={item.label}
+                  title={`${item.label} — ${language === "vi" ? "sắp ra mắt" : "coming soon"}`}
+                  disabled
+                  className={className}
+                >
+                  {inner}
+                </button>
+              );
+            })}
           </div>
 
           <div className="border-t border-[#25211b] py-3" />
