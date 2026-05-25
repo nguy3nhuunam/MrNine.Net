@@ -148,18 +148,18 @@ export function MysticDeckShell() {
         className="pointer-events-none fixed inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(circle at 18% 12%, rgba(214,165,72,0.22), transparent 28%), radial-gradient(circle at 76% 14%, rgba(239,68,68,0.08), transparent 22%), linear-gradient(180deg, #130d05 0%, #070501 100%)",
+            "radial-gradient(circle at 8% 18%, rgba(71,201,217,0.18), transparent 32%), radial-gradient(circle at 92% 12%, rgba(214,165,72,0.22), transparent 32%), radial-gradient(circle at 50% 90%, rgba(239,68,68,0.08), transparent 36%), linear-gradient(180deg, #130d05 0%, #070501 100%)",
         }}
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10 bg-[size:24px_24px] opacity-50"
+        className="pointer-events-none fixed inset-0 -z-10 bg-[size:24px_24px] opacity-60"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(214,165,72,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(214,165,72,0.045) 1px, transparent 1px)",
+            "linear-gradient(rgba(214,165,72,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(214,165,72,0.06) 1px, transparent 1px)",
         }}
       />
-      <div className="blueprint-layer pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div className="blueprint-layer pointer-events-none fixed inset-0 -z-10" aria-hidden="true" />
 
       <header className="relative z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[#3b2a0d] bg-[#100b04]/92 px-3 backdrop-blur md:px-5">
         <Link
@@ -197,12 +197,6 @@ export function MysticDeckShell() {
 
       <section className="relative z-10 mx-auto w-full max-w-[120rem] px-4 pb-6 sm:px-6 lg:px-8">
         <div className="relative overflow-hidden border-b border-[#3b2a0d] py-5 sm:py-7">
-          <div
-            aria-hidden="true"
-            className="hero-numeral-scan absolute -right-1 top-2 z-[1] hidden text-[18vw] font-bold leading-[0.86] tracking-[0.015em] text-[#d6a548]/[0.07] xl:block"
-          >
-            007
-          </div>
           <div className="relative z-[2] flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">
