@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const YUNWU_BASE_URL = "https://yunwu.ai/v1";
-const YUNWU_MODEL = "gpt-5.5";
+const YUNWU_MODEL = process.env.YUNWU_MODEL || "gpt-4.1-mini";
 
 type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -165,6 +165,7 @@ async function _handler_POST(request: Request) {
       ],
       max_tokens: 4096,
       max_completion_tokens: 4096,
+      temperature: 0.7,
       stream: false,
     }),
   });
@@ -184,13 +185,19 @@ async function _handler_POST(request: Request) {
 
   if (!text) {
     if (userId && charge > 0) await refundCredits(userId, charge);
+    // Log raw response so the next failure has a paper trail in server logs.
+    try {
+      console.error("[ask-anything] empty content from Yunwu:", JSON.stringify(json).slice(0, 1500));
+    } catch {
+      // ignore
+    }
     const message =
       finishReason === "length"
         ? "Model bị cắt do quá dài. Hãy thử câu hỏi ngắn hơn."
         : finishReason === "content_filter"
         ? "Câu trả lời bị bộ lọc nội dung chặn. Hãy thử cách diễn đạt khác."
         : "Model returned an empty response.";
-    return NextResponse.json({ error: message, finishReason }, { status: 502 });
+    return NextResponse.json({ error: message, finishReason, model: YUNWU_MODEL }, { status: 502 });
   }
 
   // Parse the optional action marker so the client doesn't have to.
