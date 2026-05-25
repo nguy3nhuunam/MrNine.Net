@@ -1429,7 +1429,7 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
       {open ? (
         <section
           aria-label={copy.aria}
-          className="fixed bottom-20 left-5 z-50 flex h-[min(36rem,calc(100vh-7rem))] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-[#45a85d]/28 bg-[#080b08]/96 shadow-[0_24px_90px_rgba(0,0,0,0.58),0_0_44px_rgba(24,201,100,0.16)] backdrop-blur-xl sm:bottom-24 lg:bottom-24"
+          className="fixed bottom-20 left-5 z-50 flex h-[min(36rem,calc(100vh-7rem))] w-[min(26rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-[#45a85d]/28 bg-[#080b08]/96 shadow-[0_24px_90px_rgba(0,0,0,0.58),0_0_44px_rgba(24,201,100,0.16)] backdrop-blur-xl sm:bottom-24 lg:bottom-24 2xl:left-auto 2xl:right-5 2xl:bottom-6"
         >
           <div className="flex items-center justify-between border-b border-white/10 bg-[#0b140d] px-4 py-3">
             <div>
@@ -1526,7 +1526,7 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
         aria-expanded={open}
         aria-label={copy.button}
         title={copy.button}
-        className="ask-dock-wake group fixed bottom-6 left-6 z-40 hidden h-11 items-center gap-2.5 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-3.5 pr-4 font-mono text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 lg:flex"
+        className="ask-dock-wake group fixed bottom-6 left-6 z-40 hidden h-11 items-center gap-2.5 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-3.5 pr-4 font-mono text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 lg:flex 2xl:hidden"
       >
         <span className="pointer-events-none absolute inset-y-0 left-0 w-px bg-[#45a85d]/80 shadow-[0_0_18px_rgba(69,168,93,0.8)]" />
         <span className="flex size-6 items-center justify-center rounded-md border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/70 group-hover:bg-[#18c964]/18">
@@ -2363,7 +2363,7 @@ export function HomeCommandSurface() {
               </motion.div>
             </AnimatePresence>
 
-            <div className="mt-auto mb-32 px-4">
+            <div className="mt-auto mb-32 flex flex-col gap-2 px-4">
               <div className="rounded-lg border border-[#45a85d]/18 bg-[#071109]/72 p-3">
                 <div className="flex items-center gap-2 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#7dd391]">
                   <span className="size-1.5 rounded-full bg-[#45a85d]" />
@@ -2371,6 +2371,25 @@ export function HomeCommandSurface() {
                 </div>
                 <p className="mt-2 text-xs leading-5 text-[#b5ab9f]">{copy.queueBody}</p>
               </div>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent("mrnine-open-chat"))}
+                className="group flex w-full items-center gap-2.5 rounded-lg border border-[#45a85d]/22 bg-[#071109]/72 p-3 text-left transition hover:-translate-y-0.5 hover:border-[#45a85d]/55 hover:bg-[#0a1a0d] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_36px_rgba(24,201,100,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80"
+                aria-label={chatCopy[language].button}
+              >
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/65 group-hover:bg-[#18c964]/18">
+                  <MessageCircle className="size-3.5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#7dd391]">
+                    {chatCopy[language].button}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[0.7rem] text-[#b5ab9f]">
+                    {chatCopy[language].subtitle}
+                  </span>
+                </span>
+                <ArrowRight className="size-3.5 shrink-0 text-[#45a85d] opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+              </button>
             </div>
           </aside>
         </div>
