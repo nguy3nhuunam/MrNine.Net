@@ -1352,24 +1352,12 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const [messages, setMessages] = useState<AskMessage[]>([
     {
       role: "assistant",
       content: "Tôi là MrNine AI. Bạn muốn viết, tạo ảnh, dựng video, xử lý tài liệu hay hỏi nhanh điều gì?",
     },
   ]);
-
-  useEffect(() => {
-    function handleScroll() {
-      setScrolledPastHero(window.scrollY > 320);
-    }
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1521,12 +1509,7 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
         type="button"
         onClick={() => setOpen(true)}
         aria-expanded={open}
-        aria-hidden={!scrolledPastHero && !open}
-        tabIndex={scrolledPastHero || open ? 0 : -1}
-        className={cn(
-          "ask-dock-wake group fixed bottom-14 left-5 z-40 hidden h-12 items-center gap-3 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-4 pr-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:flex lg:bottom-16",
-          scrolledPastHero ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-4 pointer-events-none",
-        )}
+        className="ask-dock-wake group fixed bottom-14 left-5 z-40 hidden h-12 items-center gap-3 overflow-hidden rounded-lg border border-[#45a85d]/35 bg-[#071109]/92 px-4 pr-5 font-mono text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:flex lg:bottom-16"
       >
         <span className="pointer-events-none absolute inset-y-0 left-0 w-px bg-[#45a85d]/80 shadow-[0_0_18px_rgba(69,168,93,0.8)]" />
         <span className="flex size-7 items-center justify-center rounded-md border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/70 group-hover:bg-[#18c964]/18">
