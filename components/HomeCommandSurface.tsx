@@ -1864,7 +1864,11 @@ export function HomeCommandSurface() {
       <div className="blueprint-layer pointer-events-none absolute inset-0" aria-hidden="true" />
 
       <header className="relative z-30 flex h-14 items-center border-b px-4 transition-colors duration-300" style={activeVisuals.header}>
-        <div className="flex items-center gap-2">
+        <a
+          href="/"
+          aria-label="MrNine home"
+          className="flex items-center gap-2 rounded-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
+        >
           <div className="font-display text-2xl font-black tracking-[-0.08em] text-[#f4eadc]">
             Mr<span className="text-[#ef4444]">Nine</span>
           </div>
@@ -1872,7 +1876,7 @@ export function HomeCommandSurface() {
             <div>{copy.futureDomain}</div>
             <div>{copy.desktop}</div>
           </div>
-        </div>
+        </a>
 
         <div className="hidden flex-1 justify-center xl:flex">
           <div className="flex items-center gap-2.5">

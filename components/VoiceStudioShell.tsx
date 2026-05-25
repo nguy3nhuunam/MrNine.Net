@@ -512,17 +512,23 @@ export function VoiceStudioShell() {
             >
               <ArrowLeft className="size-4" />
             </Link>
-            <div className="hidden size-9 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548] sm:flex">
-              <AudioLines className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-[#d6a548]">
-                MrNine / OmniVoice Studio
-              </p>
-              <h1 className="truncate text-lg font-black tracking-[-0.04em] text-[#f4eadc]">
-                {copy.title as string}
-              </h1>
-            </div>
+            <Link
+              href="/"
+              aria-label="MrNine home"
+              className="flex min-w-0 items-center gap-3 rounded-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#d6a548]/70"
+            >
+              <div className="hidden size-9 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548] sm:flex">
+                <AudioLines className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-[#d6a548]">
+                  MrNine / OmniVoice Studio
+                </p>
+                <h1 className="truncate text-lg font-black tracking-[-0.04em] text-[#f4eadc]">
+                  {copy.title as string}
+                </h1>
+              </div>
+            </Link>
           </div>
 
           <div className="flex items-center gap-2">

@@ -297,7 +297,11 @@ export function DocSenseShell() {
         >
           <ArrowLeft className="size-4" />
         </Link>
-        <div className="flex items-center gap-2.5">
+        <Link
+          href="/"
+          aria-label="MrNine home"
+          className="flex items-center gap-2.5 rounded-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#47c9d9]/70"
+        >
           <div className="flex size-9 items-center justify-center rounded-md border border-[#47c9d9]/30 bg-[#47c9d9]/10 text-[#47c9d9]">
             <Languages className="size-4" />
           </div>
@@ -305,7 +309,7 @@ export function DocSenseShell() {
             <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#47c9d9]">MrNine Studio</p>
             <h1 className="truncate text-base font-black tracking-[-0.04em] text-[#f4eadc]">{copy.title}</h1>
           </div>
-        </div>
+        </Link>
 
         <nav className="ml-1 hidden flex-1 items-center justify-center gap-1 md:flex" aria-label="Modes">
           {([

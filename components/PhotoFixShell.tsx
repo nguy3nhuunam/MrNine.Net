@@ -421,7 +421,11 @@ export function PhotoFixShell() {
         >
           <ArrowLeft className="size-4" />
         </Link>
-        <div className="flex items-center gap-2.5">
+        <Link
+          href="/"
+          aria-label="MrNine home"
+          className="flex items-center gap-2.5 rounded-md outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#d6a548]/70"
+        >
           <div className="flex size-9 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548]">
             <ImageDown className="size-4" />
           </div>
@@ -429,7 +433,7 @@ export function PhotoFixShell() {
             <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">MrNine Studio</p>
             <h1 className="truncate text-base font-black tracking-[-0.04em] text-[#f4eadc]">{copy.title}</h1>
           </div>
-        </div>
+        </Link>
 
         <nav className="ml-1 hidden flex-1 items-center justify-center gap-1 md:flex" aria-label="Operations">
           {OPS.map((item) => {
