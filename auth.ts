@@ -22,11 +22,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (clientPromise) {
           try {
-            const client = await clientPromise;
-            const account = await client
-              .db()
-              .collection("accounts")
-              .findOne({ userId: user.id, provider: "discord" });
+            const client = await Promise.race([
+              clientPromise,
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("mongo-timeout")), 1500),
+              ),
+            ]);
+            const account = await Promise.race([
+              client
+                .db()
+                .collection("accounts")
+                .findOne({ userId: user.id, provider: "discord" }),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+            ]);
             if (account?.providerAccountId) {
               session.user.discordId = String(account.providerAccountId);
             }
