@@ -1777,7 +1777,7 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
         aria-expanded={open}
         aria-label={copy.button}
         title={copy.button}
-        className="ask-dock-wake group fixed bottom-5 left-5 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-[#45a85d]/35 bg-[#071109]/92 text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:bottom-6 sm:left-6 lg:hidden"
+        className="ask-dock-wake group fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-[#45a85d]/35 bg-[#071109]/92 text-[#dff8e4] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset,0_0_34px_rgba(24,201,100,0.16)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-[#45a85d]/70 hover:bg-[#0a1a0d] hover:text-[#f4fff6] hover:shadow-[0_0_0_1px_rgba(69,168,93,0.18)_inset,0_0_42px_rgba(24,201,100,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/80 sm:bottom-6 sm:left-6 sm:right-auto lg:hidden"
       >
         <span className="flex size-7 items-center justify-center rounded-full border border-[#45a85d]/35 bg-[#18c964]/12 text-[#18c964] transition group-hover:border-[#45a85d]/70 group-hover:bg-[#18c964]/18">
           <MessageCircle className="size-4" />
@@ -2679,7 +2679,7 @@ export function HomeCommandSurface() {
 
       <form
         onSubmit={submitCommand}
-        className="fixed inset-x-3 bottom-3 z-40 flex flex-col gap-2 sm:hidden"
+        className="fixed inset-x-3 bottom-3 z-40 flex flex-col gap-2 pr-16 sm:hidden"
       >
         <div className="flex items-center gap-2 rounded-lg border border-[#45a85d]/24 bg-[#070907]/94 p-2 shadow-[0_18px_58px_rgba(0,0,0,0.55),0_0_32px_rgba(69,168,93,0.12)] backdrop-blur-xl">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 text-[#ef4444]">
