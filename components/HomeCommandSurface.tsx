@@ -6,6 +6,7 @@ import {
   AudioLines,
   Bot,
   BookOpenText,
+  Calculator,
   ChevronDown,
   Check,
   Clapperboard,
@@ -22,6 +23,7 @@ import {
   PenLine,
   Search,
   Send,
+  ShoppingBag,
   Sparkles,
   Sun,
   Sunrise,
@@ -377,6 +379,42 @@ const modules = [
     shortcut: "9",
     lastUsed: "ready",
   },
+  {
+    number: "10",
+    title: "AI Store",
+    detail: "ChatGPT · Codex · Dreamina key",
+    summary: "Mua tài khoản AI premium giá tốt: ChatGPT Plus, Claude Pro, Codex API key, Dreamina, Midjourney, Suno và nhiều dịch vụ khác.",
+    signal: "AI marketplace",
+    action: "Open store",
+    icon: ShoppingBag,
+    accent: "amber",
+    shortcut: "0",
+    lastUsed: "ready",
+  },
+  {
+    number: "11",
+    title: "Tools",
+    detail: "JSON · regex · base64 · JWT",
+    summary: "Hộp công cụ dev: format JSON, test regex, encode/decode base64, decode JWT, hash, color picker, timestamp.",
+    signal: "Dev toolkit",
+    action: "Open tools",
+    icon: Wrench,
+    accent: "cyan",
+    shortcut: "-",
+    lastUsed: "ready",
+  },
+  {
+    number: "12",
+    title: "Calculators",
+    detail: "Thuế TNCN · vay · BMI · đơn vị",
+    summary: "Máy tính thuế TNCN 2026, EMI vay nhà/xe, BMI, tip, đổi đơn vị, đổi tiền dùng tỉ giá realtime từ Markets.",
+    signal: "Calc engine",
+    action: "Open calculators",
+    icon: Calculator,
+    accent: "red",
+    shortcut: "=",
+    lastUsed: "ready",
+  },
 ];
 
 type ModuleCard = (typeof modules)[number];
@@ -399,6 +437,9 @@ const railItems: ReadonlyArray<RailItem> = [
   { label: "Mystic Deck", icon: Moon, href: "/mystic-deck", shortcut: "7" },
   { label: "Voice Lab", icon: AudioLines, shortcut: "8" },
   { label: "Markets", icon: LineChart, href: "/markets", shortcut: "9" },
+  { label: "AI Store", icon: ShoppingBag, href: "/ai-store", shortcut: "0" },
+  { label: "Tools", icon: Wrench, href: "/tools", shortcut: "-" },
+  { label: "Calculators", icon: Calculator, href: "/calculators", shortcut: "=" },
   { label: "Profile", icon: Bot, href: "/profile" },
 ];
 
@@ -629,6 +670,27 @@ const moduleCopy = {
       signal: "Bảng giá realtime",
       action: "Mở Markets",
     },
+    "AI Store": {
+      title: "AI Store",
+      detail: "ChatGPT · Codex · Dreamina key",
+      summary: "Mua tài khoản AI premium giá tốt: ChatGPT Plus, Claude Pro, Codex API key, Dreamina, Midjourney, Suno và nhiều dịch vụ khác.",
+      signal: "Chợ AI premium",
+      action: "Mở AI Store",
+    },
+    "Tools": {
+      title: "Tools",
+      detail: "JSON · regex · base64 · JWT",
+      summary: "Hộp công cụ dev: format JSON, test regex, encode/decode base64, decode JWT, hash, color picker, timestamp.",
+      signal: "Hộp dev",
+      action: "Mở Tools",
+    },
+    "Calculators": {
+      title: "Calculators",
+      detail: "Thuế TNCN · vay · BMI · đơn vị",
+      summary: "Máy tính thuế TNCN 2026, EMI vay nhà/xe, BMI, tip, đổi đơn vị, đổi tiền theo tỉ giá realtime.",
+      signal: "Máy tính",
+      action: "Mở Calculators",
+    },
   },
 } satisfies Record<WebLanguage, Record<string, Partial<ModuleCard>>>;
 
@@ -850,6 +912,9 @@ const moduleNavMap: Record<string, string> = {
   "Story Writer": "/story-writer",
   "Mystic Deck": "/mystic-deck",
   "Markets": "/markets",
+  "AI Store": "/ai-store",
+  "Tools": "/tools",
+  "Calculators": "/calculators",
 };
 
 const extraFeatureEntries: ReadonlyArray<{
@@ -929,6 +994,12 @@ function moduleAnimationClass(title: string): string {
       return "module-anim-voice";
     case "Markets":
       return "module-anim-markets";
+    case "AI Store":
+      return "module-anim-store";
+    case "Tools":
+      return "module-anim-tools";
+    case "Calculators":
+      return "module-anim-calc";
     default:
       return "";
   }
@@ -2223,6 +2294,9 @@ export function HomeCommandSurface() {
       "Story Writer": "/story-writer",
       "Mystic Deck": "/mystic-deck",
       "Markets": "/markets",
+      "AI Store": "/ai-store",
+      "Tools": "/tools",
+      "Calculators": "/calculators",
     };
     const destination = destinations[title];
 
@@ -2698,6 +2772,9 @@ export function HomeCommandSurface() {
                           module.title !== "Story Writer" &&
                           module.title !== "Mystic Deck" &&
                           module.title !== "Markets" &&
+                          module.title !== "AI Store" &&
+                          module.title !== "Tools" &&
+                          module.title !== "Calculators" &&
                           "cursor-default opacity-75",
                       )}
                     >

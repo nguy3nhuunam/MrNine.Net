@@ -16,6 +16,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/video-studio",
     "/mystic-deck",
     "/markets",
+    "/ai-store",
+    "/tools",
+    "/calculators",
     "/profile",
   ];
   return routes.map((route) => ({

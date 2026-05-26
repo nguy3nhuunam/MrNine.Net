@@ -720,7 +720,10 @@ a {
 .module-anim-tutor::after,
 .module-anim-mystic::after,
 .module-anim-voice::after,
-.module-anim-markets::after {
+.module-anim-markets::after,
+.module-anim-store::after,
+.module-anim-tools::after,
+.module-anim-calc::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -739,7 +742,10 @@ a {
 .module-card-signal:hover.module-anim-tutor::after,
 .module-card-signal:hover.module-anim-mystic::after,
 .module-card-signal:hover.module-anim-voice::after,
-.module-card-signal:hover.module-anim-markets::after {
+.module-card-signal:hover.module-anim-markets::after,
+.module-card-signal:hover.module-anim-store::after,
+.module-card-signal:hover.module-anim-tools::after,
+.module-card-signal:hover.module-anim-calc::after {
   opacity: 0.78;
 }
 
@@ -904,6 +910,47 @@ a {
   50%      { transform: translateY(-1%); opacity: 0.55; }
 }
 
+/* AI Store — warm amber price-tag glow drifting at the bottom edge.
+   Same bottom-anchored radial pattern as Story Writer / Markets so
+   the chrome row aligns identically. */
+.module-anim-store::after {
+  background:
+    radial-gradient(circle at 22% 112%, rgba(214, 165, 72, 0.34), transparent 55%),
+    radial-gradient(circle at 78% 110%, rgba(255, 220, 140, 0.22), transparent 60%);
+  animation: storeShimmer 12s ease-in-out infinite;
+  opacity: 0.5;
+}
+@keyframes storeShimmer {
+  0%, 100% { transform: translateY(7%); opacity: 0.34; }
+  50%      { transform: translateY(-1%); opacity: 0.58; }
+}
+
+/* Tools — cool cyan code-bracket glow at the bottom. */
+.module-anim-tools::after {
+  background:
+    radial-gradient(circle at 18% 112%, rgba(71, 201, 217, 0.32), transparent 55%),
+    radial-gradient(circle at 82% 112%, rgba(125, 211, 145, 0.18), transparent 60%);
+  animation: toolsScan 13s ease-in-out infinite;
+  opacity: 0.48;
+}
+@keyframes toolsScan {
+  0%, 100% { transform: translateY(6%); opacity: 0.32; }
+  50%      { transform: translateY(-1%); opacity: 0.55; }
+}
+
+/* Calculators — soft red digit cascade glow at the bottom. */
+.module-anim-calc::after {
+  background:
+    radial-gradient(circle at 24% 112%, rgba(239, 68, 68, 0.28), transparent 55%),
+    radial-gradient(circle at 76% 110%, rgba(214, 165, 72, 0.18), transparent 60%);
+  animation: calcCascade 11s ease-in-out infinite;
+  opacity: 0.5;
+}
+@keyframes calcCascade {
+  0%, 100% { transform: translateY(6%); opacity: 0.34; }
+  50%      { transform: translateY(-1%); opacity: 0.56; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .module-anim-playground::after,
   .module-anim-photo::after,
@@ -913,7 +960,10 @@ a {
   .module-anim-tutor::after,
   .module-anim-mystic::after,
   .module-anim-voice::after,
-  .module-anim-markets::after {
+  .module-anim-markets::after,
+  .module-anim-store::after,
+  .module-anim-tools::after,
+  .module-anim-calc::after {
     animation: none !important;
   }
 }
