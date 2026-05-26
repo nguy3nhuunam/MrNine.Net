@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Bot,
@@ -51,15 +51,25 @@ const kindFilters: ReadonlyArray<{ value: StoreItemKind | "all"; labelVi: string
 export function AIStoreShell() {
   const { language } = useLanguage();
   const [filter, setFilter] = useState<StoreItemKind | "all">("all");
+  const [catalog, setCatalog] = useState<ReadonlyArray<StoreItem>>(aiStoreCatalog);
+
+  useEffect(() => {
+    void fetch("/api/site-config", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data?.products) && data.products.length) setCatalog(data.products as StoreItem[]);
+      })
+      .catch(() => null);
+  }, []);
 
   const items = useMemo(() => {
-    if (filter === "all") return aiStoreCatalog;
-    return aiStoreCatalog.filter((item) => item.kind === filter);
-  }, [filter]);
+    if (filter === "all") return catalog;
+    return catalog.filter((item) => item.kind === filter);
+  }, [filter, catalog]);
 
   const stockCounts = useMemo(() => {
     const map: Record<StoreItemKind | "all", number> = {
-      all: aiStoreCatalog.length,
+      all: catalog.length,
       chatbot: 0,
       api: 0,
       code: 0,
@@ -67,9 +77,9 @@ export function AIStoreShell() {
       video: 0,
       audio: 0,
     };
-    for (const item of aiStoreCatalog) map[item.kind] += 1;
+    for (const item of catalog) map[item.kind] += 1;
     return map;
-  }, []);
+  }, [catalog]);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#0e0b06] text-[#eee2cc]">

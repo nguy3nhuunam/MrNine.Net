@@ -1229,8 +1229,9 @@ function TelegramIcon() {
   );
 }
 
-function getRandomHeadline(language: WebLanguage, previous?: string) {
-  const source = dailyHeadlinesByLanguage[language];
+function getRandomHeadline(language: WebLanguage, previous: string | undefined, overrides?: { vi?: string[]; en?: string[] }) {
+  const fromOverride = overrides && overrides[language]?.length ? overrides[language] : null;
+  const source = fromOverride && fromOverride.length > 0 ? fromOverride : dailyHeadlinesByLanguage[language];
 
   if (source.length === 1) {
     return source[0];
@@ -1245,18 +1246,19 @@ function getRandomHeadline(language: WebLanguage, previous?: string) {
   return next;
 }
 
-function DailyTypeHeadline({ language }: Readonly<{ language: WebLanguage }>) {
-  const [headline, setHeadline] = useState(dailyHeadlinesByLanguage[language][0]);
+function DailyTypeHeadline({ language, overrides }: Readonly<{ language: WebLanguage; overrides?: { vi?: string[]; en?: string[] } }>) {
+  const initial = (overrides && overrides[language]?.length ? overrides[language]![0] : null) ?? dailyHeadlinesByLanguage[language][0];
+  const [headline, setHeadline] = useState(initial);
   const [typedCount, setTypedCount] = useState(0);
   const characters = useMemo(() => Array.from(headline), [headline]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setHeadline((previous) => getRandomHeadline(language, previous));
+      setHeadline((previous) => getRandomHeadline(language, previous, overrides));
     }, 0);
 
     return () => window.clearTimeout(timeout);
-  }, [language]);
+  }, [language, overrides]);
 
   useEffect(() => {
     if (typedCount > characters.length) {
@@ -1266,7 +1268,7 @@ function DailyTypeHeadline({ language }: Readonly<{ language: WebLanguage }>) {
     const timeout = window.setTimeout(() => {
       setTypedCount((current) => {
         if (current >= characters.length) {
-          setHeadline((previous) => getRandomHeadline(language, previous));
+          setHeadline((previous) => getRandomHeadline(language, previous, overrides));
           return 0;
         }
 
@@ -2079,6 +2081,11 @@ export function HomeCommandSurface() {
   const [authPromptDismissed, setAuthPromptDismissed] = useState(false);
   const [authPromptForced, setAuthPromptForced] = useState(false);
   const [recentVisits, setRecentVisits] = useState<RecentVisit[]>([]);
+  const [siteConfig, setSiteConfig] = useState<{
+    hero?: { vi?: string[]; en?: string[] };
+    modules?: Record<string, { hidden?: boolean; comingSoon?: boolean; detailVi?: string; detailEn?: string }>;
+    themes?: Record<string, { hidden?: boolean }>;
+  }>({});
   const heroRef = useRef<HTMLElement | null>(null);
   const commandInputRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -2370,9 +2377,23 @@ export function HomeCommandSurface() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  useEffect(() => {
+    void fetch("/api/site-config", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data === "object") setSiteConfig(data);
+      })
+      .catch(() => null);
+  }, []);
+
   function recordVisit(title: string, href: string) {
     pushRecentVisit({ title, href });
     setRecentVisits(loadRecentVisits());
+    void fetch("/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ module: title }),
+    }).catch(() => null);
   }
 
   function openModule(title: string) {
@@ -2534,7 +2555,7 @@ export function HomeCommandSurface() {
       <div className="relative z-10 grid min-h-[calc(100vh-3.5rem)] grid-cols-1 lg:h-[calc(100vh-3.5rem)] lg:min-h-0 lg:grid-cols-[68px_minmax(0,1fr)]">
         <aside className="hidden border-r border-[#25211b] bg-[#090807]/76 lg:flex lg:flex-col">
           <div className="flex flex-1 flex-col items-center gap-2 pt-4">
-            {railItems.map((item, index) => {
+            {railItems.filter((item) => item.label === "Home" || item.label === "Profile" || !siteConfig.modules?.[item.label]?.hidden).map((item, index) => {
               const Icon = item.icon;
               const isHome = item.label === "Home";
               const className = cn(
@@ -2612,7 +2633,7 @@ export function HomeCommandSurface() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               >
-                <DailyTypeHeadline key={language} language={language} />
+                <DailyTypeHeadline key={language} language={language} overrides={siteConfig.hero} />
               </motion.div>
 
               <p className="mt-5 max-w-2xl text-sm leading-7 text-[#c4b9ad] sm:text-base">
@@ -2824,12 +2845,20 @@ export function HomeCommandSurface() {
             </div>
 
             <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(13.75rem,1fr))] gap-3 min-[1920px]:grid-cols-4">
-              {modules.map((module, index) => {
+              {modules
+                .filter((module) => !siteConfig.modules?.[module.title]?.hidden)
+                .map((module, index) => {
+                  const override = siteConfig.modules?.[module.title];
                   const Icon = module.icon;
                   const accent = accentMap[module.accent as keyof typeof accentMap];
-                  const localizedModule = moduleCopy[language][module.title as keyof typeof moduleCopy.vi] ?? module;
+                  const baseLocalized = moduleCopy[language][module.title as keyof typeof moduleCopy.vi] ?? module;
+                  const localizedModule = {
+                    ...baseLocalized,
+                    detail: (language === "vi" ? override?.detailVi : override?.detailEn) || baseLocalized.detail,
+                  };
                   const moduleIsArming = armingModule === module.title;
                   const moduleIsDimmed = Boolean(armingModule) && !moduleIsArming;
+                  const isComingSoon = override?.comingSoon || module.action === "Coming soon";
 
                   return (
                     <motion.button
@@ -2893,7 +2922,7 @@ export function HomeCommandSurface() {
                         </div>
                       </div>
                       <div className="module-detail-strip absolute inset-x-0 bottom-0 flex h-8 translate-y-full items-center justify-between border-t border-white/8 bg-[#090807]/96 px-3 font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#d8cfc4] transition duration-250 group-hover:translate-y-0 group-focus-visible:translate-y-0">
-                        <span>{module.action === "Coming soon" ? copy.runtimeRequired : localizedModule.action ?? module.action}</span>
+                        <span>{isComingSoon ? copy.runtimeRequired : localizedModule.action ?? module.action}</span>
                         <ArrowRight className={cn("size-3", accent.text)} />
                       </div>
                     </motion.button>
