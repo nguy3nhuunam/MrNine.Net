@@ -11,6 +11,7 @@ const ROUTES: Record<string, { href: string; label: string; shortcut: string; ke
   "4": { href: "/docsense", label: "DocSense", shortcut: "g 4", key: "4" },
   "5": { href: "/story-writer", label: "Story Writer", shortcut: "g 5", key: "5" },
   "7": { href: "/mystic-deck", label: "Mystic Deck", shortcut: "g 7", key: "7" },
+  "9": { href: "/markets", label: "Markets", shortcut: "g 9", key: "9" },
   p: { href: "/profile", label: "Profile", shortcut: "g p", key: "p" },
 };
 
@@ -98,7 +99,7 @@ export function GlobalShortcuts() {
         <div className="pointer-events-none fixed bottom-5 right-5 z-[60] flex items-center gap-2 rounded-md border border-white/15 bg-[#0b0a08]/96 px-3 py-2 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#d6a548] shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl">
           <kbd className="rounded border border-[#d6a548]/40 bg-[#1b1508] px-1.5 py-0.5 text-[0.58rem] text-[#fff2d3]">g</kbd>
           <span>...</span>
-          <span className="text-[#9a9087]">h / 1-7 / p</span>
+          <span className="text-[#9a9087]">h / 1-9 / p</span>
         </div>
       ) : null}
 
