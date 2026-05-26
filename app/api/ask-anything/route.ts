@@ -206,7 +206,6 @@ async function _handler_POST(request: Request) {
         ...messages,
       ],
       max_tokens: 4096,
-      max_completion_tokens: 4096,
       temperature: 0.7,
       stream: false,
     }),
