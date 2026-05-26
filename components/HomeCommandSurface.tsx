@@ -394,8 +394,8 @@ const modules = [
   {
     number: "11",
     title: "Tools",
-    detail: "Đếm chữ · slug · số→chữ · mật khẩu",
-    summary: "10 công cụ thực dụng cho người Việt: đếm chữ, slug bỏ dấu, đổi case, markdown, so sánh, số → chữ tiếng Việt, mật khẩu, màu, contrast WCAG, timestamp.",
+    detail: "Đếm chữ · QR · ngày · mật khẩu",
+    summary: "12 công cụ thực dụng: đếm chữ, slug, đổi case, markdown, so sánh, số → chữ, mật khẩu, QR code, màu, contrast, tính ngày, timestamp.",
     signal: "Hộp tiện ích",
     action: "Open tools",
     icon: Wrench,
@@ -679,8 +679,8 @@ const moduleCopy = {
     },
     "Tools": {
       title: "Tools",
-      detail: "Đếm chữ · slug · số→chữ · mật khẩu",
-      summary: "10 công cụ thực dụng cho người Việt: đếm chữ, slug bỏ dấu, đổi case, markdown, so sánh, số → chữ tiếng Việt, mật khẩu, màu, contrast WCAG, timestamp.",
+      detail: "Đếm chữ · QR · ngày · mật khẩu",
+      summary: "12 công cụ thực dụng: đếm chữ, slug, đổi case, markdown, so sánh, số → chữ, mật khẩu, QR code, màu, contrast, tính ngày, timestamp.",
       signal: "Hộp tiện ích",
       action: "Mở Tools",
     },

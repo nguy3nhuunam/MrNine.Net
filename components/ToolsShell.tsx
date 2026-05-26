@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
+  CalendarRange,
   CaseSensitive,
   Clock,
   Contrast,
@@ -13,6 +14,7 @@ import {
   Hash,
   Lock,
   Palette,
+  QrCode,
   Sigma,
   TextCursorInput,
   Wrench,
@@ -28,40 +30,33 @@ type ToolId =
   | "diff"
   | "numwords"
   | "password"
+  | "qr"
   | "color"
   | "contrast"
+  | "datecalc"
   | "timestamp";
-
-type ToolGroup = "text" | "number" | "security" | "design" | "time";
 
 const tools: ReadonlyArray<{
   id: ToolId;
-  group: ToolGroup;
   icon: typeof Wrench;
   titleVi: string;
   titleEn: string;
   hintVi: string;
   hintEn: string;
 }> = [
-  { id: "count", group: "text", icon: Sigma, titleVi: "Đếm chữ", titleEn: "Word count", hintVi: "Ký tự · từ · câu · đoạn", hintEn: "Char · word · sentence · paragraph" },
-  { id: "slug", group: "text", icon: TextCursorInput, titleVi: "Slug VN", titleEn: "VN slug", hintVi: "Bỏ dấu · kebab-case", hintEn: "Strip diacritics · kebab" },
-  { id: "case", group: "text", icon: CaseSensitive, titleVi: "Đổi case", titleEn: "Case convert", hintVi: "Hoa · thường · Title · camel", hintEn: "UPPER · lower · Title · camel" },
-  { id: "markdown", group: "text", icon: FileText, titleVi: "Markdown", titleEn: "Markdown", hintVi: "Xem trước realtime", hintEn: "Live preview" },
-  { id: "diff", group: "text", icon: GitCompare, titleVi: "So sánh", titleEn: "Diff", hintVi: "Diff hai đoạn văn bản", hintEn: "Compare two strings" },
-  { id: "numwords", group: "number", icon: Hash, titleVi: "Số → chữ", titleEn: "Number to words", hintVi: "VND · hợp đồng · hoá đơn", hintEn: "VND · contracts · invoices" },
-  { id: "password", group: "security", icon: Lock, titleVi: "Mật khẩu", titleEn: "Password", hintVi: "Sinh mật khẩu mạnh", hintEn: "Strong password gen" },
-  { id: "color", group: "design", icon: Palette, titleVi: "Màu", titleEn: "Color", hintVi: "HEX ↔ RGB ↔ HSL", hintEn: "HEX ↔ RGB ↔ HSL" },
-  { id: "contrast", group: "design", icon: Contrast, titleVi: "Contrast WCAG", titleEn: "Contrast WCAG", hintVi: "Kiểm tra AA / AAA", hintEn: "Check AA / AAA" },
-  { id: "timestamp", group: "time", icon: Clock, titleVi: "Timestamp", titleEn: "Timestamp", hintVi: "Unix ↔ ISO ↔ Việt Nam", hintEn: "Unix ↔ ISO ↔ Vietnam" },
+  { id: "count", icon: Sigma, titleVi: "Đếm chữ", titleEn: "Word count", hintVi: "Ký tự · từ · câu · đoạn", hintEn: "Char · word · sentence · paragraph" },
+  { id: "slug", icon: TextCursorInput, titleVi: "Slug VN", titleEn: "VN slug", hintVi: "Bỏ dấu · kebab-case", hintEn: "Strip diacritics · kebab" },
+  { id: "case", icon: CaseSensitive, titleVi: "Đổi case", titleEn: "Case convert", hintVi: "Hoa · thường · Title · camel", hintEn: "UPPER · lower · Title · camel" },
+  { id: "markdown", icon: FileText, titleVi: "Markdown", titleEn: "Markdown", hintVi: "Xem trước realtime", hintEn: "Live preview" },
+  { id: "diff", icon: GitCompare, titleVi: "So sánh", titleEn: "Diff", hintVi: "Diff hai đoạn văn bản", hintEn: "Compare two strings" },
+  { id: "numwords", icon: Hash, titleVi: "Số → chữ", titleEn: "Number to words", hintVi: "VND · hợp đồng · hoá đơn", hintEn: "VND · contracts · invoices" },
+  { id: "password", icon: Lock, titleVi: "Mật khẩu", titleEn: "Password", hintVi: "Sinh mật khẩu mạnh", hintEn: "Strong password gen" },
+  { id: "qr", icon: QrCode, titleVi: "QR Code", titleEn: "QR Code", hintVi: "Link · WiFi · vCard · text", hintEn: "Link · WiFi · vCard · text" },
+  { id: "color", icon: Palette, titleVi: "Màu", titleEn: "Color", hintVi: "HEX ↔ RGB ↔ HSL", hintEn: "HEX ↔ RGB ↔ HSL" },
+  { id: "contrast", icon: Contrast, titleVi: "Contrast WCAG", titleEn: "Contrast WCAG", hintVi: "Kiểm tra AA / AAA", hintEn: "Check AA / AAA" },
+  { id: "datecalc", icon: CalendarRange, titleVi: "Tính ngày", titleEn: "Date calc", hintVi: "Khoảng cách · tuổi · ±ngày", hintEn: "Diff · age · ±days" },
+  { id: "timestamp", icon: Clock, titleVi: "Timestamp", titleEn: "Timestamp", hintVi: "Unix ↔ ISO ↔ Việt Nam", hintEn: "Unix ↔ ISO ↔ Vietnam" },
 ];
-
-const groupLabels: Record<ToolGroup, { vi: string; en: string }> = {
-  text: { vi: "Văn bản", en: "Text" },
-  number: { vi: "Số", en: "Number" },
-  security: { vi: "An toàn", en: "Security" },
-  design: { vi: "Thiết kế", en: "Design" },
-  time: { vi: "Thời gian", en: "Time" },
-};
 
 export function ToolsShell() {
   const { language } = useLanguage();
@@ -122,58 +117,44 @@ export function ToolsShell() {
             {language === "vi" ? "Hộp công cụ thực dụng" : "Practical toolkit"}
           </p>
           <h2 className="mt-3 font-display text-[clamp(2.4rem,4.4vw,4.4rem)] font-black leading-[0.92] tracking-[-0.06em] text-[#f4eadc]">
-            {language === "vi" ? "đếm · slug · số → chữ · mật khẩu" : "count · slug · num→words · password"}
+            {language === "vi" ? "đếm · slug · qr · ngày · mật khẩu" : "count · slug · qr · date · password"}
           </h2>
           <p className="mt-3 max-w-3xl text-[0.85rem] leading-7 text-[#c4b9ad] sm:text-base">
             {language === "vi"
-              ? "10 công cụ thực dụng cho người Việt: đếm chữ, slug bỏ dấu, đổi case, markdown, so sánh, đọc số tiền, sinh mật khẩu, kiểm tra màu, timestamp. Chạy hoàn toàn trên trình duyệt — dữ liệu của bạn không gửi lên server."
-              : "10 practical utilities, fully client-side. Word count, VN slug, case convert, markdown, diff, number-to-words VND, password generator, color picker, WCAG contrast, timestamp."}
+              ? "12 công cụ thực dụng cho người Việt: đếm chữ, slug bỏ dấu, đổi case, markdown, so sánh, đọc số tiền, mật khẩu, QR code, màu, contrast, tính ngày, timestamp. Chạy hoàn toàn trên trình duyệt — dữ liệu không gửi lên server."
+              : "12 practical utilities, fully client-side. Word count, VN slug, case convert, markdown, diff, number-to-words VND, password, QR code, color, WCAG contrast, date calc, timestamp."}
           </p>
         </div>
 
-        <div className="mt-5 space-y-3">
-          {(Object.keys(groupLabels) as ToolGroup[]).map((group) => {
-            const groupTools = tools.filter((t) => t.group === group);
-            if (groupTools.length === 0) return null;
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {tools.map((tool) => {
+            const Icon = tool.icon;
+            const isActive = active === tool.id;
             return (
-              <div key={group}>
-                <p className="mb-1.5 font-mono text-[0.5rem] uppercase tracking-[0.22em] text-[#5e7a82]">
-                  {language === "vi" ? groupLabels[group].vi : groupLabels[group].en}
-                  <span className="ml-2 text-[#3f6068]">{groupTools.length}</span>
-                </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                  {groupTools.map((tool) => {
-                    const Icon = tool.icon;
-                    const isActive = active === tool.id;
-                    return (
-                      <button
-                        key={tool.id}
-                        type="button"
-                        onClick={() => setActive(tool.id)}
-                        className={cn(
-                          "flex flex-col items-start gap-1.5 rounded-xl border px-3 py-3 text-left transition",
-                          isActive
-                            ? "border-[#47c9d9]/65 bg-[#06181c]/82 text-[#a8e8f0]"
-                            : "border-[#12323a] bg-[#050d10]/70 text-[#79ddeb] hover:border-[#47c9d9]/40 hover:text-[#dff3f6]",
-                        )}
-                      >
-                        <div className={cn(
-                          "flex size-8 items-center justify-center rounded-md border",
-                          isActive ? "border-[#47c9d9]/65 bg-[#47c9d9]/14" : "border-[#47c9d9]/22 bg-[#47c9d9]/8",
-                        )}>
-                          <Icon className="size-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[0.85rem] font-bold text-[#f4eadc]">{language === "vi" ? tool.titleVi : tool.titleEn}</div>
-                          <div className="font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#5e574e]">
-                            {language === "vi" ? tool.hintVi : tool.hintEn}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+              <button
+                key={tool.id}
+                type="button"
+                onClick={() => setActive(tool.id)}
+                className={cn(
+                  "flex flex-col items-start gap-1.5 rounded-xl border px-3 py-3 text-left transition",
+                  isActive
+                    ? "border-[#47c9d9]/65 bg-[#06181c]/82 text-[#a8e8f0]"
+                    : "border-[#12323a] bg-[#050d10]/70 text-[#79ddeb] hover:border-[#47c9d9]/40 hover:text-[#dff3f6]",
+                )}
+              >
+                <div className={cn(
+                  "flex size-8 items-center justify-center rounded-md border",
+                  isActive ? "border-[#47c9d9]/65 bg-[#47c9d9]/14" : "border-[#47c9d9]/22 bg-[#47c9d9]/8",
+                )}>
+                  <Icon className="size-4" />
                 </div>
-              </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[0.85rem] font-bold text-[#f4eadc]">{language === "vi" ? tool.titleVi : tool.titleEn}</div>
+                  <div className="font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#5e574e]">
+                    {language === "vi" ? tool.hintVi : tool.hintEn}
+                  </div>
+                </div>
+              </button>
             );
           })}
         </div>
@@ -186,8 +167,10 @@ export function ToolsShell() {
           {active === "diff" ? <DiffTool language={language} /> : null}
           {active === "numwords" ? <NumWordsTool language={language} /> : null}
           {active === "password" ? <PasswordTool language={language} /> : null}
+          {active === "qr" ? <QrTool language={language} /> : null}
           {active === "color" ? <ColorTool language={language} /> : null}
           {active === "contrast" ? <ContrastTool language={language} /> : null}
+          {active === "datecalc" ? <DateCalcTool language={language} /> : null}
           {active === "timestamp" ? <TimestampTool language={language} /> : null}
         </div>
       </section>
@@ -903,4 +886,369 @@ function getRelative(ts: number, now: number, language: "vi" | "en"): string {
     return future ? `trong ${rounded} ${label.vi} nữa` : `${rounded} ${label.vi} trước`;
   }
   return future ? `in ${rounded} ${label.en}` : `${rounded} ${label.en} ago`;
+}
+
+// =====================================================================
+// QR Code generator (link / wifi / vCard / text)
+// =====================================================================
+
+type QrMode = "text" | "url" | "wifi" | "vcard";
+
+function buildQrPayload(mode: QrMode, data: Record<string, string>): string {
+  if (mode === "url") return data.url || "";
+  if (mode === "text") return data.text || "";
+  if (mode === "wifi") {
+    const ssid = (data.ssid || "").replace(/([\\;,:"])/g, "\\$1");
+    const pass = (data.password || "").replace(/([\\;,:"])/g, "\\$1");
+    const auth = data.auth || "WPA";
+    const hidden = data.hidden === "true" ? "true" : "false";
+    return `WIFI:T:${auth};S:${ssid};P:${pass};H:${hidden};;`;
+  }
+  if (mode === "vcard") {
+    const lines = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      data.name ? `FN:${data.name}` : "",
+      data.org ? `ORG:${data.org}` : "",
+      data.title ? `TITLE:${data.title}` : "",
+      data.phone ? `TEL;TYPE=CELL:${data.phone}` : "",
+      data.email ? `EMAIL:${data.email}` : "",
+      data.url ? `URL:${data.url}` : "",
+      "END:VCARD",
+    ].filter(Boolean);
+    return lines.join("\n");
+  }
+  return "";
+}
+
+function QrTool({ language }: Readonly<{ language: "vi" | "en" }>) {
+  const [mode, setMode] = useState<QrMode>("url");
+  const [size, setSize] = useState(280);
+  const [text, setText] = useState("MrNine — your AI control surface");
+  const [url, setUrl] = useState("https://mrnine.net");
+  const [wifi, setWifi] = useState({ ssid: "MrNine-WiFi", password: "", auth: "WPA", hidden: "false" });
+  const [vcard, setVcard] = useState({ name: "Nguyễn Hữu Nam", org: "MrNine", title: "Founder", phone: "+84", email: "mrnine.net@gmail.com", url: "https://mrnine.net" });
+
+  const payload = useMemo(() => {
+    if (mode === "url") return buildQrPayload(mode, { url });
+    if (mode === "text") return buildQrPayload(mode, { text });
+    if (mode === "wifi") return buildQrPayload(mode, wifi);
+    return buildQrPayload(mode, vcard);
+  }, [mode, text, url, wifi, vcard]);
+
+  const qrSrc = payload
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=4&data=${encodeURIComponent(payload)}`
+    : "";
+
+  const modeOptions: ReadonlyArray<{ id: QrMode; vi: string; en: string }> = [
+    { id: "url", vi: "Link", en: "Link" },
+    { id: "text", vi: "Văn bản", en: "Text" },
+    { id: "wifi", vi: "WiFi", en: "WiFi" },
+    { id: "vcard", vi: "Danh thiếp", en: "vCard" },
+  ];
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      <Panel title={language === "vi" ? "Nội dung" : "Content"}>
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-1.5">
+            {modeOptions.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setMode(opt.id)}
+                className={cn(
+                  "rounded-md border px-2.5 py-1 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition",
+                  mode === opt.id
+                    ? "border-[#47c9d9]/65 bg-[#47c9d9]/14 text-[#a8e8f0]"
+                    : "border-white/10 text-[#79ddeb] hover:border-[#47c9d9]/40",
+                )}
+              >
+                {language === "vi" ? opt.vi : opt.en}
+              </button>
+            ))}
+          </div>
+
+          {mode === "url" ? (
+            <input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://mrnine.net"
+              className="w-full rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.95rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55"
+            />
+          ) : null}
+
+          {mode === "text" ? <TextArea value={text} onChange={setText} mono={false} /> : null}
+
+          {mode === "wifi" ? (
+            <div className="space-y-2">
+              <input
+                value={wifi.ssid}
+                onChange={(e) => setWifi({ ...wifi, ssid: e.target.value })}
+                placeholder={language === "vi" ? "Tên mạng (SSID)" : "Network name (SSID)"}
+                className="w-full rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.9rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55"
+              />
+              <input
+                type="text"
+                value={wifi.password}
+                onChange={(e) => setWifi({ ...wifi, password: e.target.value })}
+                placeholder={language === "vi" ? "Mật khẩu" : "Password"}
+                className="w-full rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.9rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={wifi.auth}
+                  onChange={(e) => setWifi({ ...wifi, auth: e.target.value })}
+                  className="rounded-md border border-[#12323a] bg-[#040a0c] px-2 py-1.5 font-mono text-[0.78rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55"
+                >
+                  <option value="WPA">WPA / WPA2 / WPA3</option>
+                  <option value="WEP">WEP</option>
+                  <option value="nopass">{language === "vi" ? "Không mật khẩu" : "No password"}</option>
+                </select>
+                <label className="flex items-center gap-2 rounded-md border border-[#12323a] bg-[#040a0c] px-2 py-1.5 font-mono text-[0.72rem] text-[#dff3f6]">
+                  <input
+                    type="checkbox"
+                    checked={wifi.hidden === "true"}
+                    onChange={(e) => setWifi({ ...wifi, hidden: e.target.checked ? "true" : "false" })}
+                    className="accent-[#47c9d9]"
+                  />
+                  {language === "vi" ? "Mạng ẩn" : "Hidden network"}
+                </label>
+              </div>
+            </div>
+          ) : null}
+
+          {mode === "vcard" ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {(["name", "org", "title", "phone", "email", "url"] as const).map((field) => (
+                <input
+                  key={field}
+                  value={vcard[field]}
+                  onChange={(e) => setVcard({ ...vcard, [field]: e.target.value })}
+                  placeholder={field}
+                  className="rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.85rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55"
+                />
+              ))}
+            </div>
+          ) : null}
+
+          <label className="flex items-center gap-3">
+            <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#79ddeb]">
+              {language === "vi" ? "Kích thước" : "Size"}: {size}px
+            </span>
+            <input type="range" min={120} max={520} step={20} value={size} onChange={(e) => setSize(Number(e.target.value))} className="flex-1 accent-[#47c9d9]" />
+          </label>
+        </div>
+      </Panel>
+      <Panel title="QR">
+        <div className="flex flex-col items-center gap-3">
+          {qrSrc ? (
+            <a href={qrSrc} target="_blank" rel="noreferrer noopener" className="rounded-md border border-[#12323a] bg-white p-2">
+              {/* QR served as a static PNG; using <img> avoids next/image domain config and works offline once cached */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrSrc} alt="QR code" width={size} height={size} className="block" />
+            </a>
+          ) : (
+            <div className="rounded-md border border-dashed border-[#12323a] p-6 text-[0.78rem] text-[#79ddeb]">
+              {language === "vi" ? "Nhập nội dung để sinh mã" : "Enter content to generate"}
+            </div>
+          )}
+          <details className="w-full text-[0.78rem] text-[#79ddeb]">
+            <summary className="cursor-pointer select-none font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#79ddeb]">
+              {language === "vi" ? "Payload thô" : "Raw payload"}
+            </summary>
+            <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded-md border border-[#12323a] bg-[#040a0c] p-2 font-mono text-[0.72rem] text-[#dff3f6]">{payload || "—"}</pre>
+            <div className="mt-2 flex gap-1.5">
+              {payload ? <CopyButton value={payload} /> : null}
+              {qrSrc ? (
+                <a
+                  href={qrSrc}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  download="qr.png"
+                  className="flex h-7 items-center gap-1.5 rounded-md border border-[#47c9d9]/45 bg-[#06181c]/72 px-2 font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#a8e8f0] transition hover:border-[#47c9d9]/70"
+                >
+                  PNG
+                </a>
+              ) : null}
+            </div>
+          </details>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+// =====================================================================
+// Date calculator (diff, age, ±days)
+// =====================================================================
+
+function todayIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function dateDiff(start: Date, end: Date): { years: number; months: number; days: number; totalDays: number; weeks: number } {
+  let years = end.getFullYear() - start.getFullYear();
+  let months = end.getMonth() - start.getMonth();
+  let days = end.getDate() - start.getDate();
+  if (days < 0) {
+    months -= 1;
+    const prev = new Date(end.getFullYear(), end.getMonth(), 0);
+    days += prev.getDate();
+  }
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+  const ms = end.getTime() - start.getTime();
+  const totalDays = Math.round(ms / 86_400_000);
+  const weeks = Math.floor(Math.abs(totalDays) / 7);
+  return { years: Math.abs(years), months: Math.abs(months), days: Math.abs(days), totalDays, weeks };
+}
+
+function DateCalcTool({ language }: Readonly<{ language: "vi" | "en" }>) {
+  const [mode, setMode] = useState<"diff" | "age" | "shift">("diff");
+  const [from, setFrom] = useState("2026-01-01");
+  const [to, setTo] = useState(todayIso());
+  const [birth, setBirth] = useState("2000-06-15");
+  const [base, setBase] = useState(todayIso());
+  const [delta, setDelta] = useState(30);
+  const [unit, setUnit] = useState<"d" | "w" | "m" | "y">("d");
+
+  const modes: ReadonlyArray<{ id: typeof mode; vi: string; en: string }> = [
+    { id: "diff", vi: "Khoảng cách", en: "Diff" },
+    { id: "age", vi: "Tính tuổi", en: "Age" },
+    { id: "shift", vi: "Cộng / trừ", en: "Add / subtract" },
+  ];
+
+  const diffResult = useMemo(() => {
+    if (mode !== "diff") return null;
+    const a = new Date(from);
+    const b = new Date(to);
+    if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+    const start = a < b ? a : b;
+    const end = a < b ? b : a;
+    return dateDiff(start, end);
+  }, [mode, from, to]);
+
+  const ageResult = useMemo(() => {
+    if (mode !== "age") return null;
+    const a = new Date(birth);
+    const b = new Date();
+    if (Number.isNaN(a.getTime())) return null;
+    const next = new Date(b.getFullYear(), a.getMonth(), a.getDate());
+    if (next < b) next.setFullYear(b.getFullYear() + 1);
+    const daysToBirthday = Math.ceil((next.getTime() - b.getTime()) / 86_400_000);
+    return { ...dateDiff(a, b), daysToBirthday };
+  }, [mode, birth]);
+
+  const shiftResult = useMemo(() => {
+    if (mode !== "shift") return null;
+    const start = new Date(base);
+    if (Number.isNaN(start.getTime())) return null;
+    const result = new Date(start);
+    if (unit === "d") result.setDate(result.getDate() + delta);
+    if (unit === "w") result.setDate(result.getDate() + delta * 7);
+    if (unit === "m") result.setMonth(result.getMonth() + delta);
+    if (unit === "y") result.setFullYear(result.getFullYear() + delta);
+    return result;
+  }, [mode, base, delta, unit]);
+
+  const fmtDate = (d: Date) => d.toLocaleDateString(language === "vi" ? "vi-VN" : "en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      <Panel title={language === "vi" ? "Chế độ" : "Mode"}>
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-1.5">
+            {modes.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setMode(m.id)}
+                className={cn(
+                  "rounded-md border px-2.5 py-1 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition",
+                  mode === m.id
+                    ? "border-[#47c9d9]/65 bg-[#47c9d9]/14 text-[#a8e8f0]"
+                    : "border-white/10 text-[#79ddeb] hover:border-[#47c9d9]/40",
+                )}
+              >
+                {language === "vi" ? m.vi : m.en}
+              </button>
+            ))}
+          </div>
+
+          {mode === "diff" ? (
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#79ddeb]">{language === "vi" ? "Từ" : "From"}</span>
+                <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.9rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55" />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#79ddeb]">{language === "vi" ? "Đến" : "To"}</span>
+                <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.9rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55" />
+              </label>
+            </div>
+          ) : null}
+
+          {mode === "age" ? (
+            <label className="flex flex-col gap-1.5">
+              <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#79ddeb]">{language === "vi" ? "Ngày sinh" : "Birth date"}</span>
+              <input type="date" value={birth} onChange={(e) => setBirth(e.target.value)} className="rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.9rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55" />
+            </label>
+          ) : null}
+
+          {mode === "shift" ? (
+            <div className="space-y-2">
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#79ddeb]">{language === "vi" ? "Mốc gốc" : "Base date"}</span>
+                <input type="date" value={base} onChange={(e) => setBase(e.target.value)} className="rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.9rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55" />
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#79ddeb]">{language === "vi" ? "Cộng / trừ" : "Delta"}</span>
+                  <input type="number" value={delta} onChange={(e) => setDelta(Number(e.target.value))} className="rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.9rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55" />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#79ddeb]">{language === "vi" ? "Đơn vị" : "Unit"}</span>
+                  <select value={unit} onChange={(e) => setUnit(e.target.value as typeof unit)} className="rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2 font-mono text-[0.9rem] text-[#dff3f6] outline-none focus:border-[#47c9d9]/55">
+                    <option value="d">{language === "vi" ? "Ngày" : "Days"}</option>
+                    <option value="w">{language === "vi" ? "Tuần" : "Weeks"}</option>
+                    <option value="m">{language === "vi" ? "Tháng" : "Months"}</option>
+                    <option value="y">{language === "vi" ? "Năm" : "Years"}</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </Panel>
+      <Panel title={language === "vi" ? "Kết quả" : "Result"}>
+        {mode === "diff" && diffResult ? (
+          <div className="space-y-2">
+            <Row label={language === "vi" ? "Năm/tháng/ngày" : "Y / M / D"} value={`${diffResult.years} ${language === "vi" ? "năm" : "y"} ${diffResult.months} ${language === "vi" ? "tháng" : "m"} ${diffResult.days} ${language === "vi" ? "ngày" : "d"}`} />
+            <Row label={language === "vi" ? "Tổng số ngày" : "Total days"} value={Math.abs(diffResult.totalDays).toString()} />
+            <Row label={language === "vi" ? "Số tuần" : "Weeks"} value={diffResult.weeks.toString()} />
+          </div>
+        ) : null}
+        {mode === "age" && ageResult ? (
+          <div className="space-y-2">
+            <Row label={language === "vi" ? "Tuổi" : "Age"} value={`${ageResult.years} ${language === "vi" ? "tuổi" : "y"} ${ageResult.months} ${language === "vi" ? "tháng" : "m"} ${ageResult.days} ${language === "vi" ? "ngày" : "d"}`} />
+            <Row label={language === "vi" ? "Tổng ngày đã sống" : "Days lived"} value={Math.abs(ageResult.totalDays).toString()} />
+            <Row label={language === "vi" ? "Sinh nhật kế tiếp" : "Next birthday"} value={`${ageResult.daysToBirthday} ${language === "vi" ? "ngày nữa" : "days"}`} />
+          </div>
+        ) : null}
+        {mode === "shift" && shiftResult ? (
+          <div className="space-y-2">
+            <Row label={language === "vi" ? "Ngày kết quả" : "Resulting date"} value={fmtDate(shiftResult)} />
+            <Row label="ISO" value={shiftResult.toISOString().slice(0, 10)} />
+          </div>
+        ) : null}
+        {(mode === "diff" && !diffResult) || (mode === "age" && !ageResult) || (mode === "shift" && !shiftResult) ? (
+          <p className="text-[0.78rem] text-[#ffb4ad]">{language === "vi" ? "Ngày không hợp lệ" : "Invalid date"}</p>
+        ) : null}
+      </Panel>
+    </div>
+  );
 }
