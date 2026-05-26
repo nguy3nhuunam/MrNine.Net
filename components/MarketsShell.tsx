@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowLeft,
@@ -55,10 +56,27 @@ function fmtChange(v: number | null): string {
 
 export function MarketsShell() {
   const { language } = useLanguage();
+  const searchParams = useSearchParams();
+  const focusSymbol = (searchParams?.get("focus") ?? "").toUpperCase();
   const [data, setData] = useState<MarketsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [autoUpdate, setAutoUpdate] = useState(true);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (!focusSymbol || !data) return;
+    const match = data.rows.find(
+      (row) => row.symbol.toUpperCase() === focusSymbol || row.id.toUpperCase() === focusSymbol,
+    );
+    if (!match) return;
+    const node = cardRefs.current[match.id];
+    if (!node) return;
+    node.scrollIntoView({ behavior: "smooth", block: "center" });
+    node.classList.add("markets-card-focus");
+    const id = window.setTimeout(() => node.classList.remove("markets-card-focus"), 2200);
+    return () => window.clearTimeout(id);
+  }, [focusSymbol, data]);
 
   useEffect(() => {
     let cancelled = false;
@@ -218,7 +236,14 @@ export function MarketsShell() {
         {data ? (
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {data.rows.map((row) => (
-              <MarketCard key={row.id} row={row} language={language} />
+              <div
+                key={row.id}
+                ref={(node) => {
+                  cardRefs.current[row.id] = node;
+                }}
+              >
+                <MarketCard row={row} language={language} />
+              </div>
             ))}
           </div>
         ) : null}

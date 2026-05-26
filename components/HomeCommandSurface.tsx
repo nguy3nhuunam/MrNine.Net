@@ -42,6 +42,9 @@ import { safeParseJson } from "@/lib/fetch-json";
 import { DiscordActivity } from "@/components/DiscordActivity";
 import { TabAudioVisualizer } from "@/components/TabAudioVisualizer";
 import { allModels as falAllModels, type FalCapability } from "@/lib/fal-models";
+import { aiStoreCatalog } from "@/lib/ai-store-catalog";
+
+const storeFmtVnd = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
 
 type InterfaceTheme = "auto" | "crimson" | "signal" | "gold" | "frost" | "eclipse" | "plasma";
 type AskAction =
@@ -805,6 +808,12 @@ const dailyHeadlines = [
   "build slides from notes",
   "compose emails that convert",
   "sync every AI tool here",
+  "track gold, btc, forex live",
+  "buy chatgpt plus, codex key, dreamina",
+  "calc tax, loan, currency in seconds",
+  "format json, slug VN, build QR",
+  "read VND amount in words",
+  "your AI control room, 12 modules",
 ];
 
 const dailyHeadlinesVi = [
@@ -830,12 +839,62 @@ const dailyHeadlinesVi = [
   "tạo slide từ ghi chú",
   "viết email chuyển đổi tốt hơn",
   "gom mọi công cụ AI tại đây",
+  "xem giá vàng, bitcoin, forex realtime",
+  "mua chatgpt plus, codex key, dreamina",
+  "tính thuế tncn, vay, đổi tiền 1 giây",
+  "format json, slug bỏ dấu, sinh QR",
+  "đọc số tiền VND ra chữ tức thì",
+  "phòng điều khiển AI, 12 module",
 ];
 
 const dailyHeadlinesByLanguage = {
   en: dailyHeadlines,
   vi: dailyHeadlinesVi,
 } satisfies Record<WebLanguage, string[]>;
+
+type RecentVisit = { title: string; href: string; ts: number };
+const RECENT_VISITS_KEY = "mrnine-recent-visits";
+
+function loadRecentVisits(): RecentVisit[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(RECENT_VISITS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((v) => v && typeof v.title === "string" && typeof v.href === "string" && typeof v.ts === "number")
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
+function pushRecentVisit(visit: { title: string; href: string }) {
+  if (typeof window === "undefined") return;
+  try {
+    const existing = loadRecentVisits().filter((v) => v.title !== visit.title);
+    const next: RecentVisit[] = [{ title: visit.title, href: visit.href, ts: Date.now() }, ...existing].slice(0, 6);
+    window.localStorage.setItem(RECENT_VISITS_KEY, JSON.stringify(next));
+  } catch {
+    // ignore quota errors
+  }
+}
+
+function formatRelative(ts: number, lang: WebLanguage): string {
+  const diff = Math.max(0, Date.now() - ts) / 1000;
+  if (diff < 60) return lang === "vi" ? "vừa xong" : "just now";
+  if (diff < 3600) {
+    const mins = Math.floor(diff / 60);
+    return lang === "vi" ? `${mins} phút trước` : `${mins} min ago`;
+  }
+  if (diff < 86400) {
+    const hrs = Math.floor(diff / 3600);
+    return lang === "vi" ? `${hrs} giờ trước` : `${hrs}h ago`;
+  }
+  const days = Math.floor(diff / 86400);
+  return lang === "vi" ? `${days} ngày trước` : `${days}d ago`;
+}
 
 const socialLinks = [
   { label: "Facebook", icon: <FacebookIcon />, href: "https://www.facebook.com/nguyenhuunam.fb/" },
@@ -2019,6 +2078,7 @@ export function HomeCommandSurface() {
   const [previewModule, setPreviewModule] = useState<ModuleCard | null>(null);
   const [authPromptDismissed, setAuthPromptDismissed] = useState(false);
   const [authPromptForced, setAuthPromptForced] = useState(false);
+  const [recentVisits, setRecentVisits] = useState<RecentVisit[]>([]);
   const heroRef = useRef<HTMLElement | null>(null);
   const commandInputRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -2074,22 +2134,37 @@ export function HomeCommandSurface() {
   }, [marketsTicker]);
 
   const enrichedSearchResults = useMemo(() => {
-    if (!marketsTicker.length) return allSearchResults;
-    const extras: SearchResult[] = marketsTicker.map((row) => ({
-      id: `market-${row.id}`,
-      title: `${row.symbol} · ${row.name}`,
-      subtitle:
-        row.kind === "forex"
-          ? `1 ${row.symbol} ≈ ${Math.round(row.vnd).toLocaleString("vi-VN")} VND`
-          : `${row.usd >= 1 ? `$${row.usd.toLocaleString("en-US", { maximumFractionDigits: 2 })}` : `$${row.usd.toFixed(4)}`}${
-              row.change24h !== null ? ` · ${row.change24h >= 0 ? "+" : ""}${row.change24h.toFixed(2)}%` : ""
-            }`,
-      badge: row.kind === "metal" ? "Metal" : row.kind === "forex" ? "FX" : "Crypto",
-      category: "feature",
-      icon: LineChart,
-      accent: row.change24h !== null && row.change24h < 0 ? "red" : "lime",
-      href: "/markets",
-    }));
+    const extras: SearchResult[] = [];
+    for (const row of marketsTicker) {
+      extras.push({
+        id: `market-${row.id}`,
+        title: `${row.symbol} · ${row.name}`,
+        subtitle:
+          row.kind === "forex"
+            ? `1 ${row.symbol} ≈ ${Math.round(row.vnd).toLocaleString("vi-VN")} VND`
+            : `${row.usd >= 1 ? `$${row.usd.toLocaleString("en-US", { maximumFractionDigits: 2 })}` : `$${row.usd.toFixed(4)}`}${
+                row.change24h !== null ? ` · ${row.change24h >= 0 ? "+" : ""}${row.change24h.toFixed(2)}%` : ""
+              }`,
+        badge: row.kind === "metal" ? "Metal" : row.kind === "forex" ? "FX" : "Crypto",
+        category: "feature",
+        icon: LineChart,
+        accent: row.change24h !== null && row.change24h < 0 ? "red" : "lime",
+        href: `/markets?focus=${encodeURIComponent(row.symbol)}`,
+      });
+    }
+    for (const item of aiStoreCatalog) {
+      extras.push({
+        id: `store-${item.id}`,
+        title: `${item.product}`,
+        subtitle: `${item.brand} · ${storeFmtVnd.format(item.priceVnd)} · ${item.duration}`,
+        badge: item.badge ?? "AI",
+        category: "feature",
+        icon: ShoppingBag,
+        accent: "amber",
+        href: "/ai-store",
+      });
+    }
+    if (extras.length === 0) return allSearchResults;
     return [...allSearchResults, ...extras];
   }, [allSearchResults, marketsTicker]);
 
@@ -2201,6 +2276,7 @@ export function HomeCommandSurface() {
     setCommandFocused(false);
     setCommandInput("");
     commandInputRef.current?.blur();
+    recordVisit(result.title, result.href);
     if (result.category === "module" && moduleNavMap[result.title]) {
       const delay = shouldReduceMotion ? 0 : 320;
       setArmingModule(result.title);
@@ -2285,6 +2361,20 @@ export function HomeCommandSurface() {
     };
   }, [searchOpen, commandInput, language]);
 
+  useEffect(() => {
+    setRecentVisits(loadRecentVisits());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === RECENT_VISITS_KEY) setRecentVisits(loadRecentVisits());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  function recordVisit(title: string, href: string) {
+    pushRecentVisit({ title, href });
+    setRecentVisits(loadRecentVisits());
+  }
+
   function openModule(title: string) {
     const destinations: Record<string, string> = {
       "AI Playground": "/ai-playground",
@@ -2314,6 +2404,7 @@ export function HomeCommandSurface() {
       return;
     }
 
+    recordVisit(title, destination);
     const delay = shouldReduceMotion ? 0 : 320;
     setArmingModule(title);
 
@@ -2813,16 +2904,23 @@ export function HomeCommandSurface() {
 
           <div className="recent-output-dock mb-3 hidden shrink-0 items-center gap-2 overflow-hidden rounded-lg border border-[#2a251f] bg-[#0c0a08]/82 px-3 py-2 md:flex 2xl:hidden">
             <div className="mr-2 shrink-0 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#d6a548]">{copy.outputDock}</div>
-            {recentOutputs.map((output) => (
-              <button
-                key={output.title}
-                type="button"
-                className="min-w-0 flex-1 rounded-md border border-white/7 bg-white/[0.025] px-3 py-2 text-left transition hover:border-[#45a85d]/24 hover:bg-[#45a85d]/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/70"
-              >
-                <div className="truncate text-xs font-bold text-[#efe6dc]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.title ?? output.title}</div>
-                <div className="mt-0.5 truncate font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#756d64]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.meta ?? output.meta}</div>
-              </button>
-            ))}
+            {recentVisits.length === 0 ? (
+              <div className="min-w-0 flex-1 px-2 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
+                {language === "vi" ? "Chưa mở module nào — bấm 1 thẻ phía trên" : "No module opened yet — tap any tile above"}
+              </div>
+            ) : (
+              recentVisits.slice(0, 3).map((visit) => (
+                <button
+                  key={visit.title}
+                  type="button"
+                  onClick={() => router.push(visit.href)}
+                  className="min-w-0 flex-1 rounded-md border border-white/7 bg-white/[0.025] px-3 py-2 text-left transition hover:border-[#45a85d]/24 hover:bg-[#45a85d]/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/70"
+                >
+                  <div className="truncate text-xs font-bold text-[#efe6dc]">{visit.title}</div>
+                  <div className="mt-0.5 truncate font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#756d64]">{formatRelative(visit.ts, language)}</div>
+                </button>
+              ))
+            )}
           </div>
 
           <footer className="flex h-10 shrink-0 items-center justify-between border-t border-[#25211b] font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#776f66]">
@@ -2873,22 +2971,23 @@ export function HomeCommandSurface() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {recentOutputs.length === 0 ? (
+                    {recentVisits.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-[#2a251f] bg-[#100d0a]/40 px-3 py-6 text-center">
                         <p className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#9a9087]">{copy.queueClear}</p>
                         <p className="mt-2 text-xs leading-5 text-[#b5ab9f]">{copy.queueBody}</p>
                       </div>
                     ) : (
-                      recentOutputs.map((output) => (
+                      recentVisits.slice(0, 4).map((visit) => (
                         <button
-                          key={output.title}
+                          key={visit.title}
                           type="button"
+                          onClick={() => router.push(visit.href)}
                           className="group flex w-full items-center justify-between gap-3 rounded-lg border border-[#2a251f] bg-[#100d0a]/76 px-3 py-3 text-left transition hover:-translate-y-0.5 hover:border-[#45a85d]/35 hover:bg-[#0e1a11] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#45a85d]/70"
-                          aria-label={`${recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.title ?? output.title} — ${recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.meta ?? output.meta}`}
+                          aria-label={`${visit.title} — ${formatRelative(visit.ts, language)}`}
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-bold text-[#f4eadc]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.title ?? output.title}</div>
-                            <div className="mt-1 truncate font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#9a9087]">{recentOutputCopy[language][output.title as keyof typeof recentOutputCopy.vi]?.meta ?? output.meta}</div>
+                            <div className="truncate text-sm font-bold text-[#f4eadc]">{visit.title}</div>
+                            <div className="mt-1 truncate font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#9a9087]">{formatRelative(visit.ts, language)}</div>
                           </div>
                           <ArrowRight className="size-3.5 shrink-0 text-[#9a9087] opacity-0 transition group-hover:translate-x-0.5 group-hover:text-[#45a85d] group-hover:opacity-100" />
                         </button>
