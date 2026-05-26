@@ -1,28 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
-  ArrowRight,
   BarChart3,
-  CircleDot,
+  Boxes,
+  Check,
+  ChevronRight,
   Eye,
   EyeOff,
-  GripVertical,
+  Gauge,
   LayoutGrid,
   Loader2,
   Lock,
-  Plus,
+  PackagePlus,
+  Palette,
   Save,
+  Search,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
   Trash2,
   Type,
-  Wrench,
+  Wand2,
 } from "lucide-react";
-import { useLanguage } from "@/components/LanguageProvider";
+import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
 import { cn } from "@/lib/utils";
 import type { StoreItem, StoreItemKind } from "@/lib/ai-store-catalog";
 
@@ -51,10 +54,142 @@ const MODULE_TITLES = [
 
 const THEME_VALUES = ["auto", "crimson", "signal", "gold", "frost", "eclipse", "plasma"];
 
-const fmtVnd = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
+const currency = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
+
+const copy = {
+  en: {
+    back: "Back to home",
+    admin: "Admin",
+    kicker: "MrNine control surface",
+    title: "command, tune, publish",
+    subtitle: "One protected operations deck for homepage copy, modules, AI Store products, theme availability, and live usage signals.",
+    online: "Online",
+    saved: "Saved",
+    adminLock: "Admin access",
+    search: "Search config, modules, products...",
+    openLive: "Open live",
+    modules: "Modules",
+    products: "Products",
+    visits: "Visits",
+    cache: "Cache 30s",
+    loading: "Loading admin config...",
+    overview: "Overview",
+    hero: "Hero",
+    moduleDeck: "Modules",
+    store: "AI Store",
+    themes: "Themes",
+    stats: "Stats",
+    heroHint: "Typing headlines",
+    modulesHint: "Homepage tiles",
+    storeHint: "Catalog",
+    themesHint: "Skins",
+    statsHint: "Traffic",
+    allSystems: "All systems",
+    context: "Context",
+    quickOps: "Quick ops",
+    queue: "Queue clear",
+    queueBody: "Config saves to the admin API and reaches the public site after cache refresh.",
+    recent: "Recent focus",
+    hidden: "Hidden",
+    visible: "Visible",
+    comingSoon: "Soon",
+    enabled: "Enabled",
+    disabled: "Disabled",
+    save: "Save",
+    saveHero: "Save hero",
+    saveModules: "Save modules",
+    saveThemes: "Save themes",
+    addProduct: "Add product",
+    edit: "Edit",
+    delete: "Delete",
+    cancel: "Cancel",
+    newProduct: "New product",
+    editProduct: "Edit product",
+    noData: "No data yet",
+    noDataBody: "Open modules from the homepage to populate traffic stats.",
+    commandNotes: "Admin changes are deliberately dense and direct. No marketing layer, just controls.",
+  },
+  vi: {
+    back: "Quay lại trang chủ",
+    admin: "Admin",
+    kicker: "Bề mặt điều khiển MrNine",
+    title: "điều khiển, tinh chỉnh, xuất bản",
+    subtitle: "Một bảng vận hành được bảo vệ cho nội dung trang chủ, module, sản phẩm AI Store, giao diện và tín hiệu sử dụng thực tế.",
+    online: "Trực tuyến",
+    saved: "Đã lưu",
+    adminLock: "Quyền admin",
+    search: "Tìm config, module, sản phẩm...",
+    openLive: "Mở web live",
+    modules: "Module",
+    products: "Sản phẩm",
+    visits: "Lượt mở",
+    cache: "Cache 30s",
+    loading: "Đang tải config admin...",
+    overview: "Tổng quan",
+    hero: "Hero",
+    moduleDeck: "Modules",
+    store: "AI Store",
+    themes: "Giao diện",
+    stats: "Thống kê",
+    heroHint: "Câu chạy chữ",
+    modulesHint: "Thẻ trang chủ",
+    storeHint: "Catalog",
+    themesHint: "Skin",
+    statsHint: "Lưu lượng",
+    allSystems: "Hệ thống ổn định",
+    context: "Ngữ cảnh",
+    quickOps: "Thao tác nhanh",
+    queue: "Hàng đợi trống",
+    queueBody: "Config lưu qua admin API và lên trang công khai sau khi cache refresh.",
+    recent: "Đang tập trung",
+    hidden: "Ẩn",
+    visible: "Hiện",
+    comingSoon: "Soon",
+    enabled: "Bật",
+    disabled: "Tắt",
+    save: "Lưu",
+    saveHero: "Lưu hero",
+    saveModules: "Lưu module",
+    saveThemes: "Lưu theme",
+    addProduct: "Thêm sản phẩm",
+    edit: "Sửa",
+    delete: "Xóa",
+    cancel: "Hủy",
+    newProduct: "Sản phẩm mới",
+    editProduct: "Sửa sản phẩm",
+    noData: "Chưa có dữ liệu",
+    noDataBody: "Mở module từ trang chủ để ghi thống kê lưu lượng.",
+    commandNotes: "Admin được thiết kế dày, trực tiếp và thực dụng. Không có lớp marketing, chỉ có điều khiển.",
+  },
+} satisfies Record<WebLanguage, Record<string, string>>;
+
+const sections: ReadonlyArray<{
+  id: Section;
+  icon: typeof LayoutGrid;
+  label: keyof typeof copy.en;
+  hint: keyof typeof copy.en;
+}> = [
+  { id: "overview", icon: LayoutGrid, label: "overview", hint: "allSystems" },
+  { id: "hero", icon: Type, label: "hero", hint: "heroHint" },
+  { id: "modules", icon: Boxes, label: "moduleDeck", hint: "modulesHint" },
+  { id: "store", icon: ShoppingBag, label: "store", hint: "storeHint" },
+  { id: "themes", icon: Palette, label: "themes", hint: "themesHint" },
+  { id: "stats", icon: BarChart3, label: "stats", hint: "statsHint" },
+];
+
+const railItems = [
+  { label: "Secure", icon: Lock },
+  { label: "Hero", icon: Type },
+  { label: "Modules", icon: Boxes },
+  { label: "Store", icon: ShoppingBag },
+  { label: "Themes", icon: Palette },
+  { label: "Stats", icon: BarChart3 },
+  { label: "Deploy", icon: Gauge },
+];
 
 export function AdminShell({ adminEmail }: Readonly<{ adminEmail: string }>) {
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
+  const t = copy[language];
   const [section, setSection] = useState<Section>("overview");
   const [config, setConfig] = useState<SiteConfig | null>(null);
   const [products, setProducts] = useState<StoreItem[]>([]);
@@ -64,21 +199,30 @@ export function AdminShell({ adminEmail }: Readonly<{ adminEmail: string }>) {
 
   useEffect(() => {
     void Promise.all([
-      fetch("/api/admin/config", { cache: "no-store" }).then((r) => r.json()).then(setConfig).catch(() => null),
-      fetch("/api/admin/products", { cache: "no-store" }).then((r) => r.json()).then((d) => setProducts(d.items ?? [])).catch(() => null),
-      fetch("/api/admin/stats", { cache: "no-store" }).then((r) => r.json()).then(setStats).catch(() => null),
+      fetch("/api/admin/config", { cache: "no-store" })
+        .then((response) => response.json())
+        .then(setConfig)
+        .catch(() => null),
+      fetch("/api/admin/products", { cache: "no-store" })
+        .then((response) => response.json())
+        .then((data) => setProducts(data.items ?? []))
+        .catch(() => null),
+      fetch("/api/admin/stats", { cache: "no-store" })
+        .then((response) => response.json())
+        .then(setStats)
+        .catch(() => null),
     ]);
   }, []);
 
   async function saveConfig(patch: Partial<SiteConfig>) {
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/config", {
+      const response = await fetch("/api/admin/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      const data = (await res.json()) as SiteConfig;
+      const data = (await response.json()) as SiteConfig;
       setConfig(data);
       setSavedAt(Date.now());
     } finally {
@@ -86,280 +230,338 @@ export function AdminShell({ adminEmail }: Readonly<{ adminEmail: string }>) {
     }
   }
 
-  const sections: ReadonlyArray<{ id: Section; vi: string; en: string; icon: typeof Sparkles; hintVi: string; hintEn: string }> = [
-    { id: "overview", vi: "Tổng quan", en: "Overview", icon: LayoutGrid, hintVi: "Bảng điều khiển", hintEn: "Control panel" },
-    { id: "hero", vi: "Hero", en: "Hero", icon: Type, hintVi: "Câu chạy banner", hintEn: "Banner headlines" },
-    { id: "modules", vi: "Modules", en: "Modules", icon: CircleDot, hintVi: "12 thẻ trang chủ", hintEn: "12 home tiles" },
-    { id: "store", vi: "AI Store", en: "AI Store", icon: ShoppingBag, hintVi: "Sản phẩm bán", hintEn: "Catalog" },
-    { id: "themes", vi: "Themes", en: "Themes", icon: Sparkles, hintVi: "7 giao diện", hintEn: "7 themes" },
-    { id: "stats", vi: "Stats", en: "Stats", icon: BarChart3, hintVi: "Lưu lượng module", hintEn: "Module traffic" },
-  ];
+  const hiddenModules = config ? Object.values(config.modules).filter((item) => item?.hidden).length : 0;
+  const activeThemes = config ? THEME_VALUES.length - Object.values(config.themes).filter((item) => item?.hidden).length : 0;
+  const topModule = Object.entries(stats.byModule).sort((a, b) => b[1] - a[1])[0];
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#0e0b06] text-[#eee2cc]">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10"
-        style={{
-          background:
-            "radial-gradient(circle at 14% 14%, rgba(214,165,72,0.22), transparent 32%), radial-gradient(circle at 84% 18%, rgba(239,68,68,0.1), transparent 28%), radial-gradient(circle at 50% 92%, rgba(167,139,250,0.06), transparent 32%), linear-gradient(180deg, #130d05 0%, #070501 100%)",
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 -z-10 bg-[size:24px_24px] opacity-50"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(214,165,72,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(214,165,72,0.045) 1px, transparent 1px)",
-        }}
-      />
-      <div className="blueprint-layer pointer-events-none fixed inset-0 -z-10" aria-hidden="true" />
+    <main className="relative min-h-screen overflow-hidden bg-[#070409] text-[#efe6dc]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(91,60,160,0.34),transparent_32rem),radial-gradient(circle_at_78%_12%,rgba(239,68,68,0.16),transparent_30rem),linear-gradient(180deg,#100817_0%,#070409_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(167,139,250,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(167,139,250,0.045)_1px,transparent_1px)] bg-[size:24px_24px] opacity-70" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_14%,rgba(244,234,220,0.07),transparent_10rem)]" />
 
-      <header className="relative z-20 flex h-14 shrink-0 items-center gap-3 border-b border-[#3b2a0d] bg-[#100b04]/92 px-3 backdrop-blur md:px-5">
-        <Link
-          href="/"
-          aria-label={language === "vi" ? "Quay lại trang chủ" : "Back to home"}
-          className="flex size-9 items-center justify-center rounded-md border border-white/10 text-[#a79d91] transition hover:border-[#d6a548]/40 hover:text-[#f4eadc]"
-        >
-          <ArrowLeft className="size-4" />
-        </Link>
-        <Link
-          href="/"
-          aria-label="MrNine home"
-          className="font-display text-xl font-black tracking-[-0.08em] text-[#f4eadc] outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#d6a548]/70 sm:text-2xl"
-        >
-          Mr<span className="text-[#d6a548]">Nine</span>
-        </Link>
-        <span aria-hidden="true" className="hidden h-6 w-px bg-white/10 sm:block" />
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548]">
-            <ShieldCheck className="size-4" />
-          </div>
-          <div className="hidden min-w-0 sm:block">
-            <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#f0c86d]">MrNine Control</p>
-            <h1 className="truncate text-base font-black tracking-[-0.04em] text-[#f4eadc]">Admin</h1>
+      <header className="relative z-30 flex h-14 items-center border-b border-[#2a1937] bg-[#09050f]/92 px-3 backdrop-blur md:px-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href="/"
+            aria-label={t.back}
+            className="flex size-9 items-center justify-center rounded-md border border-white/10 text-[#9f968b] transition hover:border-[#ef4444]/45 hover:text-[#f4eadc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
+          >
+            <ArrowLeft className="size-4" />
+          </Link>
+          <Link href="/" className="font-display text-xl font-black tracking-[-0.08em] text-[#f4eadc] sm:text-2xl">
+            Mr<span className="text-[#ef4444]">Nine</span>
+          </Link>
+          <div className="hidden font-mono text-[0.52rem] uppercase leading-3 tracking-[0.28em] text-[#756d84] sm:block">
+            <div>Future Domain</div>
+            <div>Admin / 009</div>
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="hidden flex-1 justify-center lg:flex">
+          <div className="flex h-9 items-center gap-2 rounded-full border border-[#45a85d]/38 bg-[#071109]/80 px-4 shadow-[0_0_28px_rgba(69,168,93,0.14)]">
+            <ShieldCheck className="size-4 text-[#45a85d]" />
+            <div className="font-mono text-[0.58rem] uppercase leading-3 tracking-[0.16em]">
+              <div className="text-[#dff8e4]">{t.online}</div>
+              <div className="text-[#7b7369]">admin api</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.025] p-1">
+          <div className="hidden rounded-full border border-white/10 bg-white/[0.03] p-0.5 font-mono text-[0.58rem] uppercase tracking-[0.16em] md:flex">
+            {languageOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                title={option.title}
+                aria-pressed={language === option.value}
+                onClick={() => setLanguage(option.value)}
+                className={cn(
+                  "rounded-full px-2.5 py-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70",
+                  language === option.value ? "bg-[#ef4444] text-[#090807]" : "text-[#9f968b] hover:text-[#f4eadc]",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
           {savedAt ? (
-            <span className="hidden h-9 items-center gap-2 rounded-full border border-[#45a85d]/40 bg-[#071109]/72 px-3 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#7dd391] md:flex">
-              <span className="size-1.5 rounded-full bg-[#45a85d] markets-pulse" />
-              {language === "vi" ? "Đã lưu" : "Saved"} · {new Date(savedAt).toLocaleTimeString(language === "vi" ? "vi-VN" : "en-US")}
+            <span className="hidden h-8 items-center gap-2 rounded-full border border-[#45a85d]/32 bg-[#071109]/72 px-3 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#7dd391] xl:flex">
+              <span className="size-1.5 rounded-full bg-[#45a85d]" />
+              {t.saved} {new Date(savedAt).toLocaleTimeString(language === "vi" ? "vi-VN" : "en-US")}
             </span>
           ) : null}
-          <span className="hidden h-9 items-center gap-2 rounded-full border border-[#d6a548]/30 bg-[#1b1508] px-3 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#f0c86d] lg:flex">
+          <span className="flex h-8 items-center gap-2 rounded-full border border-[#a78bfa]/28 bg-[#180d29] px-3 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#c4b3ff]">
             <Lock className="size-3" />
-            {adminEmail || (language === "vi" ? "Quản trị" : "Admin")}
+            <span className="hidden max-w-40 truncate xl:block">{adminEmail || t.admin}</span>
+            <span className="xl:hidden">NH</span>
           </span>
         </div>
       </header>
 
-      <section className="relative z-10 w-full px-4 pb-12 pt-5 sm:px-6 lg:px-10 xl:px-14 2xl:px-20">
-        <div className="border-b border-[#3b2a0d] pb-5 sm:pb-7">
-          <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">
-            {language === "vi" ? "Trang chủ" : "Home"}
-            <span className="mx-2 text-[#5e574e]">/</span>
-            {language === "vi" ? "Phòng điều khiển admin" : "Admin control room"}
-          </p>
-          <h2 className="mt-3 font-display text-[clamp(2.4rem,4.4vw,4.4rem)] font-black leading-[0.92] tracking-[-0.06em] text-[#f4eadc]">
-            {language === "vi" ? "hero · modules · store · themes · stats" : "hero · modules · store · themes · stats"}
-          </h2>
-          <p className="mt-3 max-w-3xl text-[0.85rem] leading-7 text-[#c4b9ad] sm:text-base">
-            {language === "vi"
-              ? "Bảng điều khiển toàn bộ web. Sửa câu chạy banner, ẩn/hiện 12 thẻ module, thêm/xoá tài khoản AI Store, tắt theme và xem lưu lượng thực tế. Mọi thay đổi đẩy ra trang chủ trong vòng 30 giây."
-              : "Single control room for the whole site. Edit hero headlines, hide modules, manage AI Store catalog, toggle themes and watch real traffic. Changes propagate to the live site within 30 seconds."}
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#f0c86d]">
-            <span className="flex items-center gap-1.5">
-              <span className="size-1.5 rounded-full bg-[#d6a548]" />
-              {MODULE_TITLES.length} {language === "vi" ? "module" : "modules"}
-            </span>
-            <span className="text-[#5e574e]">/</span>
-            <span>{products.length} {language === "vi" ? "sản phẩm" : "products"}</span>
-            <span className="text-[#5e574e]">/</span>
-            <span>{stats.total.toLocaleString(language === "vi" ? "vi-VN" : "en-US")} {language === "vi" ? "lượt mở" : "visits"}</span>
-            <span className="text-[#5e574e]">/</span>
-            <span className="text-[#7dd391]">cache 30s</span>
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          {sections.map((s) => {
-            const Icon = s.icon;
-            const isActive = section === s.id;
-            return (
+      <div className="relative z-10 grid min-h-[calc(100vh-3.5rem)] grid-cols-1 lg:grid-cols-[68px_minmax(0,1fr)_18rem]">
+        <aside className="hidden border-r border-[#2a1937] bg-[#08050d]/78 lg:flex lg:flex-col">
+          <div className="flex flex-1 flex-col items-center gap-2 pt-4">
+            {railItems.map(({ label, icon: Icon }, index) => (
               <button
-                key={s.id}
+                key={label}
                 type="button"
-                onClick={() => setSection(s.id)}
+                aria-label={label}
                 className={cn(
-                  "flex flex-col items-start gap-1.5 rounded-xl border px-3 py-3 text-left transition",
-                  isActive
-                    ? "border-[#d6a548]/65 bg-[#211606]/82 text-[#fff2d3]"
-                    : "border-[#3b2a0d] bg-[#100b04]/70 text-[#f0c86d] hover:border-[#d6a548]/40 hover:text-[#f4eadc]",
+                  "group relative flex size-11 items-center justify-center rounded-lg text-[#817a8a] transition hover:bg-white/[0.04] hover:text-[#f4eadc]",
+                  index === 0 && "rail-active-signal border border-[#f4eadc]/54 bg-white/[0.10] text-[#f4eadc]",
                 )}
               >
-                <div className={cn(
-                  "flex size-8 items-center justify-center rounded-md border",
-                  isActive ? "border-[#d6a548]/65 bg-[#d6a548]/14" : "border-[#d6a548]/22 bg-[#d6a548]/8",
-                )}>
-                  <Icon className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[0.85rem] font-bold text-[#f4eadc]">{language === "vi" ? s.vi : s.en}</div>
-                  <div className="font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#5e574e]">
-                    {language === "vi" ? s.hintVi : s.hintEn}
-                  </div>
-                </div>
+                <Icon className="size-4" />
+                <span className="absolute -bottom-2 font-mono text-[0.45rem] tracking-[0.18em] text-[#6e6574]">
+                  {String(index).padStart(2, "0")}
+                </span>
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        </aside>
 
-        <div className="mt-5">
-          {!config ? (
-            <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-[#3b2a0d] bg-[#100b04]/40">
-              <Loader2 className="mr-2 size-4 animate-spin text-[#d6a548]" />
-              <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-[#a79d91]">
-                {language === "vi" ? "Đang tải config..." : "Loading config..."}
-              </span>
+        <section className="min-w-0 px-4 py-5 sm:px-6 lg:px-7">
+          <div className="relative overflow-hidden border-b border-[#2a1937] pb-5">
+            <div className="pointer-events-none absolute right-0 top-0 hidden font-numeral text-[13rem] font-bold leading-none text-[#ef4444]/[0.045] xl:block">
+              009
             </div>
-          ) : (
-            <>
-              {section === "overview" ? <OverviewPanel config={config} products={products} stats={stats} language={language} /> : null}
-              {section === "hero" ? <HeroPanel config={config} saving={saving} onSave={saveConfig} language={language} /> : null}
-              {section === "modules" ? <ModulesPanel config={config} saving={saving} onSave={saveConfig} stats={stats} language={language} /> : null}
-              {section === "store" ? <StorePanel products={products} setProducts={setProducts} language={language} /> : null}
-              {section === "themes" ? <ThemesPanel config={config} saving={saving} onSave={saveConfig} language={language} /> : null}
-              {section === "stats" ? <StatsPanel stats={stats} language={language} /> : null}
-            </>
-          )}
-        </div>
-      </section>
+            <p className="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-[#8f8579]">{t.kicker}</p>
+            <h1 className="mt-5 max-w-6xl font-display text-[clamp(2.8rem,5.3vw,5.8rem)] font-black leading-[0.88] tracking-[-0.075em] text-[#f4eadc]">
+              {t.title}
+            </h1>
+            <p className="mt-5 max-w-3xl text-sm leading-7 text-[#bdb2c5] sm:text-base">{t.subtitle}</p>
+
+            <div className="mt-7 max-w-3xl rounded-lg border border-[#3b2848] bg-[#0d0813]/88 p-2 shadow-[0_0_0_1px_rgba(255,255,255,0.025)_inset,0_18px_70px_rgba(0,0,0,0.22)]">
+              <div className="flex items-center gap-2">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/28 bg-[#ef4444]/10 text-[#ef4444]">
+                  <Search className="size-4" />
+                </span>
+                <input
+                  placeholder={t.search}
+                  className="min-w-0 flex-1 bg-transparent px-1 text-sm text-[#f4eadc] outline-none placeholder:text-[#756d84]"
+                />
+                <Link
+                  href="/"
+                  className="flex h-9 items-center gap-2 rounded-md bg-[#ef4444] px-4 font-mono text-[0.62rem] font-bold uppercase tracking-[0.14em] text-[#090807] transition hover:bg-[#ff5b55]"
+                >
+                  {t.openLive}
+                  <ChevronRight className="size-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex h-8 items-center overflow-hidden border-b border-[#2a1937] font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#d6a548]">
+            <div className="flex min-w-max animate-[marquee_32s_linear_infinite] gap-8">
+              {[
+                `${MODULE_TITLES.length - hiddenModules}/${MODULE_TITLES.length} ${t.modules}`,
+                `${products.length} ${t.products}`,
+                `${stats.total.toLocaleString(language === "vi" ? "vi-VN" : "en-US")} ${t.visits}`,
+                `${activeThemes}/${THEME_VALUES.length} ${t.themes}`,
+                t.cache,
+              ].concat([
+                `${MODULE_TITLES.length - hiddenModules}/${MODULE_TITLES.length} ${t.modules}`,
+                `${products.length} ${t.products}`,
+                `${stats.total.toLocaleString(language === "vi" ? "vi-VN" : "en-US")} ${t.visits}`,
+                `${activeThemes}/${THEME_VALUES.length} ${t.themes}`,
+                t.cache,
+              ]).map((item, index) => (
+                <span key={`${item}-${index}`} className="flex items-center gap-2">
+                  <span className={cn("size-1.5 rounded-full", index % 3 === 0 ? "bg-[#d6a548]" : index % 3 === 1 ? "bg-[#45a85d]" : "bg-[#ef4444]")} />
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+            {sections.map((item) => (
+              <SectionButton key={item.id} active={section === item.id} onClick={() => setSection(item.id)} icon={item.icon} label={t[item.label]} hint={t[item.hint]} />
+            ))}
+          </div>
+
+          <div className="mt-5">
+            {!config ? (
+              <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-[#3b2848] bg-[#0d0813]/58">
+                <Loader2 className="mr-2 size-4 animate-spin text-[#a78bfa]" />
+                <span className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-[#9f968b]">{t.loading}</span>
+              </div>
+            ) : (
+              <>
+                {section === "overview" ? <Overview config={config} products={products} stats={stats} topModule={topModule} language={language} /> : null}
+                {section === "hero" ? <HeroPanel config={config} saving={saving} onSave={saveConfig} language={language} /> : null}
+                {section === "modules" ? <ModulesPanel config={config} saving={saving} onSave={saveConfig} stats={stats} language={language} /> : null}
+                {section === "store" ? <StorePanel products={products} setProducts={setProducts} language={language} /> : null}
+                {section === "themes" ? <ThemesPanel config={config} saving={saving} onSave={saveConfig} language={language} /> : null}
+                {section === "stats" ? <StatsPanel stats={stats} language={language} /> : null}
+              </>
+            )}
+          </div>
+        </section>
+
+        <aside className="hidden border-l border-[#2a1937] bg-[#08050d]/58 px-4 py-5 xl:block">
+          <p className="font-mono text-[0.58rem] uppercase tracking-[0.24em] text-[#756d84]">{t.context}</p>
+          <h2 className="mt-1 text-lg font-black tracking-[-0.04em] text-[#f4eadc]">{t.recent}</h2>
+
+          <div className="mt-4 space-y-2">
+            <ContextCard label={t.modules} value={`${MODULE_TITLES.length - hiddenModules}/${MODULE_TITLES.length}`} tone="red" />
+            <ContextCard label={t.products} value={String(products.length)} tone="gold" />
+            <ContextCard label={t.visits} value={stats.total.toLocaleString(language === "vi" ? "vi-VN" : "en-US")} tone="green" />
+            <ContextCard label={t.themes} value={`${activeThemes}/${THEME_VALUES.length}`} tone="violet" />
+          </div>
+
+          <div className="mt-6 rounded-lg border border-[#45a85d]/18 bg-[#071109]/70 p-3">
+            <div className="flex items-center gap-2 font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#45a85d]">
+              <span className="size-1.5 rounded-full bg-[#45a85d]" />
+              {t.queue}
+            </div>
+            <p className="mt-2 text-xs leading-5 text-[#9f968b]">{t.queueBody}</p>
+          </div>
+
+          <div className="mt-4 rounded-lg border border-[#a78bfa]/16 bg-[#12091f]/70 p-3">
+            <div className="font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#c4b3ff]">{t.quickOps}</div>
+            <p className="mt-2 text-xs leading-5 text-[#9f968b]">{copy[language].commandNotes}</p>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }
 
-// ============================================================
-// Shared primitives — match Markets / Tools / Calculators
-// ============================================================
-
-function Panel({ title, action, children }: Readonly<{ title: string; action?: React.ReactNode; children: React.ReactNode }>) {
-  return (
-    <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#f0c86d]">
-          <span className="size-1.5 rounded-full bg-[#d6a548]" />
-          {title}
-        </div>
-        {action ?? null}
-      </div>
-      <div className="mt-3">{children}</div>
-    </div>
-  );
-}
-
-function PrimaryButton({ saving, onClick, label, icon: Icon = Save }: Readonly<{ saving?: boolean; onClick: () => void; label: string; icon?: typeof Save }>) {
-  return (
-    <button
-      type="button"
-      disabled={saving}
-      onClick={onClick}
-      className="flex h-9 items-center gap-2 rounded-md border border-[#d6a548]/40 bg-[#d6a548]/14 px-3 font-mono text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[#fff2d3] transition hover:border-[#d6a548]/70 hover:bg-[#d6a548]/22 disabled:opacity-55"
-    >
-      {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Icon className="size-3.5" />}
-      {label}
-    </button>
-  );
-}
-
-function GhostButton({ onClick, label, tone = "default", icon: Icon }: Readonly<{ onClick: () => void; label: string; tone?: "default" | "danger"; icon?: typeof Save }>) {
+function SectionButton({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+  hint,
+}: Readonly<{ active: boolean; onClick: () => void; icon: typeof LayoutGrid; label: string; hint: string }>) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-7 items-center gap-1.5 rounded-md border px-2.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition",
-        tone === "danger"
-          ? "border-[#ef4444]/35 bg-[#ef4444]/8 text-[#ffb4ad] hover:border-[#ef4444]/65 hover:bg-[#ef4444]/14"
-          : "border-white/10 bg-white/[0.025] text-[#a79d91] hover:border-white/30 hover:text-[#f4eadc]",
+        "group flex min-h-24 flex-col items-start justify-between rounded-lg border p-3 text-left transition",
+        active
+          ? "border-[#a78bfa]/60 bg-[#1a1029]/86 shadow-[0_0_34px_rgba(167,139,250,0.12)]"
+          : "border-[#2d2037] bg-[#0e0915]/76 hover:border-[#ef4444]/32 hover:bg-[#140c1d]",
       )}
     >
-      {Icon ? <Icon className="size-3" /> : null}
+      <span className={cn("flex size-8 items-center justify-center rounded-md border", active ? "border-[#a78bfa]/55 bg-[#a78bfa]/14 text-[#c4b3ff]" : "border-[#ef4444]/24 bg-[#ef4444]/8 text-[#ef4444]")}>
+        <Icon className="size-4" />
+      </span>
+      <span>
+        <span className="block text-sm font-bold text-[#f4eadc]">{label}</span>
+        <span className="mt-1 block font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#756d84]">{hint}</span>
+      </span>
+    </button>
+  );
+}
+
+function ContextCard({ label, value, tone }: Readonly<{ label: string; value: string; tone: "red" | "gold" | "green" | "violet" }>) {
+  const tones = {
+    red: "text-[#ef4444]",
+    gold: "text-[#d6a548]",
+    green: "text-[#45a85d]",
+    violet: "text-[#a78bfa]",
+  };
+  return (
+    <div className="rounded-lg border border-[#2d2037] bg-[#0e0915]/72 px-3 py-3">
+      <div className="font-mono text-[0.5rem] uppercase tracking-[0.18em] text-[#756d84]">{label}</div>
+      <div className={cn("mt-1 text-sm font-bold", tones[tone])}>{value}</div>
+    </div>
+  );
+}
+
+function Panel({ title, action, children }: Readonly<{ title: string; action?: ReactNode; children: ReactNode }>) {
+  return (
+    <section className="rounded-lg border border-[#2d2037] bg-[#0d0813]/78 p-4 shadow-[0_24px_90px_rgba(0,0,0,0.22)]">
+      <div className="flex items-center justify-between gap-3 border-b border-white/7 pb-3">
+        <div className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
+          <span className="size-1.5 rounded-full bg-[#d6a548]" />
+          {title}
+        </div>
+        {action}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function AdminButton({
+  label,
+  onClick,
+  icon: Icon = Save,
+  disabled,
+  tone = "primary",
+}: Readonly<{ label: string; onClick: () => void; icon?: typeof Save; disabled?: boolean; tone?: "primary" | "ghost" | "danger" }>) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-9 items-center gap-2 rounded-md border px-3 font-mono text-[0.6rem] font-bold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-55",
+        tone === "primary" && "border-[#ef4444]/48 bg-[#ef4444]/16 text-[#ffd7d3] hover:border-[#ef4444]/70 hover:bg-[#ef4444]/22",
+        tone === "ghost" && "border-white/10 bg-white/[0.025] text-[#bdb2c5] hover:border-white/25 hover:text-[#f4eadc]",
+        tone === "danger" && "border-[#ef4444]/36 bg-[#ef4444]/8 text-[#ffb4ad] hover:border-[#ef4444]/60",
+      )}
+    >
+      {disabled ? <Loader2 className="size-3.5 animate-spin" /> : <Icon className="size-3.5" />}
       {label}
     </button>
   );
 }
 
-function Input({ value, onChange, placeholder, type = "text" }: Readonly<{ value: string | number; onChange: (v: string) => void; placeholder?: string; type?: string }>) {
+function Field({ label, children }: Readonly<{ label: string; children: ReactNode }>) {
   return (
-    <input
-      type={type}
-      value={value === undefined || value === null ? "" : value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full rounded-md border border-[#3b2a0d] bg-[#1a1209] px-3 py-2 font-mono text-[0.85rem] text-[#f4eadc] outline-none placeholder:text-[#5e574e] focus:border-[#d6a548]/55"
-    />
-  );
-}
-
-function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#f0c86d]">{label}</span>
+    <label className="block">
+      <span className="mb-1.5 block font-mono text-[0.54rem] uppercase tracking-[0.18em] text-[#a78bfa]">{label}</span>
       {children}
     </label>
   );
 }
 
-// ============================================================
-// Overview
-// ============================================================
+function TextInput({ value, onChange, placeholder, type = "text" }: Readonly<{ value: string | number; onChange: (value: string) => void; placeholder?: string; type?: string }>) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      className="h-10 w-full rounded-md border border-[#2d2037] bg-[#0b0710] px-3 text-sm text-[#f4eadc] outline-none placeholder:text-[#5f5668] focus:border-[#a78bfa]/55"
+    />
+  );
+}
 
-function OverviewPanel({ config, products, stats, language }: Readonly<{ config: SiteConfig; products: StoreItem[]; stats: { byModule: Record<string, number>; total: number }; language: "vi" | "en" }>) {
-  const totalHidden = Object.values(config.modules).filter((m) => m?.hidden).length;
-  const totalThemesHidden = Object.values(config.themes).filter((t) => t?.hidden).length;
-  const topModule = Object.entries(stats.byModule).sort((a, b) => b[1] - a[1])[0];
-
+function Overview({
+  config,
+  products,
+  stats,
+  topModule,
+  language,
+}: Readonly<{ config: SiteConfig; products: StoreItem[]; stats: { byModule: Record<string, number>; total: number }; topModule?: [string, number]; language: WebLanguage }>) {
+  const t = copy[language];
+  const hiddenModules = Object.values(config.modules).filter((item) => item?.hidden).length;
+  const disabledThemes = Object.values(config.themes).filter((item) => item?.hidden).length;
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          label={language === "vi" ? "Module hiển thị" : "Modules visible"}
-          value={`${MODULE_TITLES.length - totalHidden}/${MODULE_TITLES.length}`}
-          icon={CircleDot}
-        />
-        <StatCard
-          label={language === "vi" ? "Sản phẩm Store" : "Store items"}
-          value={products.length.toString()}
-          icon={ShoppingBag}
-        />
-        <StatCard
-          label={language === "vi" ? "Lượt mở module" : "Module opens"}
-          value={stats.total.toLocaleString(language === "vi" ? "vi-VN" : "en-US")}
-          icon={BarChart3}
-        />
-        <StatCard
-          label={language === "vi" ? "Module hot nhất" : "Top module"}
-          value={topModule ? `${topModule[0]}` : "—"}
-          sub={topModule ? `${topModule[1].toLocaleString(language === "vi" ? "vi-VN" : "en-US")} ${language === "vi" ? "lượt" : "visits"}` : undefined}
-          icon={Sparkles}
-        />
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <Metric label={t.modules} value={`${MODULE_TITLES.length - hiddenModules}/${MODULE_TITLES.length}`} icon={Boxes} />
+        <Metric label={t.products} value={String(products.length)} icon={ShoppingBag} />
+        <Metric label={t.visits} value={stats.total.toLocaleString(language === "vi" ? "vi-VN" : "en-US")} icon={BarChart3} />
+        <Metric label={language === "vi" ? "Top module" : "Top module"} value={topModule?.[0] ?? "—"} sub={topModule ? String(topModule[1]) : undefined} icon={Sparkles} />
       </div>
-
-      <Panel title={language === "vi" ? "Hướng dẫn nhanh" : "Cheatsheet"}>
-        <div className="grid gap-2 sm:grid-cols-2">
+      <Panel title={language === "vi" ? "Operations brief" : "Operations brief"}>
+        <div className="grid gap-3 lg:grid-cols-3">
           {[
-            { vi: "Hero: thêm/xoá câu chạy banner trang chủ. 1 dòng = 1 câu, lưu là user thấy ngay.", en: "Hero: edit homepage headlines. One per line. Saves instantly." },
-            { vi: "Modules: ẩn thẻ khỏi grid + rail, đánh dấu Coming soon, sửa chú thích VI/EN.", en: "Modules: hide tiles, mark coming soon, custom VI/EN tagline." },
-            { vi: "AI Store: thêm/sửa/xoá tài khoản, đặt giá, badge HOT/NEW, stock, ghi chú.", en: "AI Store: full CRUD, pricing, badges, stock, notes." },
-            { vi: "Themes: tắt theme không muốn user chọn. Còn lại 7 - " + totalThemesHidden + ".", en: "Themes: disable any of 7 looks. " + (7 - totalThemesHidden) + " active." },
-            { vi: "Stats: track lượt mở module realtime để biết user dùng gì nhiều nhất.", en: "Stats: realtime module opens to see what users actually use." },
-            { vi: "Cache: thay đổi đẩy ra production sau tối đa 30 giây (in-memory + ISR).", en: "Cache: changes go live within 30s (in-memory + ISR)." },
-          ].map((row, i) => (
-            <div key={i} className="rounded-md border border-[#3b2a0d] bg-[#1a1209]/60 px-3 py-2.5 text-[0.78rem] leading-5 text-[#dfd5c7]">
-              {language === "vi" ? row.vi : row.en}
+            `${config.hero.vi.length} VI / ${config.hero.en.length} EN hero lines`,
+            `${hiddenModules} hidden modules, ${MODULE_TITLES.length - hiddenModules} visible`,
+            `${disabledThemes} disabled themes, ${THEME_VALUES.length - disabledThemes} active`,
+          ].map((item) => (
+            <div key={item} className="rounded-md border border-[#2d2037] bg-[#0b0710]/72 p-3 text-sm leading-6 text-[#d8cfc4]">
+              {item}
             </div>
           ))}
         </div>
@@ -368,164 +570,80 @@ function OverviewPanel({ config, products, stats, language }: Readonly<{ config:
   );
 }
 
-function StatCard({ label, value, sub, icon: Icon }: Readonly<{ label: string; value: string; sub?: string; icon: typeof Sparkles }>) {
+function Metric({ label, value, sub, icon: Icon }: Readonly<{ label: string; value: string; sub?: string; icon: typeof Boxes }>) {
   return (
-    <div className="rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-4">
+    <div className="rounded-lg border border-[#2d2037] bg-[#0d0813]/78 p-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#f0c86d]">{label}</span>
-        <span className="flex size-7 items-center justify-center rounded-md border border-[#d6a548]/22 bg-[#d6a548]/8 text-[#d6a548]">
-          <Icon className="size-3.5" />
+        <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#756d84]">{label}</span>
+        <span className="flex size-8 items-center justify-center rounded-md border border-[#a78bfa]/24 bg-[#a78bfa]/10 text-[#a78bfa]">
+          <Icon className="size-4" />
         </span>
       </div>
-      <div className="mt-3 truncate font-display text-[1.6rem] font-black leading-tight tracking-[-0.04em] text-[#fff2d3] sm:text-[1.9rem]">
-        {value}
-      </div>
-      {sub ? <div className="mt-0.5 font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#5e574e]">{sub}</div> : null}
+      <div className="mt-3 truncate font-display text-3xl font-black tracking-[-0.06em] text-[#f4eadc]">{value}</div>
+      {sub ? <div className="font-mono text-[0.52rem] uppercase tracking-[0.16em] text-[#756d84]">{sub}</div> : null}
     </div>
   );
 }
 
-// ============================================================
-// Hero
-// ============================================================
-
-function HeroPanel({ config, saving, onSave, language }: Readonly<{ config: SiteConfig; saving: boolean; onSave: (patch: Partial<SiteConfig>) => Promise<void>; language: "vi" | "en" }>) {
+function HeroPanel({ config, saving, onSave, language }: Readonly<{ config: SiteConfig; saving: boolean; onSave: (patch: Partial<SiteConfig>) => Promise<void>; language: WebLanguage }>) {
+  const t = copy[language];
   const [vi, setVi] = useState(config.hero.vi.join("\n"));
   const [en, setEn] = useState(config.hero.en.join("\n"));
-
-  const viCount = vi.split("\n").filter((l) => l.trim()).length;
-  const enCount = en.split("\n").filter((l) => l.trim()).length;
-
   return (
-    <div className="space-y-3">
+    <Panel
+      title={language === "vi" ? "Hero headlines" : "Hero headlines"}
+      action={<AdminButton label={t.saveHero} disabled={saving} onClick={() => onSave({ hero: { vi: toLines(vi), en: toLines(en) } })} />}
+    >
       <div className="grid gap-3 lg:grid-cols-2">
-        <Panel title={language === "vi" ? "Tiếng Việt" : "Vietnamese"} action={
-          <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#7dd391]">
-            {viCount} {language === "vi" ? "câu" : "lines"}
-          </span>
-        }>
-          <textarea
-            value={vi}
-            onChange={(e) => setVi(e.target.value)}
-            rows={14}
-            placeholder={language === "vi" ? "Mỗi dòng là 1 câu hero..." : "One headline per line..."}
-            className="w-full resize-y rounded-md border border-[#3b2a0d] bg-[#1a1209] px-3 py-2 font-mono text-[0.85rem] text-[#f4eadc] outline-none placeholder:text-[#5e574e] focus:border-[#d6a548]/55"
-          />
-        </Panel>
-        <Panel title="English" action={
-          <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#7dd391]">
-            {enCount} lines
-          </span>
-        }>
-          <textarea
-            value={en}
-            onChange={(e) => setEn(e.target.value)}
-            rows={14}
-            placeholder="One headline per line..."
-            className="w-full resize-y rounded-md border border-[#3b2a0d] bg-[#1a1209] px-3 py-2 font-mono text-[0.85rem] text-[#f4eadc] outline-none placeholder:text-[#5e574e] focus:border-[#d6a548]/55"
-          />
-        </Panel>
+        <Field label="VI">
+          <textarea value={vi} onChange={(event) => setVi(event.target.value)} rows={12} className="w-full resize-y rounded-md border border-[#2d2037] bg-[#0b0710] p-3 text-sm leading-6 text-[#f4eadc] outline-none focus:border-[#a78bfa]/55" />
+        </Field>
+        <Field label="EN">
+          <textarea value={en} onChange={(event) => setEn(event.target.value)} rows={12} className="w-full resize-y rounded-md border border-[#2d2037] bg-[#0b0710] p-3 text-sm leading-6 text-[#f4eadc] outline-none focus:border-[#a78bfa]/55" />
+        </Field>
       </div>
-
-      <div className="flex items-center justify-end gap-2">
-        <PrimaryButton
-          saving={saving}
-          label={language === "vi" ? "Lưu hero" : "Save hero"}
-          onClick={() => onSave({ hero: { vi: vi.split("\n").map((s) => s.trim()).filter(Boolean), en: en.split("\n").map((s) => s.trim()).filter(Boolean) } })}
-        />
-      </div>
-    </div>
+    </Panel>
   );
 }
 
-// ============================================================
-// Modules
-// ============================================================
-
-function ModulesPanel({ config, saving, onSave, stats, language }: Readonly<{ config: SiteConfig; saving: boolean; onSave: (patch: Partial<SiteConfig>) => Promise<void>; stats: { byModule: Record<string, number> }; language: "vi" | "en" }>) {
+function ModulesPanel({
+  config,
+  saving,
+  onSave,
+  stats,
+  language,
+}: Readonly<{ config: SiteConfig; saving: boolean; onSave: (patch: Partial<SiteConfig>) => Promise<void>; stats: { byModule: Record<string, number> }; language: WebLanguage }>) {
+  const t = copy[language];
   const [draft, setDraft] = useState(config.modules);
-  const totalHidden = Object.values(draft).filter((m) => m?.hidden).length;
-  const totalSoon = Object.values(draft).filter((m) => m?.comingSoon).length;
-  const dirty = JSON.stringify(draft) !== JSON.stringify(config.modules);
-
   return (
-    <Panel
-      title={`${MODULE_TITLES.length - totalHidden}/${MODULE_TITLES.length} ${language === "vi" ? "hiển thị" : "visible"} · ${totalSoon} ${language === "vi" ? "sắp ra mắt" : "soon"}`}
-      action={
-        <PrimaryButton
-          saving={saving}
-          label={language === "vi" ? "Lưu modules" : "Save modules"}
-          onClick={() => onSave({ modules: draft })}
-        />
-      }
-    >
-      {dirty ? (
-        <div className="mb-3 rounded-md border border-[#d6a548]/40 bg-[#211606]/60 px-3 py-2 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#fff2d3]">
-          {language === "vi" ? "Có thay đổi chưa lưu" : "Unsaved changes"}
-        </div>
-      ) : null}
-      <div className="space-y-2">
-        {MODULE_TITLES.map((title) => {
-          const cur = draft[title] ?? {};
-          const visits = stats.byModule[title] ?? 0;
-          const hidden = Boolean(cur.hidden);
-          const soon = Boolean(cur.comingSoon);
+    <Panel title={t.modules} action={<AdminButton label={t.saveModules} disabled={saving} onClick={() => onSave({ modules: draft })} />}>
+      <div className="grid gap-2 xl:grid-cols-2">
+        {MODULE_TITLES.map((title, index) => {
+          const item = draft[title] ?? {};
           return (
-            <div key={title} className={cn(
-              "rounded-lg border bg-[#1a1209]/60 p-3 transition",
-              hidden ? "border-[#5a3408] opacity-60" : "border-[#3b2a0d] hover:border-[#d6a548]/30",
-            )}>
-              <div className="flex items-center gap-3">
-                <GripVertical className="size-3.5 shrink-0 text-[#5e574e]" />
+            <article key={title} className={cn("rounded-lg border p-3", item.hidden ? "border-[#ef4444]/22 bg-[#17080c]/62 opacity-70" : "border-[#2d2037] bg-[#0b0710]/72")}>
+              <div className="flex items-start gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/24 bg-[#ef4444]/10 font-mono text-[0.58rem] text-[#ef4444]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[0.95rem] font-bold text-[#f4eadc]">{title}</span>
-                    {visits > 0 ? (
-                      <span className="rounded border border-[#7dd391]/35 bg-[#7dd391]/10 px-1.5 py-0.5 font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#7dd391]">
-                        {visits.toLocaleString(language === "vi" ? "vi-VN" : "en-US")} {language === "vi" ? "lượt" : "visits"}
-                      </span>
-                    ) : null}
+                    <h3 className="font-bold text-[#f4eadc]">{title}</h3>
+                    <span className="rounded border border-[#45a85d]/28 bg-[#45a85d]/8 px-1.5 py-0.5 font-mono text-[0.48rem] uppercase tracking-[0.16em] text-[#7dd391]">
+                      {(stats.byModule[title] ?? 0).toLocaleString(language === "vi" ? "vi-VN" : "en-US")} {t.visits}
+                    </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                    <Input
-                      value={cur.detailVi ?? ""}
-                      onChange={(v) => setDraft({ ...draft, [title]: { ...cur, detailVi: v } })}
-                      placeholder={language === "vi" ? "Detail VI (trống = mặc định)" : "Detail VI (blank = default)"}
-                    />
-                    <Input
-                      value={cur.detailEn ?? ""}
-                      onChange={(v) => setDraft({ ...draft, [title]: { ...cur, detailEn: v } })}
-                      placeholder={language === "vi" ? "Detail EN (trống = mặc định)" : "Detail EN (blank = default)"}
-                    />
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    <TextInput value={item.detailVi ?? ""} onChange={(value) => setDraft({ ...draft, [title]: { ...item, detailVi: value } })} placeholder="Detail VI" />
+                    <TextInput value={item.detailEn ?? ""} onChange={(value) => setDraft({ ...draft, [title]: { ...item, detailEn: value } })} placeholder="Detail EN" />
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setDraft({ ...draft, [title]: { ...cur, comingSoon: !soon } })}
-                    className={cn(
-                      "rounded-md border px-2.5 py-1 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition",
-                      soon ? "border-[#d6a548]/65 bg-[#d6a548]/14 text-[#fff2d3]" : "border-white/10 bg-white/[0.025] text-[#a79d91] hover:border-[#d6a548]/30",
-                    )}
-                  >
-                    {language === "vi" ? "Soon" : "Soon"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDraft({ ...draft, [title]: { ...cur, hidden: !hidden } })}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition",
-                      hidden
-                        ? "border-[#ef4444]/55 bg-[#ef4444]/12 text-[#ffd7d3]"
-                        : "border-[#7dd391]/45 bg-[#7dd391]/10 text-[#7dd391]",
-                    )}
-                  >
-                    {hidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                    {hidden ? (language === "vi" ? "Ẩn" : "Hidden") : (language === "vi" ? "Hiện" : "Visible")}
-                  </button>
+                  <Toggle active={Boolean(item.comingSoon)} onClick={() => setDraft({ ...draft, [title]: { ...item, comingSoon: !item.comingSoon } })} label={t.comingSoon} />
+                  <Toggle active={!item.hidden} onClick={() => setDraft({ ...draft, [title]: { ...item, hidden: !item.hidden } })} label={item.hidden ? t.hidden : t.visible} icon={item.hidden ? EyeOff : Eye} />
                 </div>
               </div>
-            </div>
+            </article>
           );
         })}
       </div>
@@ -533,11 +651,24 @@ function ModulesPanel({ config, saving, onSave, stats, language }: Readonly<{ co
   );
 }
 
-// ============================================================
-// Themes
-// ============================================================
+function Toggle({ active, onClick, label, icon: Icon = Check }: Readonly<{ active: boolean; onClick: () => void; label: string; icon?: typeof Check }>) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 font-mono text-[0.55rem] uppercase tracking-[0.14em]",
+        active ? "border-[#45a85d]/38 bg-[#45a85d]/10 text-[#7dd391]" : "border-white/10 bg-white/[0.025] text-[#9f968b]",
+      )}
+    >
+      <Icon className="size-3" />
+      {label}
+    </button>
+  );
+}
 
-function ThemesPanel({ config, saving, onSave, language }: Readonly<{ config: SiteConfig; saving: boolean; onSave: (patch: Partial<SiteConfig>) => Promise<void>; language: "vi" | "en" }>) {
+function ThemesPanel({ config, saving, onSave, language }: Readonly<{ config: SiteConfig; saving: boolean; onSave: (patch: Partial<SiteConfig>) => Promise<void>; language: WebLanguage }>) {
+  const t = copy[language];
   const [draft, setDraft] = useState(config.themes);
   const swatches: Record<string, string> = {
     auto: "bg-[#d6a548]",
@@ -548,35 +679,23 @@ function ThemesPanel({ config, saving, onSave, language }: Readonly<{ config: Si
     eclipse: "bg-[#a78bfa]",
     plasma: "bg-[#ec4899]",
   };
-
   return (
-    <Panel
-      title={`${THEME_VALUES.length - Object.values(draft).filter((t) => t?.hidden).length}/${THEME_VALUES.length} ${language === "vi" ? "đang bật" : "enabled"}`}
-      action={<PrimaryButton saving={saving} label={language === "vi" ? "Lưu themes" : "Save themes"} onClick={() => onSave({ themes: draft })} />}
-    >
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        {THEME_VALUES.map((t) => {
-          const hidden = Boolean(draft[t]?.hidden);
+    <Panel title={t.themes} action={<AdminButton label={t.saveThemes} disabled={saving} onClick={() => onSave({ themes: draft })} />}>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        {THEME_VALUES.map((theme) => {
+          const hidden = Boolean(draft[theme]?.hidden);
           return (
             <button
-              key={t}
+              key={theme}
               type="button"
-              onClick={() => setDraft({ ...draft, [t]: { hidden: !hidden } })}
-              className={cn(
-                "flex items-center gap-3 rounded-xl border px-3 py-3 text-left transition",
-                hidden
-                  ? "border-[#ef4444]/45 bg-[#1a0606]/60 text-[#ffb4ad]"
-                  : "border-[#3b2a0d] bg-[#1a1209]/60 text-[#fff2d3] hover:border-[#d6a548]/45",
-              )}
+              onClick={() => setDraft({ ...draft, [theme]: { hidden: !hidden } })}
+              className={cn("flex items-center gap-3 rounded-lg border p-3 text-left transition", hidden ? "border-[#ef4444]/28 bg-[#17080c]/62" : "border-[#2d2037] bg-[#0b0710]/72 hover:border-[#a78bfa]/38")}
             >
-              <span className={cn("size-8 shrink-0 rounded-md", swatches[t] || "bg-white/10", hidden && "opacity-40")} />
-              <span className="min-w-0 flex-1">
-                <span className="block font-mono text-[0.7rem] uppercase tracking-[0.18em]">{t}</span>
-                <span className="block font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#5e574e]">
-                  {hidden ? (language === "vi" ? "Tắt" : "Disabled") : (language === "vi" ? "Bật" : "Enabled")}
-                </span>
+              <span className={cn("size-8 shrink-0 rounded-md", swatches[theme], hidden && "opacity-35")} />
+              <span>
+                <span className="block font-mono text-[0.72rem] uppercase tracking-[0.18em] text-[#f4eadc]">{theme}</span>
+                <span className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#756d84]">{hidden ? t.disabled : t.enabled}</span>
               </span>
-              {hidden ? <EyeOff className="size-3.5 shrink-0" /> : <Eye className="size-3.5 shrink-0" />}
             </button>
           );
         })}
@@ -585,39 +704,26 @@ function ThemesPanel({ config, saving, onSave, language }: Readonly<{ config: Si
   );
 }
 
-// ============================================================
-// Stats
-// ============================================================
-
-function StatsPanel({ stats, language }: Readonly<{ stats: { byModule: Record<string, number>; total: number }; language: "vi" | "en" }>) {
-  const sorted = Object.entries(stats.byModule).sort((a, b) => b[1] - a[1]);
-  const max = Math.max(1, ...sorted.map((s) => s[1]));
-
+function StatsPanel({ stats, language }: Readonly<{ stats: { byModule: Record<string, number>; total: number }; language: WebLanguage }>) {
+  const t = copy[language];
+  const rows = Object.entries(stats.byModule).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(1, ...rows.map(([, count]) => count));
   return (
-    <Panel title={`${stats.total.toLocaleString(language === "vi" ? "vi-VN" : "en-US")} ${language === "vi" ? "lượt mở module" : "total module opens"}`}>
-      {sorted.length === 0 ? (
-        <div className="rounded-md border border-dashed border-[#3b2a0d] bg-[#1a1209]/30 px-4 py-8 text-center">
-          <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[#a79d91]">
-            {language === "vi" ? "Chưa có dữ liệu" : "No data yet"}
-          </p>
-          <p className="mt-2 text-[0.78rem] text-[#dfd5c7]">
-            {language === "vi" ? "Mở module bất kỳ trên home, /api/track sẽ ghi log realtime." : "Open any module on home, /api/track records realtime."}
-          </p>
+    <Panel title={`${stats.total.toLocaleString(language === "vi" ? "vi-VN" : "en-US")} ${t.visits}`}>
+      {rows.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-[#2d2037] bg-[#0b0710]/56 py-12 text-center">
+          <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[#9f968b]">{t.noData}</p>
+          <p className="mt-2 text-sm text-[#756d84]">{t.noDataBody}</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {sorted.map(([name, count]) => (
-            <div key={name} className="flex items-center gap-3 rounded-md border border-[#3b2a0d] bg-[#1a1209]/60 px-3 py-2">
-              <span className="w-32 shrink-0 truncate text-[0.85rem] font-bold text-[#f4eadc]">{name}</span>
-              <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-[#0e0c08]">
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#d6a548] to-[#f0c86d]"
-                  style={{ width: `${(count / max) * 100}%` }}
-                />
-              </div>
-              <span className="w-20 shrink-0 text-right font-mono text-[0.85rem] font-bold tabular-nums text-[#fff2d3]">
-                {count.toLocaleString(language === "vi" ? "vi-VN" : "en-US")}
+          {rows.map(([name, count]) => (
+            <div key={name} className="grid grid-cols-[9rem_minmax(0,1fr)_5rem] items-center gap-3 rounded-md border border-[#2d2037] bg-[#0b0710]/72 px-3 py-2">
+              <span className="truncate text-sm font-bold text-[#f4eadc]">{name}</span>
+              <span className="relative h-2 overflow-hidden rounded-full bg-[#17101f]">
+                <span className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#ef4444] via-[#a78bfa] to-[#45a85d]" style={{ width: `${(count / max) * 100}%` }} />
               </span>
+              <span className="text-right font-mono text-sm font-bold tabular-nums text-[#f4eadc]">{count}</span>
             </div>
           ))}
         </div>
@@ -626,23 +732,16 @@ function StatsPanel({ stats, language }: Readonly<{ stats: { byModule: Record<st
   );
 }
 
-// ============================================================
-// Store CRUD
-// ============================================================
-
-function StorePanel({ products, setProducts, language }: Readonly<{ products: StoreItem[]; setProducts: (items: StoreItem[]) => void; language: "vi" | "en" }>) {
+function StorePanel({ products, setProducts, language }: Readonly<{ products: StoreItem[]; setProducts: (items: StoreItem[]) => void; language: WebLanguage }>) {
+  const t = copy[language];
   const [editing, setEditing] = useState<StoreItem | null>(null);
   const [filter, setFilter] = useState<StoreItemKind | "all">("all");
-
-  const visible = useMemo(() => {
-    if (filter === "all") return products;
-    return products.filter((p) => p.kind === filter);
-  }, [products, filter]);
+  const filtered = useMemo(() => (filter === "all" ? products : products.filter((item) => item.kind === filter)), [filter, products]);
 
   async function deleteItem(id: string) {
-    if (!confirm(language === "vi" ? "Xoá sản phẩm này?" : "Delete this product?")) return;
+    if (!confirm(language === "vi" ? "Xóa sản phẩm này?" : "Delete this product?")) return;
     await fetch(`/api/admin/products?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    setProducts(products.filter((p) => p.id !== id));
+    setProducts(products.filter((item) => item.id !== id));
   }
 
   async function saveItem(item: StoreItem) {
@@ -651,57 +750,43 @@ function StorePanel({ products, setProducts, language }: Readonly<{ products: St
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(item),
     });
-    const exists = products.some((p) => p.id === item.id);
-    setProducts(exists ? products.map((p) => (p.id === item.id ? item : p)) : [...products, item]);
+    setProducts(products.some((product) => product.id === item.id) ? products.map((product) => (product.id === item.id ? item : product)) : [...products, item]);
     setEditing(null);
   }
-
-  const filters: ReadonlyArray<{ id: StoreItemKind | "all"; vi: string; en: string }> = [
-    { id: "all", vi: "Tất cả", en: "All" },
-    { id: "chatbot", vi: "Chatbot", en: "Chatbot" },
-    { id: "api", vi: "API", en: "API" },
-    { id: "code", vi: "Code", en: "Code" },
-    { id: "image", vi: "Ảnh", en: "Image" },
-    { id: "video", vi: "Video", en: "Video" },
-    { id: "audio", vi: "Audio", en: "Audio" },
-  ];
 
   return (
     <div className="space-y-3">
       <Panel
-        title={`${visible.length}/${products.length} ${language === "vi" ? "sản phẩm" : "products"}`}
+        title={`${filtered.length}/${products.length} ${t.products}`}
         action={
-          <PrimaryButton
-            label={language === "vi" ? "Thêm" : "Add"}
-            icon={Plus}
-            onClick={() => setEditing({
-              id: `new-${Date.now()}`,
-              brand: "",
-              product: "",
-              detail: "",
-              kind: "chatbot",
-              duration: "1 tháng",
-              priceVnd: 0,
-              stock: "in",
-              warranty: "Bảo hành 1-1",
-            })}
+          <AdminButton
+            label={t.addProduct}
+            icon={PackagePlus}
+            onClick={() =>
+              setEditing({
+                id: `new-${Date.now()}`,
+                brand: "",
+                product: "",
+                detail: "",
+                kind: "chatbot",
+                duration: "1 month",
+                priceVnd: 0,
+                stock: "in",
+                warranty: "1-1 warranty",
+              })
+            }
           />
         }
       >
         <div className="flex flex-wrap gap-1.5">
-          {filters.map((f) => (
+          {(["all", "chatbot", "api", "image", "video", "audio", "code"] as const).map((kind) => (
             <button
-              key={f.id}
+              key={kind}
               type="button"
-              onClick={() => setFilter(f.id)}
-              className={cn(
-                "rounded-md border px-2.5 py-1 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition",
-                filter === f.id
-                  ? "border-[#d6a548]/65 bg-[#d6a548]/14 text-[#fff2d3]"
-                  : "border-white/10 bg-white/[0.025] text-[#a79d91] hover:border-[#d6a548]/30 hover:text-[#f4eadc]",
-              )}
+              onClick={() => setFilter(kind)}
+              className={cn("rounded-md border px-2.5 py-1 font-mono text-[0.55rem] uppercase tracking-[0.16em]", filter === kind ? "border-[#a78bfa]/55 bg-[#a78bfa]/14 text-[#e3d8ff]" : "border-white/10 bg-white/[0.025] text-[#9f968b]")}
             >
-              {language === "vi" ? f.vi : f.en}
+              {kind}
             </button>
           ))}
         </div>
@@ -709,146 +794,90 @@ function StorePanel({ products, setProducts, language }: Readonly<{ products: St
 
       {editing ? <ProductEditor item={editing} onCancel={() => setEditing(null)} onSave={saveItem} language={language} /> : null}
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {visible.map((p) => {
-          const stockBadge = p.stock === "in"
-            ? { label: language === "vi" ? "Sẵn" : "Stock", tone: "border-[#45a85d]/40 bg-[#45a85d]/12 text-[#7dd391]" }
-            : p.stock === "low"
-            ? { label: language === "vi" ? "Sắp hết" : "Low", tone: "border-[#d6a548]/45 bg-[#d6a548]/14 text-[#fff2d3]" }
-            : { label: language === "vi" ? "Đặt trước" : "Preorder", tone: "border-[#a78bfa]/45 bg-[#a78bfa]/14 text-[#c4b3ff]" };
-          const discount = p.originalVnd && p.originalVnd > p.priceVnd ? Math.round((1 - p.priceVnd / p.originalVnd) * 100) : 0;
-          return (
-            <article
-              key={p.id}
-              className="group flex h-full flex-col gap-2 rounded-xl border border-[#3b2a0d] bg-[#100b04]/72 p-3 transition hover:border-[#d6a548]/45 hover:bg-[#1a1209]/82"
-            >
-              <header className="flex items-start gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-[0.9rem] font-bold text-[#f4eadc]">{p.product}</span>
-                    {p.badge ? (
-                      <span className="rounded border border-[#ef4444]/45 bg-[#ef4444]/14 px-1 py-0.5 font-mono text-[0.46rem] font-bold uppercase tracking-[0.16em] text-[#ffb4ad]">
-                        {p.badge}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#5e574e]">{p.brand} · {p.kind}</p>
-                </div>
-                <span className={cn("shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[0.5rem] uppercase tracking-[0.16em]", stockBadge.tone)}>
-                  {stockBadge.label}
-                </span>
-              </header>
-
-              <p className="line-clamp-2 text-[0.7rem] text-[#a79d91]">{p.detail || "—"}</p>
-
-              <div className="flex items-end justify-between gap-2">
-                <div>
-                  <div className="font-mono text-[1rem] font-bold tabular-nums text-[#fff2d3]">{fmtVnd.format(p.priceVnd)}</div>
-                  {p.originalVnd ? (
-                    <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[0.6rem] tabular-nums">
-                      <span className="text-[#5e574e] line-through">{fmtVnd.format(p.originalVnd)}</span>
-                      {discount > 0 ? <span className="text-[#7dd391]">−{discount}%</span> : null}
-                    </div>
-                  ) : null}
-                </div>
-                <span className="font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#5e574e]">{p.duration}</span>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {filtered.map((item) => (
+          <article key={item.id} className="group rounded-lg border border-[#2d2037] bg-[#0d0813]/78 p-3 transition hover:border-[#ef4444]/32">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-bold text-[#f4eadc]">{item.product}</h3>
+                <p className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#756d84]">{item.brand} / {item.kind}</p>
               </div>
-
-              <div className="mt-auto flex items-center gap-1.5 border-t border-[#3b2a0d] pt-2">
-                <GhostButton onClick={() => setEditing(p)} label={language === "vi" ? "Sửa" : "Edit"} />
-                <GhostButton onClick={() => deleteItem(p.id)} tone="danger" icon={Trash2} label={language === "vi" ? "Xoá" : "Delete"} />
-                <ArrowRight className="ml-auto size-3 text-[#5e574e] transition group-hover:translate-x-0.5 group-hover:text-[#d6a548]" />
-              </div>
-            </article>
-          );
-        })}
+              <span className="rounded border border-[#d6a548]/32 bg-[#d6a548]/10 px-1.5 py-0.5 font-mono text-[0.48rem] uppercase tracking-[0.16em] text-[#d6a548]">
+                {item.stock}
+              </span>
+            </div>
+            <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#bdb2c5]">{item.detail}</p>
+            <div className="mt-3 flex items-end justify-between gap-2">
+              <span className="font-mono text-base font-bold tabular-nums text-[#f4eadc]">{currency.format(item.priceVnd)}</span>
+              <span className="font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d84]">{item.duration}</span>
+            </div>
+            <div className="mt-3 flex gap-1.5 border-t border-white/7 pt-2">
+              <AdminButton tone="ghost" label={t.edit} icon={Wand2} onClick={() => setEditing(item)} />
+              <AdminButton tone="danger" label={t.delete} icon={Trash2} onClick={() => deleteItem(item.id)} />
+            </div>
+          </article>
+        ))}
       </div>
     </div>
   );
 }
 
-function ProductEditor({ item, onCancel, onSave, language }: Readonly<{ item: StoreItem; onCancel: () => void; onSave: (item: StoreItem) => Promise<void>; language: "vi" | "en" }>) {
+function ProductEditor({ item, onCancel, onSave, language }: Readonly<{ item: StoreItem; onCancel: () => void; onSave: (item: StoreItem) => Promise<void>; language: WebLanguage }>) {
+  const t = copy[language];
   const [draft, setDraft] = useState(item);
   const [busy, setBusy] = useState(false);
-
-  const kinds: StoreItemKind[] = ["chatbot", "api", "image", "video", "audio", "code"];
-
   return (
     <Panel
-      title={item.id.startsWith("new-")
-        ? (language === "vi" ? "Thêm sản phẩm mới" : "New product")
-        : (language === "vi" ? "Chỉnh sửa: " + item.product : "Edit: " + item.product)}
+      title={item.id.startsWith("new-") ? t.newProduct : `${t.editProduct}: ${item.product}`}
       action={
-        <div className="flex items-center gap-1.5">
-          <GhostButton onClick={onCancel} label={language === "vi" ? "Huỷ" : "Cancel"} />
-          <PrimaryButton
-            saving={busy}
-            label={language === "vi" ? "Lưu" : "Save"}
+        <div className="flex gap-1.5">
+          <AdminButton tone="ghost" label={t.cancel} onClick={onCancel} />
+          <AdminButton
+            label={t.save}
+            disabled={busy}
             onClick={async () => {
-              if (!draft.id || !draft.product || !draft.brand) return;
               setBusy(true);
-              try { await onSave(draft); } finally { setBusy(false); }
+              try {
+                await onSave(draft);
+              } finally {
+                setBusy(false);
+              }
             }}
           />
         </div>
       }
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label="ID (slug)">
-          <Input value={draft.id} onChange={(v) => setDraft({ ...draft, id: v })} placeholder="chatgpt-plus-1m" />
-        </Field>
-        <Field label="Brand">
-          <Input value={draft.brand} onChange={(v) => setDraft({ ...draft, brand: v })} placeholder="OpenAI" />
-        </Field>
-        <Field label="Product">
-          <Input value={draft.product} onChange={(v) => setDraft({ ...draft, product: v })} placeholder="ChatGPT Plus" />
-        </Field>
-        <div className="sm:col-span-2 lg:col-span-3">
-          <Field label="Detail">
-            <Input value={draft.detail} onChange={(v) => setDraft({ ...draft, detail: v })} placeholder="GPT-5, Sora 2, Advanced Voice" />
-          </Field>
-        </div>
-        <Field label={language === "vi" ? "Loại" : "Kind"}>
-          <select
-            value={draft.kind}
-            onChange={(e) => setDraft({ ...draft, kind: e.target.value as StoreItemKind })}
-            className="w-full rounded-md border border-[#3b2a0d] bg-[#1a1209] px-3 py-2 font-mono text-[0.85rem] text-[#f4eadc] outline-none focus:border-[#d6a548]/55"
-          >
-            {kinds.map((k) => <option key={k} value={k}>{k}</option>)}
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <Field label="ID"><TextInput value={draft.id} onChange={(value) => setDraft({ ...draft, id: value })} /></Field>
+        <Field label="Brand"><TextInput value={draft.brand} onChange={(value) => setDraft({ ...draft, brand: value })} /></Field>
+        <Field label="Product"><TextInput value={draft.product} onChange={(value) => setDraft({ ...draft, product: value })} /></Field>
+        <Field label="Detail"><TextInput value={draft.detail} onChange={(value) => setDraft({ ...draft, detail: value })} /></Field>
+        <Field label="Kind">
+          <select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as StoreItemKind })} className="h-10 w-full rounded-md border border-[#2d2037] bg-[#0b0710] px-3 text-sm text-[#f4eadc] outline-none focus:border-[#a78bfa]/55">
+            {(["chatbot", "api", "image", "video", "audio", "code"] as const).map((kind) => <option key={kind} value={kind}>{kind}</option>)}
           </select>
         </Field>
         <Field label="Stock">
-          <select
-            value={draft.stock}
-            onChange={(e) => setDraft({ ...draft, stock: e.target.value as StoreItem["stock"] })}
-            className="w-full rounded-md border border-[#3b2a0d] bg-[#1a1209] px-3 py-2 font-mono text-[0.85rem] text-[#f4eadc] outline-none focus:border-[#d6a548]/55"
-          >
-            <option value="in">{language === "vi" ? "Sẵn hàng" : "In stock"}</option>
-            <option value="low">{language === "vi" ? "Sắp hết" : "Low"}</option>
-            <option value="preorder">{language === "vi" ? "Đặt trước" : "Preorder"}</option>
+          <select value={draft.stock} onChange={(event) => setDraft({ ...draft, stock: event.target.value as StoreItem["stock"] })} className="h-10 w-full rounded-md border border-[#2d2037] bg-[#0b0710] px-3 text-sm text-[#f4eadc] outline-none focus:border-[#a78bfa]/55">
+            <option value="in">in</option>
+            <option value="low">low</option>
+            <option value="preorder">preorder</option>
           </select>
         </Field>
-        <Field label={language === "vi" ? "Thời hạn" : "Duration"}>
-          <Input value={draft.duration} onChange={(v) => setDraft({ ...draft, duration: v })} placeholder="1 tháng" />
-        </Field>
-        <Field label={language === "vi" ? "Giá VND" : "Price VND"}>
-          <Input type="number" value={draft.priceVnd} onChange={(v) => setDraft({ ...draft, priceVnd: Number(v) })} placeholder="380000" />
-        </Field>
-        <Field label={language === "vi" ? "Giá gốc VND" : "Original VND"}>
-          <Input type="number" value={draft.originalVnd ?? ""} onChange={(v) => setDraft({ ...draft, originalVnd: v ? Number(v) : undefined })} placeholder="520000" />
-        </Field>
-        <Field label="Badge">
-          <Input value={draft.badge ?? ""} onChange={(v) => setDraft({ ...draft, badge: v || undefined })} placeholder="HOT / NEW / BEST" />
-        </Field>
-        <Field label={language === "vi" ? "Bảo hành" : "Warranty"}>
-          <Input value={draft.warranty} onChange={(v) => setDraft({ ...draft, warranty: v })} placeholder="Bảo hành 1-1" />
-        </Field>
-        <div className="sm:col-span-2 lg:col-span-3">
-          <Field label={language === "vi" ? "Ghi chú" : "Notes"}>
-            <Input value={draft.notes ?? ""} onChange={(v) => setDraft({ ...draft, notes: v || undefined })} placeholder={language === "vi" ? "Ghi chú thêm cho khách" : "Extra notes for customer"} />
-          </Field>
-        </div>
+        <Field label="Duration"><TextInput value={draft.duration} onChange={(value) => setDraft({ ...draft, duration: value })} /></Field>
+        <Field label="Price VND"><TextInput type="number" value={draft.priceVnd} onChange={(value) => setDraft({ ...draft, priceVnd: Number(value) })} /></Field>
+        <Field label="Original VND"><TextInput type="number" value={draft.originalVnd ?? ""} onChange={(value) => setDraft({ ...draft, originalVnd: value ? Number(value) : undefined })} /></Field>
+        <Field label="Badge"><TextInput value={draft.badge ?? ""} onChange={(value) => setDraft({ ...draft, badge: value || undefined })} /></Field>
+        <Field label="Warranty"><TextInput value={draft.warranty} onChange={(value) => setDraft({ ...draft, warranty: value })} /></Field>
+        <Field label="Notes"><TextInput value={draft.notes ?? ""} onChange={(value) => setDraft({ ...draft, notes: value || undefined })} /></Field>
       </div>
     </Panel>
   );
+}
+
+function toLines(value: string) {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 }

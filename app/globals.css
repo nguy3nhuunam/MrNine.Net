@@ -260,6 +260,11 @@ a {
   background: linear-gradient(90deg, transparent, rgba(244, 234, 220, 0.12) 10%, rgba(239, 68, 68, 0.16) 48%, rgba(69, 168, 93, 0.12) 76%, transparent);
 }
 
+.blueprint-layer::after {
+  content: none !important;
+  display: none !important;
+}
+
 .command-control-line {
   position: relative;
 }
