@@ -394,9 +394,9 @@ const modules = [
   {
     number: "11",
     title: "Tools",
-    detail: "JSON · regex · base64 · JWT",
-    summary: "Hộp công cụ dev: format JSON, test regex, encode/decode base64, decode JWT, hash, color picker, timestamp.",
-    signal: "Dev toolkit",
+    detail: "Đếm chữ · slug · số→chữ · mật khẩu",
+    summary: "10 công cụ thực dụng cho người Việt: đếm chữ, slug bỏ dấu, đổi case, markdown, so sánh, số → chữ tiếng Việt, mật khẩu, màu, contrast WCAG, timestamp.",
+    signal: "Hộp tiện ích",
     action: "Open tools",
     icon: Wrench,
     accent: "cyan",
@@ -679,9 +679,9 @@ const moduleCopy = {
     },
     "Tools": {
       title: "Tools",
-      detail: "JSON · regex · base64 · JWT",
-      summary: "Hộp công cụ dev: format JSON, test regex, encode/decode base64, decode JWT, hash, color picker, timestamp.",
-      signal: "Hộp dev",
+      detail: "Đếm chữ · slug · số→chữ · mật khẩu",
+      summary: "10 công cụ thực dụng cho người Việt: đếm chữ, slug bỏ dấu, đổi case, markdown, so sánh, số → chữ tiếng Việt, mật khẩu, màu, contrast WCAG, timestamp.",
+      signal: "Hộp tiện ích",
       action: "Mở Tools",
     },
     "Calculators": {
