@@ -134,13 +134,28 @@ const moduleEntries: ReadonlyArray<ModuleEntry> = [
     capabilitiesVi: [],
     howVi: "Chưa mở — phiên bản hiện hành dùng Voice Studio.",
   },
+  {
+    title: "Markets",
+    status: "live",
+    route: "/markets",
+    shortcut: "9",
+    summaryVi: "Bảng giá realtime: top 10 crypto, vàng (PAXG ≈ 1 oz), bạc (XAG), và 4 cặp ngoại tệ vs VND (USD, CNY, TWD, JPY). Tự cập nhật mỗi 60 giây.",
+    capabilitiesVi: [
+      "Top 10 crypto theo nhận diện: BTC, ETH, BNB, SOL, XRP, DOGE, ADA, TRX, AVAX, TON. Sparkline 7 ngày từ CoinGecko.",
+      "Vàng PAXG (1 token = 1 troy ounce vàng) và bạc XAG spot. Quy đổi VND theo tỉ giá USD/VND realtime.",
+      "Forex: USD/VND, CNY/VND, TWD/VND, JPY/VND lấy từ Exchange-Rate-API.",
+      "Card hiển thị giá USD + VND, % thay đổi 24h, sparkline. Auto-refresh 60s, có thể tạm dừng.",
+      "Giá thị trường cũng xuất hiện trên ticker home và search palette (gõ BTC/ETH/XAU/USD để tìm).",
+    ],
+    howVi: "Mở /markets để xem toàn bộ bảng giá. Trên home gõ tên ký hiệu trong search bar (BTC, ETH, XAU, ...) để mở nhanh card tương ứng. Auto-refresh bật mặc định.",
+  },
 ];
 
 const featureNotes = [
   "Search bar trên home tìm được module, model FAL, và các studio (Story Forge, Voice Studio, Video Studio). Phím tắt: ⌘K hoặc Ctrl+K để focus, ↑↓ để chọn, Enter để mở.",
-  "Phím tắt 1-8 trên home mở nhanh module tương ứng (theo ô số trên thẻ).",
+  "Phím tắt 1-9 trên home mở nhanh module tương ứng (theo ô số trên thẻ). Phím 9 = Markets.",
   "Click logo MrNine ở bất kỳ trang nào để quay về trang chủ.",
-  "Theme có 5 preset: Auto, Crimson, Signal, Gold, Frost — đổi ở dropdown góc phải header.",
+  "Theme có 7 preset: Auto, Crimson, Signal, Gold, Frost, Eclipse, Plasma — đổi ở dropdown góc phải header. Auto cycles theo giờ Bangkok.",
   "Ngôn ngữ EN/VI đổi ở chip góc phải header.",
   "Đăng nhập bằng Google hoặc Discord (NextAuth + MongoDB session). Mọi module live yêu cầu đăng nhập.",
   "Ask anything (chính bot này) lưu hội thoại trong session — reload trang sẽ mất. Server giữ tối đa 12 lượt gần nhất làm context.",
