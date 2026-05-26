@@ -228,9 +228,9 @@ function TextArea({ value, onChange, placeholder, mono = true }: Readonly<{ valu
 
 function Row({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2">
-      <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#79ddeb]">{label}</span>
-      <code className="flex-1 truncate text-right font-mono text-[0.78rem] text-[#dff3f6]">{value}</code>
+    <div className="flex items-center justify-between gap-3 rounded-md border border-[#12323a] bg-[#040a0c] px-3 py-2">
+      <span className="shrink-0 truncate font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#79ddeb]">{label}</span>
+      <code className="flex-1 truncate text-right font-mono text-[0.95rem] font-bold text-[#f4eadc]">{value}</code>
       <CopyButton value={value} />
     </div>
   );

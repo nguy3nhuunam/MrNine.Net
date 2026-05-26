@@ -197,11 +197,14 @@ function NumberField({ label, value, onChange, suffix, step = 1 }: Readonly<{ la
 function ResultRow({ label, value, accent = false }: Readonly<{ label: string; value: string; accent?: boolean }>) {
   return (
     <div className={cn(
-      "flex items-center justify-between gap-2 rounded-md border px-3 py-2",
+      "flex items-center justify-between gap-3 rounded-md border px-3 py-2",
       accent ? "border-[#ef4444]/55 bg-[#ef4444]/12" : "border-[#3a1815] bg-[#1a0606]",
     )}>
-      <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#ff7b72]">{label}</span>
-      <span className={cn("font-mono tabular-nums", accent ? "text-[1.1rem] font-bold text-[#ffe9e5]" : "text-[0.95rem] text-[#f4eadc]")}>{value}</span>
+      <span className="shrink-0 truncate font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#ff7b72]">{label}</span>
+      <span className={cn(
+        "flex-1 truncate text-right font-mono tabular-nums",
+        accent ? "text-[1.2rem] font-bold text-[#ffe9e5]" : "text-[1rem] font-bold text-[#fff5ef]",
+      )}>{value}</span>
     </div>
   );
 }
