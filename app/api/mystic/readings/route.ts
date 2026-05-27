@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 import {
   getCollection,
   getSessionUserId,
@@ -84,6 +84,6 @@ async function _handler_DELETE(request: Request) {
   return NextResponse.json({ ok: true });
 }
 
-export const GET = safeJsonRoute(_handler_GET);
-export const POST = safeJsonRoute(_handler_POST);
-export const DELETE = safeJsonRoute(_handler_DELETE);
+export const GET = rateLimitedRoute("mystic-readings", _handler_GET);
+export const POST = rateLimitedRoute("mystic-readings", _handler_POST);
+export const DELETE = rateLimitedRoute("mystic-readings", _handler_DELETE);

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
   runArchitectCore,
   runArchitectCast,
@@ -9,7 +8,7 @@ import {
 } from "@/lib/story-writer/architect";
 import { applyTruthDelta } from "@/lib/story-writer/pipeline";
 import { booksCol, toId, truthCol, TRUTH_KINDS } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,11 +21,10 @@ type Ctx = { params: Promise<{ id: string }> };
 // stage=plot   -> foreshadows + volumes
 // stage=truth  -> 7 truth-file seeds (requires core + cast)
 // stage=all    -> sequential 1→2→3→4 (slow; legacy)
-async function _handler_POST(request: Request, ctx: Ctx) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
+async function _handler_POST(request: Request, guard: GuardContext, ctx: Ctx) {
+  if (!guard.userId) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
-  const userId = session.user.id;
+  const userId = guard.userId;
 
   const url = new URL(request.url);
   const stage = (url.searchParams.get("stage") || "core").toLowerCase();
@@ -233,4 +231,7 @@ async function _handler_POST(request: Request, ctx: Ctx) {
   }
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "story-architect-rerun", requireUser: true, charge: "story-write" },
+  _handler_POST,
+);

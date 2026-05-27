@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getModelById } from "@/lib/fal-models";
-import { requireAuth } from "@/lib/require-auth";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
+import { chargeCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,10 +26,7 @@ function coerceNumber(value: unknown): number | undefined {
   return undefined;
 }
 
-async function _handler_POST(request: Request) {
-  const blocked = await requireAuth();
-  if (blocked) return blocked;
-
+async function _handler_POST(request: Request, ctx: GuardContext) {
   let modelId = "";
   let payload: Record<string, unknown> = {};
 
@@ -44,6 +41,22 @@ async function _handler_POST(request: Request) {
   const model = getModelById(modelId);
   if (!model) {
     return NextResponse.json({ error: `Model không hỗ trợ: ${modelId}` }, { status: 400 });
+  }
+
+  // Charge based on output kind. Image=10, video=25 (matches COST_TABLE).
+  if (ctx.userId) {
+    const chargeKind = model.outputKind === "video" ? "playground-video" : "playground-image";
+    const result = await chargeCredits(ctx.userId, chargeKind);
+    if (!result.ok && result.reason === "insufficient") {
+      return NextResponse.json(
+        {
+          code: "insufficient_credits",
+          error: "Hết credits chu kỳ này. Hãy đợi reset hoặc nhập coupon.",
+        },
+        { status: 402 },
+      );
+    }
+    if (result.ok) ctx.charged += result.charged;
   }
 
   const promptValue = typeof payload[model.promptKey] === "string" ? (payload[model.promptKey] as string).trim() : "";
@@ -147,4 +160,7 @@ async function _handler_POST(request: Request) {
   });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "ai-playground-submit", requireUser: true },
+  _handler_POST,
+);

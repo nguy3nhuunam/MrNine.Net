@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/require-auth";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -162,10 +161,8 @@ function clip(text: string): string {
   return `${text.slice(0, MAX_INPUT_CHARS)}\n\n[truncated]`;
 }
 
-async function _handler_POST(request: Request) {
-  const blocked = await requireAuth();
-  if (blocked) return blocked;
-
+async function _handler_POST(request: Request, _ctx: GuardContext) {
+  void _ctx;
   let body: { input?: string; mode?: string; language?: string } = {};
   try {
     body = await request.json();
@@ -295,4 +292,7 @@ ${clip(sourceText)}
   });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "smart-recap", requireUser: true, charge: "smart-recap" },
+  _handler_POST,
+);

@@ -2953,7 +2953,12 @@ export function HomeCommandSurface() {
           </div>
 
           <footer className="flex h-10 shrink-0 items-center justify-between border-t border-[#25211b] font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#776f66]">
-            <div>MrNine / 2026 / Exp 009</div>
+            <div className="flex items-center gap-3">
+              <span>MrNine / 2026 / Exp 009</span>
+              <a href="/about" className="hidden hover:text-[#bfb3a0] sm:inline">About</a>
+              <a href="/legal/privacy" className="hidden hover:text-[#bfb3a0] sm:inline">Privacy</a>
+              <a href="/legal/terms" className="hidden hover:text-[#bfb3a0] sm:inline">Terms</a>
+            </div>
             <div className="hidden sm:block">{copy.build}</div>
             <div className="flex items-center gap-1">
               {socialLinks.map((social) => (

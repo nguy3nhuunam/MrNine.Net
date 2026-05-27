@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { booksCol, toId } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,11 +14,10 @@ function getKey() {
   return process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
 }
 
-async function _handler_POST(request: Request, ctx: Ctx) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
+async function _handler_POST(request: Request, guard: GuardContext, ctx: Ctx) {
+  if (!guard.userId) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
-  const userId = session.user.id;
+  const userId = guard.userId;
 
   let body: { prompt?: string; aspectRatio?: string } = {};
   try {
@@ -94,4 +92,7 @@ async function _handler_POST(request: Request, ctx: Ctx) {
   return NextResponse.json({ error: "Render timeout", requestId, statusUrl, responseUrl }, { status: 504 });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "story-cover", requireUser: true, charge: "story-cover" },
+  _handler_POST,
+);

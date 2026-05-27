@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { runComposer, runReflector } from "@/lib/story-writer/agents";
 import { applyTruthDelta, countWords, loadBookForUser, loadRecentSummaries, loadTruthMap } from "@/lib/story-writer/pipeline";
 import { chaptersCol, toId } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,11 +10,10 @@ export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ id: string }> };
 
-async function _handler_POST(_request: Request, ctx: Ctx) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
+async function _handler_POST(_request: Request, guard: GuardContext, ctx: Ctx) {
+  if (!guard.userId) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
-  const userId = session.user.id;
+  const userId = guard.userId;
 
   const chapters = await chaptersCol();
   const ch = await chapters.findOne({ _id: toId(id), userId });
@@ -53,4 +51,7 @@ async function _handler_POST(_request: Request, ctx: Ctx) {
   }
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "story-approve", requireUser: true, charge: "story-revise" },
+  _handler_POST,
+);

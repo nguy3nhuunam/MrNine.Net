@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStats, requireAdmin } from "@/lib/admin-config";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,4 +12,4 @@ async function _GET() {
   return NextResponse.json(stats);
 }
 
-export const GET = safeJsonRoute(_GET);
+export const GET = rateLimitedRoute("admin-stats", _GET);

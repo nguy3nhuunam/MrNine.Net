@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/require-auth";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,10 +24,8 @@ function isAllowedUrl(raw: string): boolean {
   }
 }
 
-async function _handler_GET(request: Request) {
-  const blocked = await requireAuth();
-  if (blocked) return blocked;
-
+async function _handler_GET(request: Request, _guard: GuardContext) {
+  void _guard;
   const url = new URL(request.url);
   const target = url.searchParams.get("url") ?? "";
   const mode = url.searchParams.get("mode") ?? "status";
@@ -74,4 +71,13 @@ async function _handler_GET(request: Request) {
   return NextResponse.json({ mode, data: parsed });
 }
 
-export const GET = safeJsonRoute(_handler_GET);
+// status is the polling endpoint — UI hits it every ~2s while waiting for
+// FAL. Crank the per-minute ceiling so a single in-flight job doesn't trip.
+export const GET = guardedRoute(
+  {
+    route: "ai-playground-status",
+    requireUser: true,
+    rate: { user: { perMinute: 120, perHour: 1500 } },
+  },
+  _handler_GET,
+);

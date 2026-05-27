@@ -36,6 +36,7 @@ export const COST_TABLE = {
   "story-write": 8,
   "story-revise": 6,
   "story-cover": 25,
+  "flashcards-generate": 6,
 } as const;
 
 export type ChargeKind = keyof typeof COST_TABLE;

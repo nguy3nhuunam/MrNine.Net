@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
   mergeChapterParts,
   runComposer,
@@ -9,7 +8,7 @@ import {
 } from "@/lib/story-writer/agents";
 import { countWords, loadBookForUser, loadRecentSummaries, loadTruthMap } from "@/lib/story-writer/pipeline";
 import { chaptersCol, toId } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 // Summarise prior parts to a compact head + tail snippet so the prompt size
 // for part 5 stays roughly the same as part 1, not 4× larger.
@@ -35,11 +34,10 @@ type Ctx = { params: Promise<{ id: string }> };
 // whole single-call writer (kept for callers who want the legacy behaviour
 // or who use a custom slow LLM). The 3-part flow is what the shell uses
 // because each part fits comfortably under Vercel's 60s function budget.
-async function _handler_POST(request: Request, ctx: Ctx) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
+async function _handler_POST(request: Request, guard: GuardContext, ctx: Ctx) {
+  if (!guard.userId) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
-  const userId = session.user.id;
+  const userId = guard.userId;
 
   const url = new URL(request.url);
   const partParam = (url.searchParams.get("part") || "full").toLowerCase();
@@ -182,4 +180,7 @@ async function _handler_POST(request: Request, ctx: Ctx) {
   }
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "story-write", requireUser: true, charge: "story-write" },
+  _handler_POST,
+);

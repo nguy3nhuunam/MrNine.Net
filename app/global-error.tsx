@@ -1,13 +1,31 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 
 export default function GlobalError({
+  error,
   reset,
 }: Readonly<{
   error: Error & { digest?: string };
   reset: () => void;
 }>) {
+  useEffect(() => {
+    // Best-effort client telemetry — silently swallowed if /api/track is
+    // rate-limited or auth-blocked. Don't block the error UI on this.
+    fetch("/api/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "client_error",
+        message: error.message?.slice(0, 500) ?? "",
+        digest: error.digest ?? null,
+        url: typeof window !== "undefined" ? window.location.pathname : null,
+      }),
+      keepalive: true,
+    }).catch(() => undefined);
+  }, [error]);
+
   return (
     <html lang="vi">
       <body className="min-h-screen bg-[#0b0a08] text-[#e8dfd4]" style={{ fontFamily: "system-ui, sans-serif" }}>
@@ -31,6 +49,11 @@ export default function GlobalError({
           <p className="mt-2 max-w-md text-[0.9rem] text-[#b5ab9f]">
             Lỗi đã được log. Bấm Thử lại để render lại trang, hoặc về trang chủ.
           </p>
+          {error.digest ? (
+            <p className="mt-3 font-mono text-[0.7rem] text-[#776f66]">
+              ref: {error.digest}
+            </p>
+          ) : null}
           <div className="mt-6 flex gap-2">
             <button
               type="button"

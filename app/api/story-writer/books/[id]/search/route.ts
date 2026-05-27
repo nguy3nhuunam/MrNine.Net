@@ -8,7 +8,7 @@ import {
   truthCol,
   type TruthKind,
 } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -96,4 +96,4 @@ async function _handler_GET(request: Request, ctx: Ctx) {
   });
 }
 
-export const GET = safeJsonRoute(_handler_GET);
+export const GET = rateLimitedRoute("story-writer-books-id-search", _handler_GET);

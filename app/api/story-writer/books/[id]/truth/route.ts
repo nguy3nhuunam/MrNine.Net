@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { booksCol, toId, truthCol, TRUTH_KINDS, type TruthKind } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -67,6 +67,6 @@ async function _handler_PATCH(request: Request, ctx: Ctx) {
   });
 }
 
-export const GET = safeJsonRoute(_handler_GET);
+export const GET = rateLimitedRoute("story-writer-books-id-truth", _handler_GET);
 
-export const PATCH = safeJsonRoute(_handler_PATCH);
+export const PATCH = rateLimitedRoute("story-writer-books-id-truth", _handler_PATCH);

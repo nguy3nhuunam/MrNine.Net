@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getSiteConfig, requireAdmin, saveSiteConfig } from "@/lib/admin-config";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { auth } from "@/auth";
+import { getSiteConfig, recordAudit, requireAdmin, saveSiteConfig } from "@/lib/admin-config";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,8 +21,10 @@ async function _PUT(request: Request) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
   const next = await saveSiteConfig(body);
+  const session = await auth();
+  await recordAudit("config:update", session?.user?.email ?? "unknown", body);
   return NextResponse.json(next);
 }
 
-export const GET = safeJsonRoute(_GET);
-export const PUT = safeJsonRoute(_PUT);
+export const GET = rateLimitedRoute("admin-config", _GET);
+export const PUT = rateLimitedRoute("admin-config", _PUT);

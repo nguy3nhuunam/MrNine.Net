@@ -146,3 +146,29 @@ export async function getStats(): Promise<{ byModule: Record<string, number>; to
   }
   return { byModule: {}, total: 0 };
 }
+
+// Audit log for every admin write. Append-only collection so we can answer
+// "who changed X and when" later. Best-effort — silently no-ops if Mongo is
+// down so we never block a save on logging.
+export type AuditAction = "config:update" | "product:upsert" | "product:delete";
+
+export async function recordAudit(action: AuditAction, actorEmail: string, payload: unknown): Promise<void> {
+  if (!clientPromise) return;
+  try {
+    const client = await clientPromise;
+    let summary: string | undefined;
+    try {
+      summary = JSON.stringify(payload).slice(0, 2000);
+    } catch {
+      summary = "[unserializable]";
+    }
+    await client.db().collection("admin_audit").insertOne({
+      action,
+      actor: actorEmail,
+      payload: summary,
+      ts: new Date(),
+    });
+  } catch {
+    // ignore
+  }
+}

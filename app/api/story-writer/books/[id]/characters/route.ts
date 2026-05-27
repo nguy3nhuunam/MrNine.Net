@@ -6,7 +6,7 @@ import {
   type SwCharacter,
   type SwRelationship,
 } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -135,6 +135,6 @@ async function _handler_POST(request: Request, ctx: Ctx) {
   return NextResponse.json({ characters, relationships });
 }
 
-export const GET = safeJsonRoute(_handler_GET);
+export const GET = rateLimitedRoute("story-writer-books-id-characters", _handler_GET);
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = rateLimitedRoute("story-writer-books-id-characters", _handler_POST);

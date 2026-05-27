@@ -9,7 +9,7 @@ import {
   type SwChapter,
   type SwTruthFile,
 } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -89,4 +89,4 @@ async function _handler_POST(request: Request, ctx: Ctx) {
   });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = rateLimitedRoute("story-writer-books-id-duplicate", _handler_POST);

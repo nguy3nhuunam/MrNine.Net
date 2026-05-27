@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { booksCol, chaptersCol, toId, truthCol, TRUTH_KINDS } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -106,4 +106,4 @@ async function _handler_POST(request: Request, ctx: Ctx) {
   });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = rateLimitedRoute("story-writer-books-id-rename", _handler_POST);

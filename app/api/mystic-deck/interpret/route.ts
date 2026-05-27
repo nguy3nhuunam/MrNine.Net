@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/require-auth";
-import { safeJsonRoute } from "@/lib/safe-json-route";
-import { getSessionUserId } from "@/lib/user-state";
-import { chargeCredits, refundCredits } from "@/lib/credits";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -73,10 +70,8 @@ function asKind(value: unknown): Kind | null {
   return value === "ziwei" || value === "tarot" || value === "numerology" ? value : null;
 }
 
-async function _handler_POST(request: Request) {
-  const blocked = await requireAuth();
-  if (blocked) return blocked;
-
+async function _handler_POST(request: Request, _ctx: GuardContext) {
+  void _ctx;
   const body = (await request.json().catch(() => null)) as {
     kind?: unknown;
     payload?: unknown;
@@ -93,22 +88,8 @@ async function _handler_POST(request: Request) {
 
   const language = typeof body.language === "string" ? body.language : "vi";
 
-  const userId = await getSessionUserId();
-  let charge = 0;
-  if (userId) {
-    const result = await chargeCredits(userId, "mystic-interpret");
-    if (!result.ok && result.reason === "insufficient") {
-      return NextResponse.json(
-        { error: "Hết credits chu kỳ này. Hãy đợi reset hoặc dùng coupon." },
-        { status: 402 },
-      );
-    }
-    if (result.ok) charge = result.charged;
-  }
-
   const apiKey = await loadYunwuApiKey().catch(() => undefined);
   if (!apiKey) {
-    if (userId && charge > 0) await refundCredits(userId, charge);
     return NextResponse.json({ error: "Yunwu API key chưa cấu hình." }, { status: 500 });
   }
 
@@ -139,18 +120,19 @@ async function _handler_POST(request: Request) {
   };
 
   if (!response.ok) {
-    if (userId && charge > 0) await refundCredits(userId, charge);
     return NextResponse.json({ error: "Yunwu API thất bại.", detail: json }, { status: response.status });
   }
 
   const content = json.choices?.[0]?.message?.content?.trim();
 
   if (!content) {
-    if (userId && charge > 0) await refundCredits(userId, charge);
     return NextResponse.json({ error: "Mô hình trả về kết quả rỗng." }, { status: 502 });
   }
 
   return NextResponse.json({ reading: content, model: YUNWU_MODEL });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "mystic-interpret", requireUser: true, charge: "mystic-interpret" },
+  _handler_POST,
+);

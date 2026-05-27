@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { chaptersCol, toId } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -42,4 +42,4 @@ async function _handler_POST(_request: Request, ctx: Ctx) {
   return NextResponse.json({ ok: true, draft: snap.text });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = rateLimitedRoute("story-writer-chapters-id-snapshots-index-restore", _handler_POST);

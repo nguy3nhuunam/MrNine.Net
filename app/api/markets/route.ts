@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -202,7 +202,7 @@ async function _handler_GET() {
   });
 }
 
-export const GET = safeJsonRoute(_handler_GET);
+export const GET = rateLimitedRoute("markets", _handler_GET);
 
 function synthFlatSparkline(target: number, jitter: number): number[] {
   const points = 24;

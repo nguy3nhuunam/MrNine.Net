@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { deleteProduct, listProducts, requireAdmin, upsertProduct } from "@/lib/admin-config";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { auth } from "@/auth";
+import { deleteProduct, listProducts, recordAudit, requireAdmin, upsertProduct } from "@/lib/admin-config";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 import type { StoreItem } from "@/lib/ai-store-catalog";
 
 export const runtime = "nodejs";
@@ -25,6 +26,8 @@ async function _POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
   await upsertProduct(item);
+  const session = await auth();
+  await recordAudit("product:upsert", session?.user?.email ?? "unknown", { id: item.id, product: item.product });
   return NextResponse.json({ ok: true, item });
 }
 
@@ -35,9 +38,11 @@ async function _DELETE(request: Request) {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   await deleteProduct(id);
+  const session = await auth();
+  await recordAudit("product:delete", session?.user?.email ?? "unknown", { id });
   return NextResponse.json({ ok: true });
 }
 
-export const GET = safeJsonRoute(_GET);
-export const POST = safeJsonRoute(_POST);
-export const DELETE = safeJsonRoute(_DELETE);
+export const GET = rateLimitedRoute("admin-products", _GET);
+export const POST = rateLimitedRoute("admin-products", _POST);
+export const DELETE = rateLimitedRoute("admin-products", _DELETE);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { chaptersCol, toId } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -77,8 +77,8 @@ async function _handler_DELETE(_request: Request, ctx: Ctx) {
   return NextResponse.json({ ok: true });
 }
 
-export const GET = safeJsonRoute(_handler_GET);
+export const GET = rateLimitedRoute("story-writer-chapters-id", _handler_GET);
 
-export const PATCH = safeJsonRoute(_handler_PATCH);
+export const PATCH = rateLimitedRoute("story-writer-chapters-id", _handler_PATCH);
 
-export const DELETE = safeJsonRoute(_handler_DELETE);
+export const DELETE = rateLimitedRoute("story-writer-chapters-id", _handler_DELETE);

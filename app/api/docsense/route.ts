@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/require-auth";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -67,10 +66,8 @@ async function callChat(apiKey: string, messages: unknown[], temperature = 0.2, 
   return data.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
-async function _handler_POST(request: Request) {
-  const blocked = await requireAuth();
-  if (blocked) return blocked;
-
+async function _handler_POST(request: Request, _ctx: { userId: string | null; charged: number }) {
+  void _ctx;
   let body: { imageUrl?: string; text?: string; targetLang?: string; ui?: string } = {};
   try {
     body = await request.json();
@@ -171,4 +168,7 @@ async function _handler_POST(request: Request) {
   });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "docsense", requireUser: true, charge: "docsense" },
+  _handler_POST,
+);

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro, JetBrains_Mono, Oxanium, Teko } from "next/font/google";
 import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
@@ -33,6 +33,10 @@ const numeralFont = Teko({
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://mrnine.net";
 
+export const viewport: Viewport = {
+  themeColor: "#0b0a08",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -42,7 +46,6 @@ export const metadata: Metadata = {
   description:
     "Một trung tâm điều khiển AI cá nhân: viết, giọng nói, hình ảnh, video, tài liệu, code và công cụ trong cùng một giao diện lệnh.",
   manifest: "/manifest.webmanifest",
-  themeColor: "#0b0a08",
   appleWebApp: {
     capable: true,
     title: "MrNine",

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { booksCol, chaptersCol, toId, type SwBook } from "@/lib/story-writer/store";
 import {
   runComposer,
@@ -15,7 +14,8 @@ import {
   loadRecentSummaries,
   loadTruthMap,
 } from "@/lib/story-writer/pipeline";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
+import { chargeCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,11 +23,11 @@ export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ id: string }> };
 
-async function _handler_POST(_request: Request, ctx: Ctx) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
+async function _handler_POST(_request: Request, guard: GuardContext, ctx: Ctx) {
+  if (!guard.userId) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
-  const userId = session.user.id;
+  const userId = guard.userId;
+  void loadBookForUser;
 
   const bookId = toId(id);
   const book = await (await booksCol()).findOne({ _id: bookId, userId });
@@ -48,6 +48,17 @@ async function _handler_POST(_request: Request, ctx: Ctx) {
       if (!draft) {
         results.push({ chapterId: String(ch._id), number: ch.number, status: "skipped" });
         continue;
+      }
+      // Charge per chapter — bail out cleanly when wallet runs dry.
+      const charge = await chargeCredits(userId, "story-revise");
+      if (!charge.ok) {
+        results.push({
+          chapterId: String(ch._id),
+          number: ch.number,
+          status: "stopped",
+          error: "Hết credits — dừng bulk-approve",
+        });
+        break;
       }
       const truth = await loadTruthMap(bookId, userId);
       const recent = await loadRecentSummaries(bookId, userId, ch.number);
@@ -87,4 +98,10 @@ async function _handler_POST(_request: Request, ctx: Ctx) {
   void detectAiTellHeuristic;
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+// Bulk approve loops over many chapters. Each chapter calls runReflector
+// which is one LLM round-trip. Charge per chapter inside the loop instead
+// of once at the top.
+export const POST = guardedRoute(
+  { route: "story-bulk-approve", requireUser: true },
+  _handler_POST,
+);

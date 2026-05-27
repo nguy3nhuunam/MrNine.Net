@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/require-auth";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,10 +12,8 @@ function getKey() {
   return process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
 }
 
-async function _handler_POST(request: Request) {
-  const blocked = await requireAuth();
-  if (blocked) return blocked;
-
+async function _handler_POST(request: Request, _guard: GuardContext) {
+  void _guard;
   let formData: FormData;
   try {
     formData = await request.formData();
@@ -93,4 +90,13 @@ async function _handler_POST(request: Request) {
   return NextResponse.json({ url: data.file_url, contentType, size: file.size });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+// Tighter limits: 32MB file uploads are an abuse vector. 10/min keeps any
+// realistic UI flow happy while shutting down a flood.
+export const POST = guardedRoute(
+  {
+    route: "ai-playground-upload",
+    requireUser: true,
+    rate: { user: { perMinute: 10, perHour: 80 } },
+  },
+  _handler_POST,
+);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { rateLimitedRoute } from "@/lib/safe-json-route";
 import { getSessionUserId } from "@/lib/user-state";
 import { getCredits, redeemCoupon } from "@/lib/credits";
 
@@ -28,5 +28,5 @@ async function _handler_POST(request: Request) {
   return NextResponse.json({ ...result, ...state });
 }
 
-export const GET = safeJsonRoute(_handler_GET);
-export const POST = safeJsonRoute(_handler_POST);
+export const GET = rateLimitedRoute("credits-me", _handler_GET);
+export const POST = rateLimitedRoute("credits-me", _handler_POST);

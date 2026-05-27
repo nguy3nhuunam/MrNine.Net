@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { astro } from "iztro";
-import { requireAuth } from "@/lib/require-auth";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,10 +28,8 @@ function parseRequest(body: unknown): ChartRequest {
   };
 }
 
-async function _handler_POST(request: Request) {
-  const blocked = await requireAuth();
-  if (blocked) return blocked;
-
+async function _handler_POST(request: Request, _ctx: GuardContext) {
+  void _ctx;
   const body = await request.json().catch(() => null);
   const params = parseRequest(body);
 
@@ -91,4 +88,7 @@ async function _handler_POST(request: Request) {
   }
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "mystic-ziwei", requireUser: true },
+  _handler_POST,
+);

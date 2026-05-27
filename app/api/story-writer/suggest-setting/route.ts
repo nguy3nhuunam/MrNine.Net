@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { suggestBookSetting } from "@/lib/story-writer/architect";
 import { getGenre } from "@/lib/story-writer/genres";
 import type { LlmConfig } from "@/lib/story-writer/store";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-async function _handler_POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
+async function _handler_POST(request: Request, guard: GuardContext) {
+  if (!guard.userId) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
 
   let body: { topic?: string; genre?: string; llm?: LlmConfig } = {};
   try {
@@ -33,4 +31,7 @@ async function _handler_POST(request: Request) {
   }
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "story-suggest-setting", requireUser: true, charge: "story-write" },
+  _handler_POST,
+);

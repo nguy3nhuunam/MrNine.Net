@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { callLlmJson, type ChatMessage } from "@/lib/story-writer/llm";
 import {
   applyTruthDelta,
@@ -9,7 +8,7 @@ import {
 } from "@/lib/story-writer/pipeline";
 import { booksCol, chaptersCol, toId, type SwChapter } from "@/lib/story-writer/store";
 import type { TruthDelta } from "@/lib/story-writer/agents";
-import { safeJsonRoute } from "@/lib/safe-json-route";
+import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -54,11 +53,10 @@ function splitChapters(raw: string, customSplit?: string): Array<{ number: numbe
   return out;
 }
 
-async function _handler_POST(request: Request, ctx: Ctx) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
+async function _handler_POST(request: Request, guard: GuardContext, ctx: Ctx) {
+  if (!guard.userId) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const { id } = await ctx.params;
-  const userId = session.user.id;
+  const userId = guard.userId;
 
   let body: { text?: string; customSplit?: string; reflect?: boolean } = {};
   try {
@@ -144,4 +142,7 @@ async function _handler_POST(request: Request, ctx: Ctx) {
   });
 }
 
-export const POST = safeJsonRoute(_handler_POST);
+export const POST = guardedRoute(
+  { route: "story-import-chapters", requireUser: true, charge: "story-write" },
+  _handler_POST,
+);
