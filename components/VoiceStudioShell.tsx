@@ -233,6 +233,15 @@ export function VoiceStudioShell() {
     void checkHealth();
   }, [checkHealth]);
 
+  // Auto-retry while offline / loading. Stops once status is idle/generating/error.
+  useEffect(() => {
+    if (status.kind !== "offline" && status.kind !== "loading-model") return;
+    const id = window.setInterval(() => {
+      void checkHealth();
+    }, 5_000);
+    return () => window.clearInterval(id);
+  }, [status.kind, checkHealth]);
+
   const isBusy = status.kind === "generating";
   const isReady = status.kind === "idle";
 
