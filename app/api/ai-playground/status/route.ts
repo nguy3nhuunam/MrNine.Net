@@ -1,19 +1,11 @@
 import { NextResponse } from "next/server";
 import { guardedRoute, type GuardContext } from "@/lib/api-guard";
+import { getFalKey } from "@/lib/fal-key";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const EMBEDDED_FAL_KEY = "d3ed1c4c-b8aa-40aa-926e-4b82ba599ae6:cae3e2004fd04235f9805226a5f96464";
 const ALLOWED_HOSTS = new Set(["queue.fal.run", "fal.run", "rest.alpha.fal.ai"]);
-
-function getKey() {
-  const key = process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
-  if (!key) {
-    throw new Error("API key chưa được cấu hình");
-  }
-  return key;
-}
 
 function isAllowedUrl(raw: string): boolean {
   try {
@@ -39,7 +31,7 @@ async function _handler_GET(request: Request, _guard: GuardContext) {
 
   let key: string;
   try {
-    key = getKey();
+    key = getFalKey();
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Thiếu API key" },

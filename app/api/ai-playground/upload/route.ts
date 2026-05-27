@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
 import { guardedRoute, type GuardContext } from "@/lib/api-guard";
+import { getFalKey } from "@/lib/fal-key";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const FAL_STORAGE_INITIATE = "https://rest.alpha.fal.ai/storage/upload/initiate";
-const EMBEDDED_FAL_KEY = "d3ed1c4c-b8aa-40aa-926e-4b82ba599ae6:cae3e2004fd04235f9805226a5f96464";
 const MAX_BYTES = 32 * 1024 * 1024;
-
-function getKey() {
-  return process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
-}
 
 async function _handler_POST(request: Request, _guard: GuardContext) {
   void _guard;
@@ -37,9 +33,14 @@ async function _handler_POST(request: Request, _guard: GuardContext) {
 
   const contentType = file.type || "application/octet-stream";
   const fileName = file.name || `upload-${Date.now()}`;
-  const key = getKey();
-  if (!key) {
-    return NextResponse.json({ error: "FAL_KEY chưa được cấu hình" }, { status: 500 });
+  let key: string;
+  try {
+    key = getFalKey();
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "FAL_KEY chưa được cấu hình" },
+      { status: 500 },
+    );
   }
 
   // Step 1: initiate — get a signed upload URL + final file_url

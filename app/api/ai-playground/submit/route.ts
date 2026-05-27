@@ -2,20 +2,12 @@ import { NextResponse } from "next/server";
 import { getModelById } from "@/lib/fal-models";
 import { guardedRoute, type GuardContext } from "@/lib/api-guard";
 import { chargeCredits } from "@/lib/credits";
+import { getFalKey } from "@/lib/fal-key";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const FAL_QUEUE_BASE = "https://queue.fal.run";
-const EMBEDDED_FAL_KEY = "d3ed1c4c-b8aa-40aa-926e-4b82ba599ae6:cae3e2004fd04235f9805226a5f96464";
-
-function getKey() {
-  const key = process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
-  if (!key) {
-    throw new Error("FAL_KEY chưa được cấu hình");
-  }
-  return key;
-}
 
 function coerceNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -100,7 +92,7 @@ async function _handler_POST(request: Request, ctx: GuardContext) {
 
   let key: string;
   try {
-    key = getKey();
+    key = getFalKey();
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Thiếu FAL_KEY" },

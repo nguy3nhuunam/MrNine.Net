@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { booksCol, toId } from "@/lib/story-writer/store";
 import { guardedRoute, type GuardContext } from "@/lib/api-guard";
+import { getFalKey } from "@/lib/fal-key";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -8,11 +9,6 @@ export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ id: string }> };
 const FAL_QUEUE_BASE = "https://queue.fal.run";
-const EMBEDDED_FAL_KEY = "d3ed1c4c-b8aa-40aa-926e-4b82ba599ae6:cae3e2004fd04235f9805226a5f96464";
-
-function getKey() {
-  return process.env.FAL_KEY || process.env.FAL_API_KEY || EMBEDDED_FAL_KEY;
-}
 
 async function _handler_POST(request: Request, guard: GuardContext, ctx: Ctx) {
   if (!guard.userId) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
@@ -33,8 +29,15 @@ async function _handler_POST(request: Request, guard: GuardContext, ctx: Ctx) {
     ? (body.aspectRatio as string)
     : "3:4";
 
-  const key = getKey();
-  if (!key) return NextResponse.json({ error: "FAL_KEY chưa cấu hình" }, { status: 500 });
+  let key: string;
+  try {
+    key = getFalKey();
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "FAL_KEY chưa cấu hình" },
+      { status: 500 },
+    );
+  }
 
   // Submit Imagen 4 — solid all-rounder for cover work.
   const submit = await fetch(`${FAL_QUEUE_BASE}/fal-ai/imagen4/preview`, {
