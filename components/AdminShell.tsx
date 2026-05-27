@@ -252,6 +252,12 @@ export function AdminShell({ adminEmail }: Readonly<{ adminEmail: string }>) {
           <Link href="/" className="font-display text-xl font-black tracking-[-0.08em] text-[#f4eadc] sm:text-2xl">
             Mr<span className="text-[#ef4444]">Nine</span>
           </Link>
+          <Link
+            href="/admin/analytics"
+            className="hidden rounded-md border border-white/12 px-2 py-0.5 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-white/65 transition hover:border-amber-400/60 hover:text-amber-300 sm:inline-flex"
+          >
+            Analytics
+          </Link>
           <div className="hidden font-mono text-[0.52rem] uppercase leading-3 tracking-[0.28em] text-[#756d84] sm:block">
             <div>Future Domain</div>
             <div>Admin / 009</div>

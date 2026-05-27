@@ -43,6 +43,7 @@ import { DiscordActivity } from "@/components/DiscordActivity";
 import { TabAudioVisualizer } from "@/components/TabAudioVisualizer";
 import { allModels as falAllModels, type FalCapability } from "@/lib/fal-models";
 import { aiStoreCatalog } from "@/lib/ai-store-catalog";
+import { trackEvent } from "@/lib/track-client";
 
 const storeFmtVnd = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
 
@@ -1734,7 +1735,10 @@ function AuthControl({ language }: Readonly<{ language: WebLanguage }>) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => void signIn("google")}
+            onClick={() => {
+              trackEvent("signin_prompt", { provider: "google" });
+              void signIn("google");
+            }}
             className="flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition hover:border-[#ef4444]/22 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
           >
             <span className="flex size-7 items-center justify-center rounded-md border border-[#ef4444]/24 bg-[#ef4444]/10 font-mono text-[0.58rem] font-bold text-[#ef4444]">
@@ -1748,7 +1752,10 @@ function AuthControl({ language }: Readonly<{ language: WebLanguage }>) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => void signIn("discord")}
+            onClick={() => {
+              trackEvent("signin_prompt", { provider: "discord" });
+              void signIn("discord");
+            }}
             className="mt-1 flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition hover:border-[#47c9d9]/22 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#47c9d9]/60"
           >
             <span className="flex size-7 items-center justify-center rounded-md border border-[#47c9d9]/24 bg-[#47c9d9]/10 font-mono text-[0.58rem] font-bold text-[#47c9d9]">
@@ -1914,6 +1921,9 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
     setError("");
     setLoading(true);
 
+    const startedAt = Date.now();
+    trackEvent("ai_call_start", { route: "ask-anything" });
+
     try {
       const response = await fetch("/api/ask-anything", {
         method: "POST",
@@ -1923,8 +1933,18 @@ function AskAnythingChat({ language }: Readonly<{ language: WebLanguage }>) {
       const data = await safeParseJson(response);
 
       if (!response.ok) {
+        trackEvent("ai_call_error", {
+          route: "ask-anything",
+          status: response.status,
+          durationMs: Date.now() - startedAt,
+        });
         throw new Error(data?.error || copy.failed);
       }
+
+      trackEvent("ai_call_success", {
+        route: "ask-anything",
+        durationMs: Date.now() - startedAt,
+      });
 
       setMessages((current) => [
         ...current,
@@ -2388,11 +2408,7 @@ export function HomeCommandSurface() {
   function recordVisit(title: string, href: string) {
     pushRecentVisit({ title, href });
     setRecentVisits(loadRecentVisits());
-    void fetch("/api/track", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ module: title }),
-    }).catch(() => null);
+    trackEvent("module_open", { module: title, href });
   }
 
   function openModule(title: string) {

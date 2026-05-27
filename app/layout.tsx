@@ -5,6 +5,7 @@ import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { GlobalShortcuts } from "@/components/GlobalShortcuts";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/seo-jsonld";
 import "./globals.css";
 
 const displayFont = Oxanium({
@@ -87,6 +88,16 @@ export default function RootLayout({
       lang="vi"
       className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable} ${numeralFont.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+        />
+      </head>
       <body
         className="min-h-full overflow-x-hidden"
         style={
