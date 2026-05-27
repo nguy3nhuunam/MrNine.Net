@@ -45,6 +45,7 @@ next-env.d.ts
 
 # local artifacts
 /output/
+/.webai-omnivoice/
 /.webai-omnivoice-repo/
 /.webai-pixelle-video/
 
