@@ -2835,7 +2835,7 @@ export function HomeCommandSurface() {
               </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(12rem,100%),1fr))] gap-3">
+            <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(13.75rem,1fr))] gap-3 min-[1920px]:grid-cols-4">
               {modules
                 .filter((module) => !siteConfig.modules?.[module.title]?.hidden)
                 .map((module, index) => {
@@ -2872,7 +2872,7 @@ export function HomeCommandSurface() {
                         ease: [0.16, 1, 0.3, 1],
                       }}
                       className={cn(
-                        "module-card-signal group relative flex min-h-[9.25rem] min-w-0 overflow-hidden rounded-lg border border-[#2a251f] bg-[#14100d]/72 p-3.5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[#ef4444]/45 hover:bg-[#1c1612] hover:shadow-[0_12px_40px_rgba(239,68,68,0.12),0_0_0_1px_rgba(239,68,68,0.08)_inset] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70",
+                        "module-card-signal group relative flex min-h-[9.25rem] min-w-0 overflow-hidden rounded-lg border border-[#2a251f] bg-[#14100d]/72 p-3.5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[#ef4444]/45 hover:bg-[#1c1612] hover:shadow-[0_12px_40px_rgba(239,68,68,0.12),0_0_0_1px_rgba(239,68,68,0.08)_inset] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 min-[1920px]:min-h-[9.5rem]",
                         moduleAnimationClass(module.title),
                         moduleIsArming && "module-route-arming",
                         moduleIsDimmed && "pointer-events-none blur-[0.4px]",
