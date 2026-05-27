@@ -360,15 +360,15 @@ const modules = [
   },
   {
     number: "08",
-    title: "Voice Lab",
+    title: "Voice Studio",
     detail: "TTS · clone · transcribe",
     summary: "TTS đa giọng, voice cloning, dubbing và transcribe audio sang text/subtitle.",
     signal: "Voice queue",
-    action: "Coming soon",
+    action: "Open Voice Studio",
     icon: AudioLines,
     accent: "cyan",
     shortcut: "8",
-    lastUsed: "—",
+    lastUsed: "ready",
   },
   {
     number: "09",
@@ -438,7 +438,7 @@ const railItems: ReadonlyArray<RailItem> = [
   { label: "Story Writer", icon: PenLine, href: "/story-writer", shortcut: "5" },
   { label: "Language Tutor", icon: BookOpenText, shortcut: "6" },
   { label: "Mystic Deck", icon: Moon, href: "/mystic-deck", shortcut: "7" },
-  { label: "Voice Lab", icon: AudioLines, shortcut: "8" },
+  { label: "Voice Studio", icon: AudioLines, href: "/voice-studio", shortcut: "8" },
   { label: "Markets", icon: LineChart, href: "/markets", shortcut: "9" },
   { label: "AI Store", icon: ShoppingBag, href: "/ai-store", shortcut: "0" },
   { label: "Tools", icon: Wrench, href: "/tools", shortcut: "-" },
@@ -659,12 +659,12 @@ const moduleCopy = {
       signal: "Bộ bài huyền học",
       action: "Mở Mystic Deck",
     },
-    "Voice Lab": {
-      title: "Voice Lab",
+    "Voice Studio": {
+      title: "Voice Studio",
       detail: "TTS · clone · transcribe",
       summary: "TTS đa giọng, voice cloning, dubbing và transcribe audio sang text/subtitle.",
       signal: "Hàng đợi giọng",
-      action: "Sắp ra mắt",
+      action: "Mở Voice Studio",
     },
     "Markets": {
       title: "Markets",
@@ -1040,7 +1040,7 @@ function moduleAnimationClass(title: string): string {
       return "module-anim-tutor";
     case "Mystic Deck":
       return "module-anim-mystic";
-    case "Voice Lab":
+    case "Voice Studio":
       return "module-anim-voice";
     case "Markets":
       return "module-anim-markets";
@@ -2395,6 +2395,7 @@ export function HomeCommandSurface() {
       "DocSense": "/docsense",
       "Story Writer": "/story-writer",
       "Mystic Deck": "/mystic-deck",
+      "Voice Studio": "/voice-studio",
       "Markets": "/markets",
       "AI Store": "/ai-store",
       "Tools": "/tools",
