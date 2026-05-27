@@ -502,7 +502,7 @@ const systemPanelItems = [
 ];
 
 const recentOutputs = [
-  { title: "Story outline", meta: "Story Forge / saved" },
+  { title: "Story outline", meta: "Story Writer / saved" },
   { title: "Voice draft", meta: "Voice Studio / queued" },
   { title: "Prompt map", meta: "Command / 2 min ago" },
 ];
@@ -520,14 +520,14 @@ const systemPanelCopy = {
 const recentOutputCopy = {
   en: Object.fromEntries(recentOutputs.map((output) => [output.title, output])),
   vi: {
-    "Story outline": { title: "Dàn ý truyện", meta: "Story Forge / đã lưu" },
+    "Story outline": { title: "Dàn ý truyện", meta: "Story Writer / đã lưu" },
     "Voice draft": { title: "Bản nháp giọng", meta: "Voice Studio / trong hàng đợi" },
     "Prompt map": { title: "Bản đồ prompt", meta: "Command / 2 phút trước" },
   },
 } satisfies Record<WebLanguage, Record<string, Partial<(typeof recentOutputs)[number]>>>;
 
 const quickCommands = [
-  { command: "/story", label: "Story", hint: "plot + chapter", module: "Story Forge" },
+  { command: "/story", label: "Story", hint: "plot + chapter", module: "Story Writer" },
   { command: "/voice", label: "Voice", hint: "narration", module: "Voice Studio" },
   { command: "/image", label: "Image", hint: "visual prompt", module: "Vision Foundry" },
   { command: "/pdf", label: "PDF", hint: "document core", module: "Document Core" },
@@ -700,7 +700,7 @@ const moduleCopy = {
 const quickCommandCopy = {
   en: Object.fromEntries(quickCommands.map((command) => [command.command, command])),
   vi: {
-    "/story": { label: "Truyện", hint: "cốt truyện + chương", module: "Story Forge" },
+    "/story": { label: "Truyện", hint: "cốt truyện + chương", module: "Story Writer" },
     "/voice": { label: "Giọng", hint: "thuyết minh", module: "Voice Studio" },
     "/image": { label: "Ảnh", hint: "prompt hình ảnh", module: "Vision Foundry" },
     "/pdf": { label: "PDF", hint: "tài liệu", module: "Document Core" },
@@ -985,15 +985,6 @@ const extraFeatureEntries: ReadonlyArray<{
   icon: LucideIcon;
   accent: SearchAccent;
 }> = [
-  {
-    id: "story-forge",
-    title: "Story Forge",
-    subtitleVi: "Studio dàn ý · chương · nhân vật",
-    subtitleEn: "Outline · chapter · character studio",
-    href: "/story-forge",
-    icon: PenLine,
-    accent: "red",
-  },
   {
     id: "voice-studio",
     title: "Voice Studio",

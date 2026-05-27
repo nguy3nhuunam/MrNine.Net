@@ -45,9 +45,7 @@ next-env.d.ts
 
 # local artifacts
 /output/
-/.webai-inkos/
 /.webai-omnivoice-repo/
 /.webai-pixelle-video/
-story-forge-debug.png
 
 .vercel

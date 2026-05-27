@@ -1,5 +1,3 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/require-auth";
 import { safeJsonRoute } from "@/lib/safe-json-route";
@@ -26,11 +24,7 @@ const TARGET_LANGUAGES: Record<string, { en: string; vi: string }> = {
 };
 
 async function loadYunwuApiKey() {
-  if (process.env.YUNWU_API_KEY) return process.env.YUNWU_API_KEY;
-  const secretsPath = join(process.cwd(), ".webai-inkos", ".inkos", "secrets.json");
-  const raw = await readFile(secretsPath, "utf8");
-  const secrets = JSON.parse(raw) as { services?: Record<string, { apiKey?: string }> };
-  return secrets.services?.["custom:Yunwu ChatGPT"]?.apiKey;
+  return process.env.YUNWU_API_KEY;
 }
 
 function clip(text: string): string {

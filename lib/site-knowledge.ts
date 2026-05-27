@@ -80,14 +80,6 @@ const moduleEntries: ReadonlyArray<ModuleEntry> = [
     howVi: "Mở /story-writer, tạo book mới hoặc mở book cũ, sinh outline rồi generate từng chương/part. Reading mode để đọc liền mạch.",
   },
   {
-    title: "Story Forge",
-    status: "live",
-    route: "/story-forge",
-    summaryVi: "Studio plot/character chạy InkOS bên trong shell MrNine, dùng cho dự án truyện cấu trúc nặng.",
-    capabilitiesVi: ["Iframe InkOS Studio gốc, đầy đủ tính năng."],
-    howVi: "Mở /story-forge — khởi động runtime InkOS local rồi làm việc trong UI Streamlit.",
-  },
-  {
     title: "Voice Studio",
     status: "live",
     route: "/voice-studio",
@@ -204,7 +196,7 @@ const moduleEntries: ReadonlyArray<ModuleEntry> = [
 ];
 
 const featureNotes = [
-  "Search bar trên home tìm được module, model FAL, và các studio (Story Forge, Voice Studio, Video Studio). Phím tắt: ⌘K hoặc Ctrl+K để focus, ↑↓ để chọn, Enter để mở.",
+  "Search bar trên home tìm được module, model FAL, và các studio (Voice Studio, Video Studio). Phím tắt: ⌘K hoặc Ctrl+K để focus, ↑↓ để chọn, Enter để mở.",
   "Phím tắt 1-9 / 0 / - / = trên home mở nhanh module tương ứng (theo ô số trên thẻ). 9 = Markets, 0 = AI Store, - = Tools, = = Calculators.",
   "Click logo MrNine ở bất kỳ trang nào để quay về trang chủ.",
   "Theme có 7 preset: Auto, Crimson, Signal, Gold, Frost, Eclipse, Plasma — đổi ở dropdown góc phải header. Auto cycles theo giờ Bangkok.",

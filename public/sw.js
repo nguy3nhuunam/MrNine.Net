@@ -41,10 +41,7 @@ self.addEventListener("fetch", (event) => {
   // Never cache API calls, auth, or websockets.
   if (
     url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/voice-studio-runtime/") ||
-    url.pathname.startsWith("/inkos-studio/") ||
-    url.pathname.startsWith("/assets/") ||
-    url.pathname.startsWith("/api/v1/")
+    url.pathname.startsWith("/voice-studio-runtime/")
   ) {
     return;
   }

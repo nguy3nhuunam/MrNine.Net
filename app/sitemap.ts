@@ -11,7 +11,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/smart-recap",
     "/docsense",
     "/story-writer",
-    "/story-forge",
     "/voice-studio",
     "/video-studio",
     "/mystic-deck",

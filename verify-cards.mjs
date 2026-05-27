@@ -12,7 +12,6 @@ const routes = [
   { name: "smart-recap", path: "/smart-recap" },
   { name: "docsense", path: "/docsense" },
   { name: "story-writer", path: "/story-writer" },
-  { name: "story-forge", path: "/story-forge" },
   { name: "voice-studio", path: "/voice-studio" },
   { name: "video-studio", path: "/video-studio" },
 ];

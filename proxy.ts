@@ -11,7 +11,6 @@ const PUBLIC_PATHS = new Set<string>(["/"]);
 const PUBLIC_PREFIXES: ReadonlyArray<string> = [
   "/api/auth",
   "/voice-studio-runtime",
-  "/inkos-studio",
   "/_next",
 ];
 
@@ -38,24 +37,13 @@ export function proxy(request: NextRequest) {
 
   // Voice Studio (Gradio) static asset rewrites — must run before auth.
   if (
-    (pathname.startsWith("/assets/") ||
-      pathname.startsWith("/gradio_api/") ||
+    (pathname.startsWith("/gradio_api/") ||
       pathname.startsWith("/queue/") ||
       pathname.startsWith("/theme.css") ||
       pathname.startsWith("/static/")) &&
-    (referer.includes("/voice-studio-runtime") ||
-      (pathname.startsWith("/assets/") && referer.length === 0))
+    referer.includes("/voice-studio-runtime")
   ) {
     return NextResponse.rewrite(new URL(`http://127.0.0.1:7861${pathname}${request.nextUrl.search}`));
-  }
-
-  // Inkos studio direct hits redirect to the Story Forge wrapper page.
-  if (pathname === "/inkos-studio" || pathname.startsWith("/inkos-studio/")) {
-    const destination = request.headers.get("sec-fetch-dest");
-
-    if (destination !== "iframe") {
-      return NextResponse.redirect(new URL("/story-forge", request.url));
-    }
   }
 
   // Auth gate.

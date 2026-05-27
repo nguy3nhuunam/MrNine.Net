@@ -2,8 +2,6 @@
 // Default provider: Yunwu (gpt-5.5).
 // Per-book override: user can plug a custom OpenAI-compatible endpoint.
 
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import type { LlmConfig } from "@/lib/story-writer/store";
 
 const DEFAULT_BASE_URL = "https://yunwu.ai/v1";
@@ -37,15 +35,6 @@ type CallOptions = {
 
 async function loadDefaultKey(): Promise<string> {
   if (process.env.YUNWU_API_KEY) return process.env.YUNWU_API_KEY;
-  const secretsPath = join(process.cwd(), ".webai-inkos", ".inkos", "secrets.json");
-  try {
-    const raw = await readFile(secretsPath, "utf8");
-    const secrets = JSON.parse(raw) as { services?: Record<string, { apiKey?: string }> };
-    const key = secrets.services?.["custom:Yunwu ChatGPT"]?.apiKey;
-    if (key) return key;
-  } catch {
-    // ignore
-  }
   throw new Error("YUNWU_API_KEY chưa được cấu hình");
 }
 
