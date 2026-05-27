@@ -107,6 +107,7 @@ const tutorCopy = {
     errSave: "Lưu thẻ thất bại",
     errStudy: "Không lấy được thẻ",
     errAi: "AI sinh thẻ lỗi",
+    studyNoDeck: "Chọn hoặc tạo một deck ở thanh bên để bắt đầu học.",
   },
   en: {
     back: "Back to home",
@@ -170,6 +171,7 @@ const tutorCopy = {
     errSave: "Save failed",
     errStudy: "Couldn't load card",
     errAi: "AI generate failed",
+    studyNoDeck: "Pick or create a deck in the sidebar to start studying.",
   },
 } satisfies Record<WebLanguage, Record<string, string>>;
 
@@ -764,8 +766,10 @@ function StudyView({
 }) {
   if (!data) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <LoaderCircle className="size-6 animate-spin text-[#45a85d]" />
+      <div className="rounded-xl border border-[#25211b] bg-[#0c0a08]/82 px-6 py-10 text-center">
+        <p className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[#9a9087]">
+          {copy.studyNoDeck}
+        </p>
       </div>
     );
   }
