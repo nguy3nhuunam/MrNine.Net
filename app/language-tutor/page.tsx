@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { LanguageTutorShell } from "@/components/LanguageTutorShell";
 
 export const metadata: Metadata = {
-  title: "Language Tutor — học ngôn ngữ qua chat · MrNine",
-  description: "Trợ lý học ngoại ngữ: chat song ngữ với sửa câu, giải thích lỗi và từ vựng kèm IPA. Hỗ trợ Anh / Nhật / Trung / Hàn / Pháp / Tây Ban Nha / Đức.",
+  title: "Language Tutor — flashcards · FSRS · MrNine",
+  description: "Hệ thống flashcard học ngoại ngữ kiểu Anki: deck, cloze, type-the-answer, FSRS-6 spaced repetition, AI sinh thẻ và TTS giọng OmniVoice.",
   openGraph: {
     title: "Language Tutor — MrNine",
-    description: "Học Anh, Nhật, Trung, Hàn, Pháp, Tây Ban Nha, Đức qua hội thoại có sửa lỗi.",
+    description: "Anki-style flashcards với FSRS-6, cloze, AI generate và TTS.",
   },
 };
 
