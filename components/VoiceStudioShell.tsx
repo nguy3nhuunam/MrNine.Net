@@ -52,7 +52,11 @@ type HistoryEntry = {
   createdAt: number;
 };
 
-const NON_VERBAL_TAGS = ["[laughter]", "[breath]", "[cough]", "[sigh]", "[whisper]", "[shout]"];
+const TAG_GROUPS: ReadonlyArray<{ label: string; tags: ReadonlyArray<string> }> = [
+  { label: "Cảm xúc", tags: ["[laughter]", "[sigh]", "[confirmation-en]", "[dissatisfaction-hnn]"] },
+  { label: "Hỏi", tags: ["[question-en]", "[question-ah]", "[question-oh]", "[question-ei]", "[question-yi]"] },
+  { label: "Ngạc nhiên", tags: ["[surprise-ah]", "[surprise-oh]", "[surprise-wa]", "[surprise-yo]"] },
+];
 
 const LANGUAGES: ReadonlyArray<{ code: string; label: string }> = [
   { code: "", label: "Auto" },
@@ -729,19 +733,27 @@ export function VoiceStudioShell() {
                 rows={6}
                 className="w-full resize-y rounded-md border border-[#25211b] bg-[#0a0907]/82 px-3 py-2.5 text-[0.92rem] leading-7 text-[#f4eadc] placeholder:text-[#756d64] focus:border-[#ef4444]/45 focus:outline-none"
               />
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                 <span className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#756d64]">
                   {copy.insertTag}:
                 </span>
-                {NON_VERBAL_TAGS.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => insertTag(tag)}
-                    className="rounded border border-white/10 bg-white/[0.025] px-2 py-0.5 font-mono text-[0.55rem] text-[#dfd5c7] transition hover:border-[#ef4444]/35 hover:bg-[#ef4444]/[0.08] hover:text-[#ffe9e5]"
-                  >
-                    {tag}
-                  </button>
+                {TAG_GROUPS.map((group) => (
+                  <div key={group.label} className="flex items-center gap-1">
+                    <span className="font-mono text-[0.48rem] uppercase tracking-[0.14em] text-[#5e574e]">
+                      {group.label}
+                    </span>
+                    {group.tags.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => insertTag(tag)}
+                        title={tag}
+                        className="rounded border border-white/10 bg-white/[0.025] px-2 py-0.5 font-mono text-[0.55rem] text-[#dfd5c7] transition hover:border-[#ef4444]/35 hover:bg-[#ef4444]/[0.08] hover:text-[#ffe9e5]"
+                      >
+                        {tag.replace(/^\[|\]$/g, "").replace(/-en$/, "").replace(/^(question|surprise|dissatisfaction)-/, "")}
+                      </button>
+                    ))}
+                  </div>
                 ))}
               </div>
             </div>
