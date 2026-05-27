@@ -5,7 +5,6 @@ import {
   ArrowRight,
   AudioLines,
   Bot,
-  BookOpenText,
   Calculator,
   ChevronDown,
   Check,
@@ -336,15 +335,15 @@ const modules = [
   },
   {
     number: "06",
-    title: "Language Tutor",
-    detail: "Đối thoại · chấm · flashcard",
-    summary: "Học ngoại ngữ qua đối thoại có sửa lỗi, chấm essay, flashcard và từ vựng theo chủ đề.",
-    signal: "Tutor lane",
-    action: "Coming soon",
-    icon: BookOpenText,
+    title: "Video Studio",
+    detail: "Edit · timeline · motion",
+    summary: "Studio dựng video: timeline, hiệu ứng motion, render workflow đa lớp.",
+    signal: "Video pipe",
+    action: "Open Video Studio",
+    icon: Clapperboard,
     accent: "lime",
     shortcut: "6",
-    lastUsed: "—",
+    lastUsed: "ready",
   },
   {
     number: "07",
@@ -436,7 +435,7 @@ const railItems: ReadonlyArray<RailItem> = [
   { label: "Smart Recap", icon: FileSearch, href: "/smart-recap", shortcut: "3" },
   { label: "DocSense", icon: Languages, href: "/docsense", shortcut: "4" },
   { label: "Story Writer", icon: PenLine, href: "/story-writer", shortcut: "5" },
-  { label: "Language Tutor", icon: BookOpenText, shortcut: "6" },
+  { label: "Video Studio", icon: Clapperboard, href: "/video-studio", shortcut: "6" },
   { label: "Mystic Deck", icon: Moon, href: "/mystic-deck", shortcut: "7" },
   { label: "Voice Studio", icon: AudioLines, href: "/voice-studio", shortcut: "8" },
   { label: "Markets", icon: LineChart, href: "/markets", shortcut: "9" },
@@ -645,12 +644,12 @@ const moduleCopy = {
       signal: "Máy viết truyện",
       action: "Mở Story Writer",
     },
-    "Language Tutor": {
-      title: "Language Tutor",
-      detail: "Đối thoại · chấm · flashcard",
-      summary: "Học ngoại ngữ qua đối thoại có sửa lỗi, chấm essay, flashcard và từ vựng theo chủ đề.",
-      signal: "Trợ giảng",
-      action: "Sắp ra mắt",
+    "Video Studio": {
+      title: "Video Studio",
+      detail: "Dựng · timeline · motion",
+      summary: "Studio dựng video: timeline, hiệu ứng motion, render workflow đa lớp.",
+      signal: "Pipeline video",
+      action: "Mở Video Studio",
     },
     "Mystic Deck": {
       title: "Mystic Deck",
@@ -1036,7 +1035,7 @@ function moduleAnimationClass(title: string): string {
       return "module-anim-doc";
     case "Story Writer":
       return "module-anim-story";
-    case "Language Tutor":
+    case "Video Studio":
       return "module-anim-tutor";
     case "Mystic Deck":
       return "module-anim-mystic";
@@ -2394,6 +2393,7 @@ export function HomeCommandSurface() {
       "Smart Recap": "/smart-recap",
       "DocSense": "/docsense",
       "Story Writer": "/story-writer",
+      "Video Studio": "/video-studio",
       "Mystic Deck": "/mystic-deck",
       "Voice Studio": "/voice-studio",
       "Markets": "/markets",
