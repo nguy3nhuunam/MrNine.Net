@@ -1,16 +1,13 @@
+import type { Metadata } from "next";
 import { VoiceStudioShell } from "@/components/VoiceStudioShell";
 
-const og = "/api/og?title=Voice%20Studio&subtitle=TTS%20%C2%B7%20clone%20%C2%B7%20transcribe&accent=amber";
-
-export const metadata = {
-  title: "Voice Studio — TTS · clone · transcribe",
-  description: "OmniVoice runtime: 600+ ngôn ngữ TTS, voice cloning, dubbing và transcribe.",
+export const metadata: Metadata = {
+  title: "Voice Studio — TTS · Clone · Design · MrNine",
+  description: "OmniVoice TTS với 600+ ngôn ngữ: nhân bản giọng, thiết kế giọng, auto voice. Chạy trên server local của bạn.",
   openGraph: {
-    title: "Voice Studio — TTS · clone · transcribe",
-    description: "600+ languages TTS, voice cloning, dubbing.",
-    images: [og],
+    title: "Voice Studio — MrNine",
+    description: "OmniVoice TTS với voice cloning, voice design.",
   },
-  twitter: { card: "summary_large_image", title: "Voice Studio", description: "600+ languages TTS, voice cloning.", images: [og] },
 };
 
 export default function VoiceStudioPage() {

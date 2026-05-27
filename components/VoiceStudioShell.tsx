@@ -1,671 +1,890 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   AudioLines,
-  CheckCircle2,
-  Copy,
-  Loader2,
-  RefreshCw,
-  Terminal,
+  Download,
+  History,
+  LoaderCircle,
+  Mic,
+  Pause,
+  Play,
+  Settings2,
+  Sparkles,
+  Square,
+  Trash2,
   TriangleAlert,
+  Upload,
+  Volume2,
+  Wand2,
+  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { languageOptions, useLanguage, type WebLanguage } from "@/components/LanguageProvider";
+import { cn } from "@/lib/utils";
 
-type StudioState = "starting" | "ready" | "setup" | "error";
+type Mode = "auto" | "design" | "clone";
 
-type StartResponse = {
-  ok?: boolean;
-  installed?: boolean;
-  status?: string;
-  url?: string;
-  message?: string;
-  installCommands?: string[];
-  log?: string;
+type Preset = {
+  id: string;
+  label: string;
+  mode: Mode;
+  instruct: string | null;
 };
 
-const framedStudioUrl = "/voice-studio-runtime/";
+type Status =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "offline"; message: string }
+  | { kind: "loading-model" }
+  | { kind: "generating" }
+  | { kind: "error"; message: string };
+
+type HistoryEntry = {
+  id: string;
+  audioUrl: string;
+  text: string;
+  mode: Mode;
+  preset?: string;
+  durationSec: number;
+  elapsedSec: number;
+  createdAt: number;
+};
+
+const NON_VERBAL_TAGS = ["[laughter]", "[breath]", "[cough]", "[sigh]", "[whisper]", "[shout]"];
+
+const LANGUAGES: ReadonlyArray<{ code: string; label: string }> = [
+  { code: "", label: "Auto" },
+  { code: "vi", label: "Tiếng Việt" },
+  { code: "en", label: "English" },
+  { code: "zh", label: "中文" },
+  { code: "ja", label: "日本語" },
+  { code: "ko", label: "한국어" },
+  { code: "fr", label: "Français" },
+  { code: "es", label: "Español" },
+];
 
 const voiceCopy = {
   en: {
-    back: "Back to MrNine home",
+    back: "Back to home",
     title: "Voice Studio",
+    subtitle: "OmniVoice / TTS · Clone · Design",
     online: "Online",
-    starting: "Starting",
-    setup: "Setup",
-    reload: "Reload",
-    startingMessage: "Starting OmniVoice Studio...",
-    runtimeMissing: "OmniVoice runtime is not installed.",
-    failed: "OmniVoice Studio failed to start.",
-    ready: "OmniVoice Studio is ready.",
-    runtime: "OmniVoice runtime",
-    loadingLocal: "Loading local Studio",
-    setupRequired: "Runtime setup required",
-    couldNotStart: "Studio could not start",
-    localInstall: "Local install",
-    commands: "Commands for this machine",
-    startupLog: "Startup log",
-    copy: "Copy",
-    features: ["Voice cloning", "Voice design", "600+ language TTS", "Gradio UI preserved"],
+    offline: "Offline",
+    loading: "Loading model",
+    generating: "Generating",
+    statusError: "Error",
+    statusIdle: "Ready",
+
+    modeAuto: "Auto",
+    modeDesign: "Design",
+    modeClone: "Clone",
+    modeAutoHint: "Model picks a voice",
+    modeDesignHint: "Describe a voice in words",
+    modeCloneHint: "Mimic a reference clip",
+
+    presetTitle: "Preset voices",
+    presetEmpty: "No presets — server offline",
+    historyTitle: "This session",
+    historyEmpty: "No clips yet — clips reset on reload",
+    historyClear: "Clear all",
+
+    referenceTitle: "Reference clip",
+    referenceHint: "3–10 seconds, same language as the target",
+    referenceUpload: "Upload audio",
+    referenceTranscript: "Transcript (optional)",
+
+    instructTitle: "Voice description",
+    instructPlaceholder: "female, warm tone, mid pitch, conversational",
+
+    textTitle: "Text",
+    textPlaceholder: "Type or paste the text to read aloud…",
+    textCharCount: "chars",
+    insertTag: "Insert tag",
+
+    settingsTitle: "Generation",
+    settingsLanguage: "Language",
+    settingsSpeed: "Speed",
+    settingsSteps: "Diffusion steps",
+
+    generate: "Generate",
+    stop: "Stop",
+    download: "Download",
+    play: "Play",
+    pause: "Pause",
+
+    serverOffline: "OmniVoice server isn't running. Start it on the host machine:",
+    helpRunCommand: "python webai_server.py --port 7862",
+    retry: "Retry",
   },
   vi: {
-    back: "Quay lại trang chủ MrNine",
+    back: "Về trang chủ",
     title: "Voice Studio",
+    subtitle: "OmniVoice / TTS · Nhân bản · Thiết kế",
     online: "Trực tuyến",
-    starting: "Đang khởi động",
-    setup: "Cài đặt",
-    reload: "Tải lại",
-    startingMessage: "Đang khởi động OmniVoice Studio...",
-    runtimeMissing: "OmniVoice runtime chưa được cài đặt.",
-    failed: "Không thể khởi động OmniVoice Studio.",
-    ready: "OmniVoice Studio đã sẵn sàng.",
-    runtime: "Runtime OmniVoice",
-    loadingLocal: "Đang tải Studio local",
-    setupRequired: "Cần cài đặt runtime",
-    couldNotStart: "Không thể khởi động Studio",
-    localInstall: "Cài đặt local",
-    commands: "Lệnh cho máy này",
-    startupLog: "Log khởi động",
-    copy: "Sao chép",
-    features: ["Nhân bản giọng", "Thiết kế giọng", "TTS hơn 600 ngôn ngữ", "Giữ nguyên UI Gradio"],
+    offline: "Offline",
+    loading: "Đang nạp model",
+    generating: "Đang tạo",
+    statusError: "Lỗi",
+    statusIdle: "Sẵn sàng",
+
+    modeAuto: "Auto",
+    modeDesign: "Thiết kế",
+    modeClone: "Nhân bản",
+    modeAutoHint: "Model tự chọn giọng",
+    modeDesignHint: "Mô tả giọng bằng câu chữ",
+    modeCloneHint: "Bắt chước giọng từ mẫu",
+
+    presetTitle: "Giọng có sẵn",
+    presetEmpty: "Chưa có preset — server offline",
+    historyTitle: "Trong phiên này",
+    historyEmpty: "Chưa có clip nào — reload trang sẽ xoá hết",
+    historyClear: "Xoá hết",
+
+    referenceTitle: "Mẫu giọng",
+    referenceHint: "3–10 giây, cùng ngôn ngữ với text muốn đọc",
+    referenceUpload: "Tải audio mẫu",
+    referenceTranscript: "Phiên âm mẫu (tuỳ chọn)",
+
+    instructTitle: "Mô tả giọng",
+    instructPlaceholder: "nữ, giọng ấm, cao độ trung bình, kiểu trò chuyện",
+
+    textTitle: "Văn bản",
+    textPlaceholder: "Nhập hoặc dán văn bản cần đọc…",
+    textCharCount: "ký tự",
+    insertTag: "Chèn tag",
+
+    settingsTitle: "Tham số",
+    settingsLanguage: "Ngôn ngữ",
+    settingsSpeed: "Tốc độ",
+    settingsSteps: "Diffusion steps",
+
+    generate: "Tạo giọng",
+    stop: "Dừng",
+    download: "Tải xuống",
+    play: "Phát",
+    pause: "Tạm dừng",
+
+    serverOffline: "Server OmniVoice chưa chạy. Khởi động ở máy local:",
+    helpRunCommand: "python webai_server.py --port 7862",
+    retry: "Thử lại",
   },
-} satisfies Record<WebLanguage, Record<string, string | string[]>>;
+} satisfies Record<WebLanguage, Record<string, string>>;
+
+const formatTime = (sec: number) => {
+  if (!Number.isFinite(sec)) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
 
 export function VoiceStudioShell() {
   const { language, setLanguage } = useLanguage();
   const copy = voiceCopy[language];
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [state, setState] = useState<StudioState>("starting");
-  const [studioUrl, setStudioUrl] = useState(framedStudioUrl);
-  const [message, setMessage] = useState(copy.startingMessage as string);
-  const [commands, setCommands] = useState<string[]>([]);
-  const [runtimeLog, setRuntimeLog] = useState<string | undefined>();
+
+  const [mode, setMode] = useState<Mode>("auto");
+  const [text, setText] = useState("");
+  const [instruct, setInstruct] = useState("");
+  const [refAudio, setRefAudio] = useState<File | null>(null);
+  const [refText, setRefText] = useState("");
+  const [genLanguage, setGenLanguage] = useState("");
+  const [speed, setSpeed] = useState(1.0);
+  const [numStep, setNumStep] = useState(32);
+  const [activePreset, setActivePreset] = useState<string | null>("auto");
+
+  const [status, setStatus] = useState<Status>({ kind: "checking" });
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [activeClipId, setActiveClipId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const checkHealth = useCallback(async () => {
+    setStatus({ kind: "checking" });
+    try {
+      const response = await fetch("/api/voice-studio/health", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) {
+        setStatus({ kind: "offline", message: data?.message ?? copy.serverOffline });
+        return;
+      }
+      if (!data?.loaded) {
+        setStatus({ kind: "loading-model" });
+        return;
+      }
+      setStatus({ kind: "idle" });
+
+      const voicesRes = await fetch("/api/voice-studio/voices", { cache: "no-store" });
+      if (voicesRes.ok) {
+        const voicesData = await voicesRes.json();
+        setPresets(Array.isArray(voicesData?.presets) ? voicesData.presets : []);
+      }
+    } catch {
+      setStatus({ kind: "offline", message: copy.serverOffline });
+    }
+  }, [copy.serverOffline]);
 
   useEffect(() => {
-    let cancelled = false;
-    let poll: number | undefined;
+    void checkHealth();
+  }, [checkHealth]);
 
-    async function startStudio() {
-      setState("starting");
-      setMessage(copy.startingMessage as string);
+  const isBusy = status.kind === "generating";
+  const isReady = status.kind === "idle";
 
-      try {
-        const response = await fetch("/api/voice-studio/start", { method: "POST" });
-        const data = (await response.json()) as StartResponse;
+  const activeClip = useMemo(
+    () => history.find((h) => h.id === activeClipId) ?? null,
+    [history, activeClipId],
+  );
 
-        if (data.url) {
-          setStudioUrl(data.url);
-        }
+  const onPickPreset = (preset: Preset) => {
+    setActivePreset(preset.id);
+    setMode(preset.mode);
+    if (preset.instruct) setInstruct(preset.instruct);
+  };
 
-        if (response.status === 409 || data.installed === false) {
-          if (!cancelled) {
-            setState("setup");
-            setMessage(data.message || (copy.runtimeMissing as string));
-            setCommands(data.installCommands || []);
-          }
-          return;
-        }
+  const insertTag = (tag: string) => {
+    const el = textareaRef.current;
+    if (!el) {
+      setText((t) => `${t}${t.endsWith(" ") || !t ? "" : " "}${tag} `);
+      return;
+    }
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    const next = `${text.slice(0, start)}${tag} ${text.slice(end)}`;
+    setText(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + tag.length + 1, start + tag.length + 1);
+    });
+  };
 
-        if (!response.ok || data.ok === false) {
-          throw new Error(data.message || (copy.failed as string));
-        }
+  const onGenerate = async () => {
+    if (!text.trim()) return;
+    if (mode === "design" && !instruct.trim()) return;
+    if (mode === "clone" && !refAudio) return;
 
-        poll = window.setInterval(async () => {
-          const statusResponse = await fetch("/api/voice-studio/start", { cache: "no-store" });
-          const status = (await statusResponse.json()) as StartResponse;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-          if (status.url) {
-            setStudioUrl(status.url);
-          }
-          if (status.log) {
-            setRuntimeLog(status.log);
-          }
-          if (!cancelled && status.status === "ready") {
-            window.clearInterval(poll);
-            setState("ready");
-            setMessage(copy.ready as string);
-          }
-        }, 1_250);
-      } catch (error) {
-        if (!cancelled) {
-          setState("error");
-          setMessage(error instanceof Error ? error.message : (copy.failed as string));
-        }
-      }
+    setStatus({ kind: "generating" });
+
+    const form = new FormData();
+    form.set("text", text.trim());
+    form.set("mode", mode);
+    if (genLanguage) form.set("language", genLanguage);
+    form.set("speed", String(speed));
+    form.set("num_step", String(numStep));
+    if (mode === "design") form.set("instruct", instruct.trim());
+    if (mode === "clone" && refAudio) {
+      form.set("ref_audio", refAudio);
+      if (refText.trim()) form.set("ref_text", refText.trim());
     }
 
-    void startStudio();
+    try {
+      const response = await fetch("/api/voice-studio/clone", {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.message ?? `HTTP ${response.status}`);
+      }
+      const clip: HistoryEntry = {
+        id: data.id,
+        audioUrl: `/api/voice-studio/audio/${data.id}`,
+        text: text.trim(),
+        mode,
+        preset: activePreset ?? undefined,
+        durationSec: data.duration_sec ?? 0,
+        elapsedSec: data.elapsed_sec ?? 0,
+        createdAt: Date.now(),
+      };
+      setHistory((h) => [clip, ...h].slice(0, 24));
+      setActiveClipId(clip.id);
+      setStatus({ kind: "idle" });
+    } catch (error) {
+      if (controller.signal.aborted) {
+        setStatus({ kind: "idle" });
+        return;
+      }
+      setStatus({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Generation failed",
+      });
+    }
+  };
 
+  const onStop = () => {
+    abortRef.current?.abort();
+    setStatus({ kind: "idle" });
+  };
+
+  const onPickRefAudio = (file: File | null) => {
+    if (file && file.size > 25 * 1024 * 1024) return;
+    setRefAudio(file);
+  };
+
+  const togglePlay = () => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (el.paused) void el.play();
+    else el.pause();
+  };
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onTime = () => {
+      if (el.duration > 0) setAudioProgress(el.currentTime / el.duration);
+    };
+    el.addEventListener("play", onPlay);
+    el.addEventListener("pause", onPause);
+    el.addEventListener("timeupdate", onTime);
+    el.addEventListener("ended", onPause);
     return () => {
-      cancelled = true;
-      if (poll) {
-        window.clearInterval(poll);
-      }
+      el.removeEventListener("play", onPlay);
+      el.removeEventListener("pause", onPause);
+      el.removeEventListener("timeupdate", onTime);
+      el.removeEventListener("ended", onPause);
     };
-  }, [copy.failed, copy.ready, copy.runtimeMissing, copy.startingMessage]);
+  }, [activeClip?.id]);
 
-  const retry = () => {
-    window.location.reload();
-  };
-
-  const copyCommands = async () => {
-    if (!commands.length) {
-      return;
+  const statusBadge = (() => {
+    switch (status.kind) {
+      case "idle":
+        return { dot: "bg-[#45a85d]", label: copy.statusIdle, tone: "text-[#7dd391]" };
+      case "checking":
+      case "loading-model":
+        return { dot: "bg-[#d6a548] animate-pulse", label: copy.loading, tone: "text-[#d6a548]" };
+      case "generating":
+        return {
+          dot: "bg-[#ef4444] animate-pulse",
+          label: copy.generating,
+          tone: "text-[#ff8e85]",
+        };
+      case "offline":
+        return { dot: "bg-[#ef4444]", label: copy.offline, tone: "text-[#ff8e85]" };
+      case "error":
+        return { dot: "bg-[#ef4444]", label: copy.statusError, tone: "text-[#ff8e85]" };
     }
-
-    await navigator.clipboard.writeText(commands.join("\n"));
-  };
-
-  const injectTheme = useCallback(() => {
-    const doc = iframeRef.current?.contentDocument;
-
-    if (!doc) {
-      return;
-    }
-
-    doc.documentElement.classList.add("webai-voice-studio");
-
-    let style = doc.getElementById("webai-omnivoice-theme") as HTMLStyleElement | null;
-
-    if (!style) {
-      style = doc.createElement("style");
-      style.id = "webai-omnivoice-theme";
-      doc.head.appendChild(style);
-    }
-
-    style.textContent = `
-      :root,
-      .dark {
-        color-scheme: dark;
-        --body-background-fill: #0b0a08 !important;
-        --background-fill-primary: #0b0a08 !important;
-        --background-fill-secondary: rgba(20, 16, 13, 0.92) !important;
-        --block-background-fill: rgba(20, 16, 13, 0.82) !important;
-        --block-border-color: rgba(239, 68, 68, 0.18) !important;
-        --block-border-width: 1px !important;
-        --block-radius: 8px !important;
-        --button-primary-background-fill: #ef4444 !important;
-        --button-primary-background-fill-hover: #ff5a50 !important;
-        --button-primary-text-color: #fff5eb !important;
-        --button-secondary-background-fill: rgba(255,255,255,0.035) !important;
-        --button-secondary-background-fill-hover: rgba(255,255,255,0.07) !important;
-        --button-secondary-border-color: rgba(255,255,255,0.10) !important;
-        --button-secondary-text-color: #f4eadc !important;
-        --checkbox-background-color-selected: #ef4444 !important;
-        --color-accent: #ef4444 !important;
-        --input-background-fill: rgba(62, 72, 88, 0.52) !important;
-        --input-border-color: rgba(255,255,255,0.08) !important;
-        --input-radius: 6px !important;
-        --link-text-color: #d6a548 !important;
-        --link-text-color-hover: #ff5a50 !important;
-        --neutral-50: #fff5eb !important;
-        --neutral-100: #f4eadc !important;
-        --neutral-200: #d8ccbf !important;
-        --neutral-300: #b8ada1 !important;
-        --neutral-400: #9f968b !important;
-        --neutral-500: #756d64 !important;
-        --neutral-600: #423a31 !important;
-        --neutral-700: #25211b !important;
-        --neutral-800: #17120f !important;
-        --neutral-900: #0b0a08 !important;
-        --primary-500: #ef4444 !important;
-        --primary-600: #ef4444 !important;
-        --primary-700: #c43a32 !important;
-        --shadow-drop: 0 24px 80px rgba(0,0,0,0.36) !important;
-      }
-
-      html,
-      body,
-      gradio-app,
-      .gradio-container {
-        min-height: 100% !important;
-        background:
-          radial-gradient(circle at 14% 6%, rgba(214, 165, 72, 0.13), transparent 28rem),
-          radial-gradient(circle at 86% 10%, rgba(239, 68, 68, 0.10), transparent 30rem),
-          linear-gradient(90deg, rgba(69, 168, 93, 0.055), transparent 38%),
-          #0b0a08 !important;
-        color: #f4eadc !important;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-        letter-spacing: 0 !important;
-      }
-
-      body {
-        overflow-x: hidden !important;
-      }
-
-      .gradio-container {
-        max-width: none !important;
-        padding: 28px 34px 44px !important;
-      }
-
-      main,
-      .main,
-      .wrap,
-      .contain,
-      .app {
-        max-width: none !important;
-      }
-
-      h1 {
-        margin: 0 0 14px !important;
-        color: #fff5eb !important;
-        font-size: clamp(2.25rem, 5vw, 5.5rem) !important;
-        line-height: 0.92 !important;
-        letter-spacing: 0 !important;
-        font-weight: 950 !important;
-      }
-
-      h1::after {
-        content: " / Voice Studio";
-        color: rgba(239, 68, 68, 0.95);
-      }
-
-      h2,
-      h3,
-      label,
-      .label,
-      .prose strong {
-        color: #fff5eb !important;
-        letter-spacing: 0 !important;
-      }
-
-      p,
-      li,
-      .prose,
-      .prose p,
-      .markdown,
-      .svelte-1ed2p3z {
-        color: #c8baad !important;
-      }
-
-      .prose {
-        max-width: 980px !important;
-        font-size: 0.95rem !important;
-        line-height: 1.6 !important;
-      }
-
-      .prose ul {
-        margin: 10px 0 16px !important;
-      }
-
-      a {
-        color: #d6a548 !important;
-      }
-
-      .tabs {
-        border-bottom: 1px solid rgba(239, 68, 68, 0.18) !important;
-        margin-top: 18px !important;
-      }
-
-      .tab-nav,
-      .tabs button,
-      button[role="tab"] {
-        border-radius: 6px 6px 0 0 !important;
-        color: #9f968b !important;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
-        font-size: 0.68rem !important;
-        font-weight: 700 !important;
-        letter-spacing: 0.16em !important;
-        text-transform: uppercase !important;
-      }
-
-      button[role="tab"][aria-selected="true"],
-      .tabs button.selected {
-        color: #ef4444 !important;
-        border-bottom-color: #ef4444 !important;
-      }
-
-      .block,
-      .panel,
-      .form,
-      .form > *,
-      .gradio-row > .gradio-column > .block,
-      .gradio-column > .block {
-        border-color: rgba(239, 68, 68, 0.16) !important;
-        background: rgba(20, 16, 13, 0.76) !important;
-        border-radius: 8px !important;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.035) !important;
-      }
-
-      .block-label,
-      .block-title,
-      label[data-testid="block-label"],
-      span[data-testid="block-info"],
-      .label-wrap > span,
-      .label-wrap label,
-      .wrap .label {
-        width: fit-content !important;
-        border: 1px solid rgba(214, 165, 72, 0.26) !important;
-        border-radius: 6px !important;
-        background: rgba(214, 165, 72, 0.12) !important;
-        color: #f7c862 !important;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
-        font-size: 0.68rem !important;
-        font-weight: 800 !important;
-        letter-spacing: 0.08em !important;
-        text-transform: uppercase !important;
-        box-shadow: none !important;
-      }
-
-      span[data-testid="block-info"] {
-        display: inline-flex !important;
-        align-items: center !important;
-        min-height: 24px !important;
-        padding: 4px 9px !important;
-      }
-
-      span[data-testid="block-info"] * {
-        color: inherit !important;
-        background: transparent !important;
-      }
-
-      textarea,
-      input,
-      select,
-      .wrap textarea,
-      .wrap input,
-      .wrap select,
-      [data-testid="textbox"] textarea {
-        min-height: auto !important;
-        border: 1px solid rgba(69, 168, 93, 0.16) !important;
-        background: rgba(11, 10, 8, 0.62) !important;
-        color: #f4eadc !important;
-        border-radius: 6px !important;
-        box-shadow: none !important;
-      }
-
-      textarea::placeholder,
-      input::placeholder {
-        color: rgba(159, 150, 139, 0.70) !important;
-      }
-
-      button,
-      .button,
-      .primary {
-        border-radius: 7px !important;
-        font-weight: 800 !important;
-        letter-spacing: 0 !important;
-        transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease !important;
-      }
-
-      button:hover {
-        transform: translateY(-1px);
-      }
-
-      button.primary,
-      .primary,
-      button[type="submit"],
-      button:has(+ .generating) {
-        border: 1px solid rgba(255,255,255,0.14) !important;
-        background: linear-gradient(180deg, #ef4444, #b72d28) !important;
-        color: #fff5eb !important;
-        box-shadow: 0 0 28px rgba(239, 68, 68, 0.22) !important;
-      }
-
-      .upload,
-      .file-preview,
-      [data-testid="file"] {
-        border: 1px dashed rgba(214, 165, 72, 0.30) !important;
-        background: rgba(11, 10, 8, 0.42) !important;
-      }
-
-      .upload .wrap,
-      [data-testid="file"] .wrap,
-      .file-preview .wrap {
-        color: #f7c862 !important;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
-        font-size: 0.75rem !important;
-        font-weight: 800 !important;
-        letter-spacing: 0.12em !important;
-        text-transform: uppercase !important;
-      }
-
-      .upload .wrap .or,
-      [data-testid="file"] .wrap .or {
-        color: #9f968b !important;
-      }
-
-      .upload .wrap svg,
-      [data-testid="file"] .wrap svg {
-        color: #ef4444 !important;
-      }
-
-      [data-testid="block-info"][style],
-      span[data-testid="block-info"][style],
-      label[data-testid="block-label"],
-      label[data-testid="block-label"][style] {
-        background: rgba(214, 165, 72, 0.12) !important;
-        color: #f7c862 !important;
-      }
-
-      label[data-testid="block-label"] svg,
-      label[data-testid="block-label"] span {
-        color: inherit !important;
-        background: transparent !important;
-      }
-
-      audio,
-      .audio-container,
-      [data-testid="audio"] {
-        color-scheme: dark !important;
-        border-radius: 8px !important;
-      }
-
-      .empty,
-      .empty span,
-      .icon {
-        color: #9f968b !important;
-      }
-
-      .accordion,
-      details {
-        border-color: rgba(255,255,255,0.10) !important;
-        background: rgba(20, 16, 13, 0.58) !important;
-        border-radius: 8px !important;
-      }
-
-      @media (max-width: 760px) {
-        .gradio-container {
-          padding: 18px 14px 32px !important;
-        }
-
-        h1 {
-          font-size: clamp(2rem, 14vw, 3.8rem) !important;
-        }
-      }
-    `;
-
-    const restyle = () => {
-      const labels = Array.from(doc.querySelectorAll("span, label, button, .block-label, .block-title"));
-
-      for (const element of labels) {
-        const text = element.textContent?.trim();
-
-        if (!text) {
-          continue;
-        }
-
-        if (text.includes("Generate") || text.includes("生成")) {
-          element.classList.add("webai-generate-control");
-        }
-      }
-    };
-
-    restyle();
-    const interval = window.setInterval(restyle, 700);
-    window.setTimeout(() => window.clearInterval(interval), 8_000);
-  }, []);
+  })();
 
   return (
-    <main className="relative h-screen overflow-hidden bg-[#0b0a08] text-[#f4eadc]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_8%,rgba(214,165,72,0.14),transparent_28rem),radial-gradient(circle_at_88%_10%,rgba(239,68,68,0.10),transparent_30rem),linear-gradient(90deg,rgba(69,168,93,0.06),transparent_42%)]" />
-      <div className="relative z-10 flex h-full flex-col">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#ef4444]/14 bg-[#0b0a08]/88 px-4 backdrop-blur md:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link
-              href="/"
-              aria-label={copy.back as string}
-              className="flex size-9 shrink-0 items-center justify-center rounded-md border border-white/10 text-[#a79d91] transition hover:border-[#ef4444]/40 hover:text-[#f4eadc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70"
-            >
-              <ArrowLeft className="size-4" />
-            </Link>
-            <Link
-              href="/"
-              aria-label="MrNine home"
-              className="font-display text-xl font-black tracking-[-0.08em] text-[#f4eadc] outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#d6a548]/70 sm:text-2xl"
-            >
-              Mr<span className="text-[#d6a548]">Nine</span>
-            </Link>
-            <span aria-hidden="true" className="hidden h-6 w-px bg-white/10 sm:block" />
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="hidden size-9 items-center justify-center rounded-md border border-[#d6a548]/30 bg-[#d6a548]/10 text-[#d6a548] sm:flex">
-                <AudioLines className="size-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-[#d6a548]">
-                  MrNine / OmniVoice Studio
-                </p>
-                <h1 className="truncate text-lg font-black tracking-[-0.04em] text-[#f4eadc]">
-                  {copy.title as string}
-                </h1>
-              </div>
-            </div>
-          </div>
+    <main className="relative flex h-screen flex-col overflow-hidden bg-[#0b0a08] text-[#e8dfd4]">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 14% 8%, rgba(239,68,68,0.14), transparent 28%), radial-gradient(circle at 86% 12%, rgba(214,165,72,0.08), transparent 26%), linear-gradient(180deg,#0d0c0a 0%,#070604 100%)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-0 bg-[size:24px_24px] opacity-50"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(94,86,75,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(94,86,75,0.055) 1px, transparent 1px)",
+        }}
+      />
 
-          <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#9f968b] sm:flex">
-              <span
-                className={`size-1.5 rounded-full ${
-                  state === "ready"
-                    ? "bg-[#45a85d]"
-                    : state === "setup" || state === "error"
-                      ? "bg-[#ef4444]"
-                      : "bg-[#d6a548]"
-                }`}
-              />
-              {state === "ready" ? copy.online as string : state === "starting" ? copy.starting as string : copy.setup as string}
+      <header className="relative z-20 flex h-14 shrink-0 items-center gap-3 border-b border-[#25211b] bg-[#0a0907]/92 px-3 backdrop-blur md:px-5">
+        <Link
+          href="/"
+          aria-label={copy.back}
+          className="flex size-9 items-center justify-center rounded-md border border-white/10 text-[#a79d91] transition hover:border-[#ef4444]/40 hover:text-[#f4eadc]"
+        >
+          <ArrowLeft className="size-4" />
+        </Link>
+        <Link
+          href="/"
+          aria-label="MrNine home"
+          className="font-display text-xl font-black tracking-[-0.08em] text-[#f4eadc] outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 sm:text-2xl"
+        >
+          Mr<span className="text-[#ef4444]">Nine</span>
+        </Link>
+        <span aria-hidden="true" className="hidden h-6 w-px bg-white/10 sm:block" />
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#ef4444]/30 bg-[#ef4444]/10 text-[#ef4444]">
+            <AudioLines className="size-4" />
+          </div>
+          <div className="hidden min-w-0 sm:block">
+            <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#ef4444]">{copy.subtitle}</p>
+            <h1 className="truncate text-base font-black tracking-[-0.04em] text-[#f4eadc]">{copy.title}</h1>
+          </div>
+        </div>
+
+        <nav className="ml-1 hidden flex-1 items-center justify-center gap-1 md:flex" aria-label="Voice modes">
+          {(
+            [
+              { id: "auto" as const, label: copy.modeAuto, hint: copy.modeAutoHint, icon: Wand2 },
+              { id: "design" as const, label: copy.modeDesign, hint: copy.modeDesignHint, icon: Sparkles },
+              { id: "clone" as const, label: copy.modeClone, hint: copy.modeCloneHint, icon: Mic },
+            ]
+          ).map((item) => {
+            const Icon = item.icon;
+            const active = item.id === mode;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setMode(item.id)}
+                aria-pressed={active}
+                title={item.hint}
+                className={cn(
+                  "flex h-10 items-center gap-2 rounded-md border px-3 font-mono text-[0.62rem] uppercase tracking-[0.16em] transition",
+                  active
+                    ? "border-[#ef4444]/50 bg-[#ef4444]/12 text-[#ffe9e5] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]"
+                    : "border-[#25211b] text-[#9a9087] hover:border-white/20 hover:text-[#f4eadc]",
+                )}
+              >
+                <Icon className={cn("size-3.5 transition-transform duration-300", active && "scale-110")} />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2">
+          <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[0.58rem] uppercase tracking-[0.16em] sm:flex">
+            <span className={cn("size-1.5 rounded-full", statusBadge.dot)} />
+            <span className={statusBadge.tone}>{statusBadge.label}</span>
+          </div>
+          <div className="flex rounded-full border border-white/10 bg-white/[0.03] p-0.5 font-mono text-[0.58rem] uppercase tracking-[0.16em]">
+            {languageOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                title={option.title}
+                aria-pressed={language === option.value}
+                onClick={() => setLanguage(option.value)}
+                className={cn(
+                  "rounded-full px-2.5 py-1 transition",
+                  language === option.value
+                    ? "bg-[#ef4444] text-[#1a0807]"
+                    : "text-[#9f968b] hover:text-[#f4eadc]",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <div className="md:hidden relative z-10 shrink-0 overflow-x-auto border-b border-[#25211b] bg-[#0a0907]/92 px-3 py-2">
+        <div className="flex min-w-max items-center gap-1.5">
+          {(["auto", "design", "clone"] as const).map((id) => {
+            const Icon = id === "auto" ? Wand2 : id === "design" ? Sparkles : Mic;
+            const label = id === "auto" ? copy.modeAuto : id === "design" ? copy.modeDesign : copy.modeClone;
+            const active = id === mode;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setMode(id)}
+                className={cn(
+                  "flex h-9 items-center gap-1.5 rounded-md border px-3 font-mono text-[0.6rem] uppercase tracking-[0.16em] transition",
+                  active
+                    ? "border-[#ef4444]/50 bg-[#ef4444]/10 text-[#ffe9e5]"
+                    : "border-[#25211b] text-[#9a9087]",
+                )}
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {status.kind === "offline" ? (
+        <div className="relative z-10 mx-auto mt-6 w-full max-w-3xl rounded-xl border border-[#ef4444]/30 bg-[#1a0707]/72 px-5 py-4 text-sm text-[#f4eadc] shadow-[0_18px_60px_rgba(0,0,0,0.55)]">
+          <div className="flex items-start gap-3">
+            <TriangleAlert className="mt-0.5 size-5 shrink-0 text-[#ef4444]" />
+            <div className="flex-1">
+              <p className="font-mono text-[0.6rem] uppercase tracking-[0.22em] text-[#ef4444]">
+                {copy.offline}
+              </p>
+              <p className="mt-1 leading-6">{copy.serverOffline}</p>
+              <code className="mt-2 inline-block rounded-md border border-[#ef4444]/25 bg-[#0d0504] px-2.5 py-1 font-mono text-[0.7rem] text-[#ffd7d3]">
+                {copy.helpRunCommand}
+              </code>
             </div>
-            <div className="flex rounded-full border border-white/10 bg-white/[0.03] p-0.5 font-mono text-[0.58rem] uppercase tracking-[0.16em]">
-              {languageOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  title={option.title}
-                  aria-pressed={language === option.value}
-                  onClick={() => setLanguage(option.value)}
-                  className={`rounded-full px-2.5 py-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef4444]/70 ${
-                    language === option.value ? "bg-[#ef4444] text-white" : "text-[#9f968b] hover:text-[#f4eadc]"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <Button
+            <button
               type="button"
-              variant="outline"
-              onClick={retry}
-              className="h-9 rounded-md border-white/10 bg-white/[0.03] px-3 text-[#cfc4b8] hover:bg-white/[0.06]"
+              onClick={() => void checkHealth()}
+              className="rounded-md border border-[#ef4444]/40 bg-[#ef4444]/12 px-3 py-1.5 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[#ffe9e5] transition hover:bg-[#ef4444]/20"
             >
-              <RefreshCw className="size-4" />
-              <span className="hidden sm:inline">{copy.reload as string}</span>
-            </Button>
+              {copy.retry}
+            </button>
           </div>
-        </header>
+        </div>
+      ) : null}
 
-        <section className="relative min-h-0 flex-1">
-          {state === "ready" ? (
-            <iframe
-              ref={iframeRef}
-              title="OmniVoice Voice Studio"
-              src={studioUrl}
-              onLoad={injectTheme}
-              className="h-full w-full border-0 bg-[#0b0a08]"
-              allow="microphone; clipboard-read; clipboard-write"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#0b0a08]/96 p-4">
-              <div className="grid w-full max-w-5xl gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-                <div className="rounded-lg border border-[#d6a548]/18 bg-[#11100d]/90 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
-                  <div className="flex items-start gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-[#d6a548]/28 bg-[#d6a548]/10 text-[#d6a548]">
-                      {state === "starting" ? (
-                        <Loader2 className="size-5 animate-spin" />
-                      ) : state === "setup" ? (
-                        <Terminal className="size-5" />
-                      ) : (
-                        <TriangleAlert className="size-5 text-[#ef4444]" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[#d6a548]">
-                        {copy.runtime as string}
-                      </p>
-                      <h2 className="mt-2 text-xl font-black tracking-[-0.04em] text-[#fff5eb]">
-                        {state === "starting"
-                          ? copy.loadingLocal as string
-                          : state === "setup"
-                            ? copy.setupRequired as string
-                            : copy.couldNotStart as string}
-                      </h2>
-                      <p className="mt-3 text-sm leading-6 text-[#a79d91]">{message}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid gap-2 font-mono text-[0.64rem] uppercase tracking-[0.16em] text-[#9f968b]">
-                    {(copy.features as string[]).map((item) => (
-                      <div key={item} className="flex items-center gap-2">
-                        <CheckCircle2 className="size-3.5 text-[#45a85d]" />
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-[#ef4444]/18 bg-[#140f0d]/86 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-[#ef4444]">
-                        {copy.localInstall as string}
-                      </p>
-                      <h3 className="mt-2 text-base font-black text-[#f4eadc]">
-                        {commands.length ? copy.commands as string : copy.startupLog as string}
-                      </h3>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={!commands.length}
-                      onClick={copyCommands}
-                      className="h-9 rounded-md border-white/10 bg-white/[0.03] px-3 text-[#cfc4b8] hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
-                    >
-                      <Copy className="size-4" />
-                      {copy.copy as string}
-                    </Button>
-                  </div>
-
-                  {commands.length ? (
-                    <pre className="mt-4 overflow-x-auto rounded-md border border-white/10 bg-[#080706] p-4 text-xs leading-6 text-[#f4eadc]">
-                      <code>{commands.join("\n")}</code>
-                    </pre>
-                  ) : (
-                    <div className="mt-4 rounded-md border border-white/10 bg-[#080706] p-4 text-sm leading-6 text-[#9f968b]">
-                      OmniVoice can take a while on the first run because it loads the model and may download weights from HuggingFace.
-                    </div>
+      <div className="relative z-10 grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[22rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]">
+        {/* LEFT — presets + history */}
+        <aside className="hidden min-h-0 flex-col border-r border-[#25211b] bg-[#0a0907]/72 lg:flex">
+          <div className="flex shrink-0 items-center justify-between border-b border-[#25211b] px-4 py-3">
+            <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#ef4444]">
+              {copy.presetTitle}
+            </p>
+            <Volume2 className="size-3.5 text-[#9a9087]" />
+          </div>
+          <div className="grid shrink-0 grid-cols-1 gap-1.5 p-3">
+            {presets.length === 0 ? (
+              <p className="rounded-md border border-white/8 bg-white/[0.025] px-3 py-3 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#756d64]">
+                {copy.presetEmpty}
+              </p>
+            ) : (
+              presets.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => onPickPreset(preset)}
+                  className={cn(
+                    "group flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition",
+                    activePreset === preset.id
+                      ? "border-[#ef4444]/45 bg-[#ef4444]/10 text-[#ffe9e5] shadow-[0_0_0_1px_rgba(239,68,68,0.18)_inset]"
+                      : "border-[#25211b] bg-white/[0.02] text-[#dfd5c7] hover:border-white/20 hover:bg-white/[0.05]",
                   )}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[0.78rem] font-bold">{preset.label}</p>
+                    {preset.instruct ? (
+                      <p className="mt-0.5 truncate font-mono text-[0.55rem] uppercase tracking-[0.14em] text-[#756d64]">
+                        {preset.instruct}
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 font-mono text-[0.55rem] uppercase tracking-[0.14em] text-[#756d64]">
+                        {preset.mode}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      activePreset === preset.id ? "bg-[#ef4444]" : "bg-[#3a322a] group-hover:bg-[#9a9087]",
+                    )}
+                  />
+                </button>
+              ))
+            )}
+          </div>
 
-                  {runtimeLog ? (
-                    <pre className="mt-4 max-h-40 overflow-auto rounded-md border border-[#d6a548]/16 bg-[#0b0a08] p-4 text-[0.68rem] leading-5 text-[#b8ada1]">
-                      <code>{runtimeLog}</code>
-                    </pre>
-                  ) : null}
+          <div className="flex shrink-0 items-center justify-between border-y border-[#25211b] px-4 py-3">
+            <p className="flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">
+              <History className="size-3.5" />
+              {copy.historyTitle}
+            </p>
+            {history.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setHistory([]);
+                  setActiveClipId(null);
+                }}
+                className="rounded border border-white/10 bg-white/[0.02] px-2 py-0.5 font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#9a9087] transition hover:border-[#ef4444]/40 hover:text-[#ffe9e5]"
+              >
+                {copy.historyClear}
+              </button>
+            ) : null}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            {history.length === 0 ? (
+              <p className="rounded-md border border-white/8 bg-white/[0.025] px-3 py-3 font-mono text-[0.58rem] uppercase tracking-[0.18em] text-[#756d64]">
+                {copy.historyEmpty}
+              </p>
+            ) : (
+              <ul className="space-y-1.5">
+                {history.map((clip) => (
+                  <li key={clip.id}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveClipId(clip.id)}
+                      className={cn(
+                        "group flex w-full items-start gap-2 rounded-md border px-3 py-2 text-left transition",
+                        activeClipId === clip.id
+                          ? "border-[#d6a548]/40 bg-[#d6a548]/8 text-[#fff2d3]"
+                          : "border-[#25211b] bg-white/[0.02] text-[#dfd5c7] hover:border-white/20 hover:bg-white/[0.04]",
+                      )}
+                    >
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-[#d6a548]" />
+                      <span className="min-w-0 flex-1">
+                        <span className="line-clamp-2 text-[0.74rem] leading-snug">{clip.text}</span>
+                        <span className="mt-1 flex items-center gap-2 font-mono text-[0.5rem] uppercase tracking-[0.14em] text-[#756d64]">
+                          <span>{clip.mode}</span>
+                          <span>·</span>
+                          <span>{formatTime(clip.durationSec)}</span>
+                          <span>·</span>
+                          <span>{clip.elapsedSec.toFixed(1)}s gen</span>
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </aside>
+
+        {/* CENTER — workspace */}
+        <section className="flex min-h-0 flex-col overflow-y-auto px-4 py-5 sm:px-6 lg:px-7">
+          <div className="mx-auto w-full max-w-3xl space-y-4">
+            {mode === "clone" ? (
+              <div className="rounded-xl border border-[#25211b] bg-[#0c0a08]/72 p-4 shadow-[0_12px_36px_rgba(0,0,0,0.32)]">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#ef4444]">
+                    {copy.referenceTitle}
+                  </p>
+                  <span className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#756d64]">
+                    {copy.referenceHint}
+                  </span>
                 </div>
+                <label
+                  htmlFor="ref-audio-input"
+                  className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-[#ef4444]/30 bg-[#ef4444]/[0.04] px-3 py-3 transition hover:border-[#ef4444]/55 hover:bg-[#ef4444]/[0.08]"
+                >
+                  <Upload className="size-4 text-[#ef4444]" />
+                  <span className="min-w-0 flex-1 truncate text-[0.8rem] text-[#dfd5c7]">
+                    {refAudio ? refAudio.name : copy.referenceUpload}
+                  </span>
+                  {refAudio ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setRefAudio(null);
+                      }}
+                      className="rounded border border-white/10 bg-white/[0.04] p-1 text-[#9a9087] transition hover:text-[#f4eadc]"
+                      aria-label="Remove"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  ) : null}
+                </label>
+                <input
+                  id="ref-audio-input"
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={(e) => onPickRefAudio(e.target.files?.[0] ?? null)}
+                />
+                <input
+                  type="text"
+                  value={refText}
+                  onChange={(e) => setRefText(e.target.value)}
+                  placeholder={copy.referenceTranscript}
+                  className="mt-2 w-full rounded-md border border-[#25211b] bg-[#0a0907]/82 px-3 py-2 text-[0.82rem] text-[#f4eadc] placeholder:text-[#756d64] focus:border-[#ef4444]/45 focus:outline-none"
+                />
+              </div>
+            ) : null}
+
+            {mode === "design" ? (
+              <div className="rounded-xl border border-[#25211b] bg-[#0c0a08]/72 p-4 shadow-[0_12px_36px_rgba(0,0,0,0.32)]">
+                <p className="mb-2 font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#ef4444]">
+                  {copy.instructTitle}
+                </p>
+                <input
+                  type="text"
+                  value={instruct}
+                  onChange={(e) => setInstruct(e.target.value)}
+                  placeholder={copy.instructPlaceholder}
+                  className="w-full rounded-md border border-[#25211b] bg-[#0a0907]/82 px-3 py-2.5 text-[0.88rem] text-[#f4eadc] placeholder:text-[#756d64] focus:border-[#ef4444]/45 focus:outline-none"
+                />
+              </div>
+            ) : null}
+
+            <div className="rounded-xl border border-[#25211b] bg-[#0c0a08]/72 p-4 shadow-[0_12px_36px_rgba(0,0,0,0.32)]">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#ef4444]">
+                  {copy.textTitle}
+                </p>
+                <span className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#756d64]">
+                  {text.length} {copy.textCharCount}
+                </span>
+              </div>
+              <textarea
+                ref={textareaRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={copy.textPlaceholder}
+                rows={6}
+                className="w-full resize-y rounded-md border border-[#25211b] bg-[#0a0907]/82 px-3 py-2.5 text-[0.92rem] leading-7 text-[#f4eadc] placeholder:text-[#756d64] focus:border-[#ef4444]/45 focus:outline-none"
+              />
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#756d64]">
+                  {copy.insertTag}:
+                </span>
+                {NON_VERBAL_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => insertTag(tag)}
+                    className="rounded border border-white/10 bg-white/[0.025] px-2 py-0.5 font-mono text-[0.55rem] text-[#dfd5c7] transition hover:border-[#ef4444]/35 hover:bg-[#ef4444]/[0.08] hover:text-[#ffe9e5]"
+                  >
+                    {tag}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
+
+            <div className="rounded-xl border border-[#25211b] bg-[#0c0a08]/72 p-4 shadow-[0_12px_36px_rgba(0,0,0,0.32)]">
+              <p className="mb-3 flex items-center gap-2 font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">
+                <Settings2 className="size-3.5" />
+                {copy.settingsTitle}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1">
+                  <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087]">
+                    {copy.settingsLanguage}
+                  </span>
+                  <select
+                    value={genLanguage}
+                    onChange={(e) => setGenLanguage(e.target.value)}
+                    className="rounded-md border border-[#25211b] bg-[#0a0907]/82 px-2 py-1.5 text-[0.78rem] text-[#f4eadc] focus:border-[#ef4444]/45 focus:outline-none"
+                  >
+                    {LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code}>
+                        {l.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087]">
+                    {copy.settingsSpeed} · {speed.toFixed(1)}x
+                  </span>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={2}
+                    step={0.1}
+                    value={speed}
+                    onChange={(e) => setSpeed(parseFloat(e.target.value))}
+                    className="accent-[#ef4444]"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087]">
+                    {copy.settingsSteps} · {numStep}
+                  </span>
+                  <input
+                    type="range"
+                    min={8}
+                    max={64}
+                    step={4}
+                    value={numStep}
+                    onChange={(e) => setNumStep(parseInt(e.target.value, 10))}
+                    className="accent-[#ef4444]"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-xl border border-[#ef4444]/24 bg-[#0d0504]/92 px-4 py-3 shadow-[0_18px_60px_rgba(239,68,68,0.14),0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur">
+              {isBusy ? (
+                <button
+                  type="button"
+                  onClick={onStop}
+                  className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[#dfd5c7] transition hover:border-white/30 hover:text-[#f4eadc]"
+                >
+                  <Square className="size-3.5" />
+                  {copy.stop}
+                </button>
+              ) : (
+                <span className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#9a9087]">
+                  {mode === "clone" ? "clone" : mode === "design" ? "design" : "auto"} · {numStep} steps · {speed.toFixed(1)}x
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => void onGenerate()}
+                disabled={
+                  !isReady ||
+                  !text.trim() ||
+                  (mode === "design" && !instruct.trim()) ||
+                  (mode === "clone" && !refAudio)
+                }
+                className="flex items-center gap-2 rounded-md border border-[#ef4444]/55 bg-[#ef4444] px-5 py-2 font-mono text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#1a0807] shadow-[0_12px_30px_rgba(239,68,68,0.36)] transition hover:bg-[#ff5a50] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+              >
+                {isBusy ? <LoaderCircle className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                {copy.generate}
+              </button>
+            </div>
+
+            {activeClip ? (
+              <div className="rounded-xl border border-[#d6a548]/30 bg-[#1a1208]/64 p-4 shadow-[0_12px_36px_rgba(0,0,0,0.32)]">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#d6a548]">
+                      {activeClip.mode} · {formatTime(activeClip.durationSec)} · {activeClip.elapsedSec.toFixed(1)}s gen
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-[0.82rem] text-[#f4eadc]">{activeClip.text}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={togglePlay}
+                      className="flex size-9 items-center justify-center rounded-md border border-[#d6a548]/35 bg-[#d6a548]/12 text-[#fff2d3] transition hover:bg-[#d6a548]/22"
+                      aria-label={isPlaying ? copy.pause : copy.play}
+                    >
+                      {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
+                    </button>
+                    <a
+                      href={activeClip.audioUrl}
+                      download={`mrnine-voice-${activeClip.id}.wav`}
+                      className="flex size-9 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-[#dfd5c7] transition hover:border-white/30 hover:text-[#f4eadc]"
+                      aria-label={copy.download}
+                    >
+                      <Download className="size-4" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHistory((h) => h.filter((c) => c.id !== activeClip.id));
+                        setActiveClipId(null);
+                      }}
+                      className="flex size-9 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-[#9a9087] transition hover:border-[#ef4444]/40 hover:text-[#ff8e85]"
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#ef4444] via-[#d6a548] to-[#ef4444] transition-[width]"
+                    style={{ width: `${audioProgress * 100}%` }}
+                  />
+                </div>
+                <audio
+                  ref={audioRef}
+                  src={activeClip.audioUrl}
+                  preload="auto"
+                  controls={false}
+                  autoPlay
+                />
+              </div>
+            ) : null}
+
+            {status.kind === "error" ? (
+              <div className="rounded-xl border border-[#ef4444]/40 bg-[#1a0707]/72 px-4 py-3 text-sm text-[#ffd7d3]">
+                <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#ef4444]">
+                  {copy.statusError}
+                </p>
+                <p className="mt-1">{status.message}</p>
+              </div>
+            ) : null}
+          </div>
         </section>
       </div>
     </main>
