@@ -518,6 +518,73 @@ function ModelDropdown({
   );
 }
 
+function MultiUrlInput({
+  label,
+  hint,
+  placeholder,
+  value,
+  onChange,
+  accept,
+  onUpload,
+}: {
+  label: string;
+  hint?: string;
+  placeholder?: string;
+  value: string;
+  onChange: (next: string) => void;
+  accept?: string;
+  onUpload?: (file: File) => Promise<void> | void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between">
+        <label className="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-[#9a9087]">{label}</label>
+        {onUpload ? (
+          <>
+            <input
+              ref={inputRef}
+              type="file"
+              accept={accept}
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setBusy(true);
+                try {
+                  await onUpload(file);
+                } finally {
+                  setBusy(false);
+                  if (inputRef.current) inputRef.current.value = "";
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={busy}
+              className="rounded-md border border-[#45a85d]/35 bg-[#45a85d]/10 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#dff8e4] transition hover:border-[#45a85d]/60 disabled:opacity-60"
+            >
+              {busy ? "Uploading…" : "+ Upload"}
+            </button>
+          </>
+        ) : null}
+      </div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={3}
+        className="block w-full resize-y rounded-md border border-[#2a251f] bg-[#0c0a08] p-2 font-mono text-[0.7rem] text-[#f4eadc] outline-none transition focus:border-[#ef4444]/60"
+      />
+      {hint ? (
+        <p className="mt-1 font-mono text-[0.55rem] normal-case tracking-normal text-[#6f675e]">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function AIPlaygroundShell() {
   const { language, setLanguage } = useLanguage();
   const searchParams = useSearchParams();
@@ -563,6 +630,12 @@ export function AIPlaygroundShell() {
     "image-to-video": "",
     "motion-control": "",
   });
+  // CSV-string per modality, scoped to the active model id. Lets users paste
+  // multiple URLs at once for endpoints like Seedance 2.0 reference-to-video
+  // (up to 9 images + 3 videos + 3 audios).
+  const [imagesByModel, setImagesByModel] = useState<Record<string, string>>({});
+  const [videosByModel, setVideosByModel] = useState<Record<string, string>>({});
+  const [audiosByModel, setAudiosByModel] = useState<Record<string, string>>({});
 
   const allModels = useMemo(
     () => [
@@ -841,6 +914,21 @@ export function AIPlaygroundShell() {
     if (activeModel.imageKey) {
       payload[activeModel.imageKey] = sourceImage.trim();
     }
+    if (activeModel.imagesKey) {
+      const csv = imagesByModel[activeModel.id] ?? "";
+      const list = csv.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+      if (list.length) payload[activeModel.imagesKey] = list;
+    }
+    if (activeModel.videosKey) {
+      const csv = videosByModel[activeModel.id] ?? "";
+      const list = csv.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+      if (list.length) payload[activeModel.videosKey] = list;
+    }
+    if (activeModel.audiosKey) {
+      const csv = audiosByModel[activeModel.id] ?? "";
+      const list = csv.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+      if (list.length) payload[activeModel.audiosKey] = list;
+    }
     for (const spec of activeModel.params) {
       const value = activeParams[spec.key];
       if (value === "" || value === undefined || value === null) continue;
@@ -896,6 +984,27 @@ export function AIPlaygroundShell() {
         uploading: false,
         error: error instanceof Error ? error.message : copy.uploadFailed,
       });
+    }
+  }
+
+  // Lightweight uploader for the multi-modal panel: returns the FAL url or
+  // null on failure. Surfaces errors via uploadState.error.
+  async function uploadOne(file: File): Promise<string | null> {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/ai-playground/upload", { method: "POST", body: form });
+      const json = await safeParseJson(res);
+      if (!res.ok || !json?.url) {
+        throw new Error(json?.error || `${copy.uploadFailed} (HTTP ${res.status})`);
+      }
+      return String(json.url);
+    } catch (error) {
+      setUploadState({
+        uploading: false,
+        error: error instanceof Error ? error.message : copy.uploadFailed,
+      });
+      return null;
     }
   }
 
@@ -1182,6 +1291,81 @@ export function AIPlaygroundShell() {
                 <p className="mt-1.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
                   {copy.sourceImageHint}
                 </p>
+              </div>
+            ) : null}
+
+            {activeModel.imagesKey || activeModel.videosKey || activeModel.audiosKey ? (
+              <div className="space-y-3 rounded-lg border border-[#25211b] bg-[#0c0a08] p-3">
+                <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
+                  Multi-modal references
+                </p>
+                {activeModel.imagesKey ? (
+                  <MultiUrlInput
+                    label={`Reference images${activeModel.inputLimits?.images ? ` (max ${activeModel.inputLimits.images.maxFiles})` : ""}`}
+                    hint={activeModel.inputLimits?.images?.hint}
+                    placeholder="Mỗi dòng/CSV một URL ảnh"
+                    value={imagesByModel[activeModel.id] ?? ""}
+                    onChange={(v) => setImagesByModel((s) => ({ ...s, [activeModel.id]: v }))}
+                    accept="image/*"
+                    onUpload={async (file) => {
+                      const url = await uploadOne(file);
+                      if (url) {
+                        setImagesByModel((s) => {
+                          const cur = s[activeModel.id] ?? "";
+                          return { ...s, [activeModel.id]: cur ? `${cur}\n${url}` : url };
+                        });
+                      }
+                    }}
+                  />
+                ) : null}
+                {activeModel.videosKey ? (
+                  <MultiUrlInput
+                    label={`Reference videos${activeModel.inputLimits?.videos ? ` (max ${activeModel.inputLimits.videos.maxFiles})` : ""}`}
+                    hint={activeModel.inputLimits?.videos?.hint}
+                    placeholder="Mỗi dòng/CSV một URL video"
+                    value={videosByModel[activeModel.id] ?? ""}
+                    onChange={(v) => setVideosByModel((s) => ({ ...s, [activeModel.id]: v }))}
+                    accept="video/*"
+                    onUpload={async (file) => {
+                      const url = await uploadOne(file);
+                      if (url) {
+                        setVideosByModel((s) => {
+                          const cur = s[activeModel.id] ?? "";
+                          return { ...s, [activeModel.id]: cur ? `${cur}\n${url}` : url };
+                        });
+                      }
+                    }}
+                  />
+                ) : null}
+                {activeModel.audiosKey ? (
+                  <MultiUrlInput
+                    label={`Reference audios${activeModel.inputLimits?.audios ? ` (max ${activeModel.inputLimits.audios.maxFiles})` : ""}`}
+                    hint={activeModel.inputLimits?.audios?.hint}
+                    placeholder="Mỗi dòng/CSV một URL audio"
+                    value={audiosByModel[activeModel.id] ?? ""}
+                    onChange={(v) => setAudiosByModel((s) => ({ ...s, [activeModel.id]: v }))}
+                    accept="audio/*"
+                    onUpload={async (file) => {
+                      const url = await uploadOne(file);
+                      if (url) {
+                        setAudiosByModel((s) => {
+                          const cur = s[activeModel.id] ?? "";
+                          return { ...s, [activeModel.id]: cur ? `${cur}\n${url}` : url };
+                        });
+                      }
+                    }}
+                  />
+                ) : null}
+                {activeModel.inputLimits?.totalFiles ? (
+                  <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
+                    Tổng tối đa {activeModel.inputLimits.totalFiles} file
+                  </p>
+                ) : null}
+                {activeModel.pricing?.note ? (
+                  <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087]">
+                    Giá: {activeModel.pricing.note}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 

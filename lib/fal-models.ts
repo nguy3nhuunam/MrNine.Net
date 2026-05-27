@@ -31,6 +31,53 @@ export type FalParamSpec = {
   group?: "core" | "advanced";
 };
 
+// Limits per modality, copied straight from each model's "Inputs" table on
+// fal.ai. Optional — only set when the endpoint accepts that modality.
+export type FalModalityLimit = {
+  // Maximum files of this kind the user can upload.
+  maxFiles: number;
+  // Bytes per file (best-effort enforcement on client).
+  maxBytesPerFile?: number;
+  // Comma list of allowed mime / format hints, surface in UI as accept attr.
+  formats?: ReadonlyArray<string>;
+  // Combined limit across all files, if any (e.g. videos: total 50 MB).
+  maxBytesCombined?: number;
+  // Combined duration limit in seconds (audio/video).
+  maxDurationCombined?: number;
+  // Per-file duration range (audio/video).
+  minDurationPerFile?: number;
+  maxDurationPerFile?: number;
+  // UI hint shown under the picker.
+  hint?: string;
+};
+
+export type FalInputLimits = {
+  images?: FalModalityLimit;
+  videos?: FalModalityLimit;
+  audios?: FalModalityLimit;
+  // Combined cap across all modalities (e.g. Seedance 2.0 reference-to-video
+  // = max 12 files total across images + videos + audios).
+  totalFiles?: number;
+};
+
+// Pricing snapshot from fal.ai docs. Always quoted in USD. We estimate a
+// "typical run" cost so credits stay simple — for variable-duration video
+// models we use the default duration declared in params.
+export type FalPricing = {
+  // What 1 unit means: "image", "second", "video", "minute".
+  unit: "image" | "second" | "video" | "minute" | "tokens";
+  // Cost per unit in USD.
+  perUnitUsd: number;
+  // For "second"/"minute" units, default duration of one billed run.
+  // E.g. Seedance 2.0 default 5s → 5 * perUnitUsd USD per click.
+  defaultRunUnits?: number;
+  // Optional discount factor when video input is provided (Seedance 2.0
+  // gives 0.6× when video-conditioned).
+  videoConditionedFactor?: number;
+  // Optional notes shown in UI tooltip.
+  note?: string;
+};
+
 export type FalModel = {
   id: string;
   endpoint: string;
@@ -39,14 +86,36 @@ export type FalModel = {
   tagline: string;
   badge?: string;
   capability: FalCapability;
+
+  // Prompt — text input is universal.
   promptKey: string;
   promptLabel: string;
   promptPlaceholder: string;
-  imageKey?: string; // form field name for the source image url (i2i / i2v)
+
+  // Single-image legacy field (kept for backwards-compat). When the endpoint
+  // takes multiple modalities, set imagesKey / videosKey / audiosKey instead.
+  imageKey?: string;
   imageLabel?: string;
-  imageIsArray?: boolean; // some endpoints (nano-banana) want image_urls: string[]
+  imageIsArray?: boolean; // if true, send as `image_urls: string[]` instead of `image_url: string`
+
+  // New multi-modal slots — used by endpoints like Seedance 2.0
+  // reference-to-video that take all three at once.
+  imagesKey?: string; // e.g. "image_urls"
+  videosKey?: string; // e.g. "video_urls"
+  audiosKey?: string; // e.g. "audio_urls"
+  inputLimits?: FalInputLimits;
+
   params: ReadonlyArray<FalParamSpec>;
   outputKind: "image" | "video";
+
+  // Pricing snapshot — when present, we charge credits proportional to
+  // perUnitUsd × estimated units per run. When absent, falls back to the
+  // legacy flat per-output-kind cost in COST_TABLE.
+  pricing?: FalPricing;
+
+  // Audited against fal.ai docs and verified end-to-end. Models without this
+  // flag still work but use older field shapes; see todos in docstrings.
+  audited?: boolean;
 };
 
 const PROMPT_PLACEHOLDER_IMAGE =
@@ -2009,24 +2078,39 @@ export const textToVideoModels: ReadonlyArray<FalModel> = [
     endpoint: "bytedance/seedance-2.0/text-to-video",
     label: "Seedance 2.0",
     vendor: "ByteDance",
-    tagline: "Seedance thế hệ 2.0",
+    tagline: "Seedance 2.0 — flagship video model 2026",
     badge: "NEW",
     capability: "text-to-video",
     promptKey: "prompt",
     promptLabel: "Prompt video",
     promptPlaceholder: PROMPT_PLACEHOLDER_VIDEO,
     outputKind: "video",
+    audited: true,
+    pricing: {
+      unit: "second",
+      perUnitUsd: 0.3024,
+      defaultRunUnits: 5,
+      note: "Standard 720p $0.3024/s · 1080p $0.682/s · audio miễn phí",
+    },
     params: [
-      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "16:9", options: [
-        ...ASPECT_VIDEO, { value: "21:9", label: "21:9" },
+      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" }, { value: "21:9", label: "21:9 cinematic" },
+        { value: "16:9", label: "16:9" }, { value: "4:3", label: "4:3" }, { value: "1:1", label: "1:1" },
+        { value: "3:4", label: "3:4" }, { value: "9:16", label: "9:16" },
       ]},
-      { key: "resolution", label: "Độ phân giải", type: "select", default: "1080p", options: [
+      { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
         { value: "480p", label: "480p" }, { value: "720p", label: "720p" }, { value: "1080p", label: "1080p" },
       ]},
-      { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
-        { value: "3", label: "3 giây" }, { value: "5", label: "5 giây" }, { value: "10", label: "10 giây" },
+      { key: "duration", label: "Độ dài", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" },
+        { value: "4", label: "4s" }, { value: "5", label: "5s" }, { value: "6", label: "6s" },
+        { value: "7", label: "7s" }, { value: "8", label: "8s" }, { value: "9", label: "9s" },
+        { value: "10", label: "10s" }, { value: "11", label: "11s" }, { value: "12", label: "12s" },
+        { value: "13", label: "13s" }, { value: "14", label: "14s" }, { value: "15", label: "15s" },
       ]},
-      { key: "camera_fixed", label: "Cố định máy quay", type: "boolean", default: false, group: "advanced" },
+      { key: "generate_audio", label: "Tạo âm thanh", type: "boolean", default: true, hint: "Audio (SFX, lời thoại lip-sync) miễn phí" },
+      { key: "seed", label: "Seed", type: "number", default: "" as unknown as number, min: 0, group: "advanced" },
+      { key: "end_user_id", label: "End user ID", type: "string", default: "", group: "advanced" },
     ],
   },
   {
@@ -2034,21 +2118,39 @@ export const textToVideoModels: ReadonlyArray<FalModel> = [
     endpoint: "bytedance/seedance-2.0/fast/text-to-video",
     label: "Seedance 2.0 Fast",
     vendor: "ByteDance",
-    tagline: "Seedance 2.0 bản fast",
+    tagline: "Seedance 2.0 fast tier (720p max)",
     badge: "FAST",
     capability: "text-to-video",
     promptKey: "prompt",
     promptLabel: "Prompt video",
     promptPlaceholder: PROMPT_PLACEHOLDER_VIDEO,
     outputKind: "video",
+    audited: true,
+    pricing: {
+      unit: "second",
+      perUnitUsd: 0.2419,
+      defaultRunUnits: 5,
+      note: "Fast tier 720p $0.2419/s · audio miễn phí",
+    },
     params: [
-      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "16:9", options: ASPECT_VIDEO },
+      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" }, { value: "21:9", label: "21:9 cinematic" },
+        { value: "16:9", label: "16:9" }, { value: "4:3", label: "4:3" }, { value: "1:1", label: "1:1" },
+        { value: "3:4", label: "3:4" }, { value: "9:16", label: "9:16" },
+      ]},
       { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
         { value: "480p", label: "480p" }, { value: "720p", label: "720p" },
       ]},
-      { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
-        { value: "3", label: "3 giây" }, { value: "5", label: "5 giây" },
+      { key: "duration", label: "Độ dài", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" },
+        { value: "4", label: "4s" }, { value: "5", label: "5s" }, { value: "6", label: "6s" },
+        { value: "7", label: "7s" }, { value: "8", label: "8s" }, { value: "9", label: "9s" },
+        { value: "10", label: "10s" }, { value: "11", label: "11s" }, { value: "12", label: "12s" },
+        { value: "13", label: "13s" }, { value: "14", label: "14s" }, { value: "15", label: "15s" },
       ]},
+      { key: "generate_audio", label: "Tạo âm thanh", type: "boolean", default: true },
+      { key: "seed", label: "Seed", type: "number", default: "" as unknown as number, min: 0, group: "advanced" },
+      { key: "end_user_id", label: "End user ID", type: "string", default: "", group: "advanced" },
     ],
   },
   {
@@ -2614,23 +2716,45 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     endpoint: "bytedance/seedance-2.0/image-to-video",
     label: "Seedance 2.0 · I2V",
     vendor: "ByteDance",
-    tagline: "Seedance 2.0 I2V",
+    tagline: "Seedance 2.0 image-to-video, hỗ trợ end-frame transition",
     badge: "NEW",
     capability: "image-to-video",
     promptKey: "prompt",
     promptLabel: "Prompt chuyển động",
     promptPlaceholder: PROMPT_PLACEHOLDER_I2V,
     imageKey: "image_url",
-    imageLabel: "Ảnh đầu vào (URL)",
+    imageLabel: "Ảnh khung đầu (URL)",
     outputKind: "video",
+    audited: true,
+    pricing: {
+      unit: "second",
+      perUnitUsd: 0.3024,
+      defaultRunUnits: 5,
+      note: "Standard 720p $0.3024/s · 1080p $0.682/s · audio miễn phí",
+    },
+    inputLimits: {
+      images: { maxFiles: 1, maxBytesPerFile: 30 * 1024 * 1024, formats: ["image/jpeg", "image/png", "image/webp"] },
+    },
     params: [
-      { key: "resolution", label: "Độ phân giải", type: "select", default: "1080p", options: [
+      { key: "end_image_url", label: "Ảnh khung cuối (optional)", type: "string", default: "", hint: "URL ảnh khung cuối — model sẽ chuyển từ khung đầu sang khung cuối" },
+      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" }, { value: "21:9", label: "21:9 cinematic" },
+        { value: "16:9", label: "16:9" }, { value: "4:3", label: "4:3" }, { value: "1:1", label: "1:1" },
+        { value: "3:4", label: "3:4" }, { value: "9:16", label: "9:16" },
+      ]},
+      { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
         { value: "480p", label: "480p" }, { value: "720p", label: "720p" }, { value: "1080p", label: "1080p" },
       ]},
-      { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
-        { value: "3", label: "3 giây" }, { value: "5", label: "5 giây" }, { value: "10", label: "10 giây" },
+      { key: "duration", label: "Độ dài", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" },
+        { value: "4", label: "4s" }, { value: "5", label: "5s" }, { value: "6", label: "6s" },
+        { value: "7", label: "7s" }, { value: "8", label: "8s" }, { value: "9", label: "9s" },
+        { value: "10", label: "10s" }, { value: "11", label: "11s" }, { value: "12", label: "12s" },
+        { value: "13", label: "13s" }, { value: "14", label: "14s" }, { value: "15", label: "15s" },
       ]},
-      { key: "camera_fixed", label: "Cố định máy quay", type: "boolean", default: false, group: "advanced" },
+      { key: "generate_audio", label: "Tạo âm thanh", type: "boolean", default: true },
+      { key: "seed", label: "Seed", type: "number", default: "" as unknown as number, min: 0, group: "advanced" },
+      { key: "end_user_id", label: "End user ID", type: "string", default: "", group: "advanced" },
     ],
   },
   {
@@ -2638,22 +2762,45 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     endpoint: "bytedance/seedance-2.0/fast/image-to-video",
     label: "Seedance 2.0 Fast · I2V",
     vendor: "ByteDance",
-    tagline: "Seedance 2.0 fast I2V",
+    tagline: "Seedance 2.0 fast I2V (720p max)",
     badge: "FAST",
     capability: "image-to-video",
     promptKey: "prompt",
     promptLabel: "Prompt chuyển động",
     promptPlaceholder: PROMPT_PLACEHOLDER_I2V,
     imageKey: "image_url",
-    imageLabel: "Ảnh đầu vào (URL)",
+    imageLabel: "Ảnh khung đầu (URL)",
     outputKind: "video",
+    audited: true,
+    pricing: {
+      unit: "second",
+      perUnitUsd: 0.2419,
+      defaultRunUnits: 5,
+      note: "Fast tier 720p $0.2419/s",
+    },
+    inputLimits: {
+      images: { maxFiles: 1, maxBytesPerFile: 30 * 1024 * 1024, formats: ["image/jpeg", "image/png", "image/webp"] },
+    },
     params: [
+      { key: "end_image_url", label: "Ảnh khung cuối (optional)", type: "string", default: "" },
+      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" }, { value: "21:9", label: "21:9 cinematic" },
+        { value: "16:9", label: "16:9" }, { value: "4:3", label: "4:3" }, { value: "1:1", label: "1:1" },
+        { value: "3:4", label: "3:4" }, { value: "9:16", label: "9:16" },
+      ]},
       { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
         { value: "480p", label: "480p" }, { value: "720p", label: "720p" },
       ]},
-      { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
-        { value: "3", label: "3 giây" }, { value: "5", label: "5 giây" },
+      { key: "duration", label: "Độ dài", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" },
+        { value: "4", label: "4s" }, { value: "5", label: "5s" }, { value: "6", label: "6s" },
+        { value: "7", label: "7s" }, { value: "8", label: "8s" }, { value: "9", label: "9s" },
+        { value: "10", label: "10s" }, { value: "11", label: "11s" }, { value: "12", label: "12s" },
+        { value: "13", label: "13s" }, { value: "14", label: "14s" }, { value: "15", label: "15s" },
       ]},
+      { key: "generate_audio", label: "Tạo âm thanh", type: "boolean", default: true },
+      { key: "seed", label: "Seed", type: "number", default: "" as unknown as number, min: 0, group: "advanced" },
+      { key: "end_user_id", label: "End user ID", type: "string", default: "", group: "advanced" },
     ],
   },
   {
@@ -2661,21 +2808,62 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     endpoint: "bytedance/seedance-2.0/reference-to-video",
     label: "Seedance 2.0 · Reference",
     vendor: "ByteDance",
-    tagline: "Seedance 2.0 theo ảnh tham chiếu",
+    tagline: "Multi-modal: prompt + 9 ảnh + 3 video + 3 audio",
+    badge: "MULTIMODAL",
     capability: "image-to-video",
     promptKey: "prompt",
-    promptLabel: "Prompt chuyển động",
-    promptPlaceholder: PROMPT_PLACEHOLDER_I2V,
-    imageKey: "image_url",
-    imageLabel: "Ảnh tham chiếu (URL)",
+    promptLabel: "Prompt (dùng @Image1, @Video1, @Audio1)",
+    promptPlaceholder: "Cảnh @Image1 đang chạy, @Video1 ở phía xa, @Audio1 vang lên...",
+    imagesKey: "image_urls",
+    videosKey: "video_urls",
+    audiosKey: "audio_urls",
     outputKind: "video",
+    audited: true,
+    pricing: {
+      unit: "second",
+      perUnitUsd: 0.3024,
+      defaultRunUnits: 5,
+      videoConditionedFactor: 0.6,
+      note: "Standard $0.3024/s, có video input thì × 0.6 ($0.1814/s)",
+    },
+    inputLimits: {
+      images: { maxFiles: 9, maxBytesPerFile: 30 * 1024 * 1024, formats: ["image/jpeg", "image/png", "image/webp"], hint: "Tối đa 9 ảnh, mỗi ảnh ≤ 30MB" },
+      videos: {
+        maxFiles: 3,
+        maxBytesCombined: 50 * 1024 * 1024,
+        maxDurationCombined: 15,
+        minDurationPerFile: 2,
+        formats: ["video/mp4", "video/quicktime"],
+        hint: "Tối đa 3 video MP4/MOV, tổng 2-15s, < 50MB tổng, mỗi video 480p-720p",
+      },
+      audios: {
+        maxFiles: 3,
+        maxBytesPerFile: 15 * 1024 * 1024,
+        maxDurationCombined: 15,
+        formats: ["audio/mpeg", "audio/wav"],
+        hint: "Tối đa 3 audio MP3/WAV, tổng ≤ 15s · cần ít nhất 1 ảnh hoặc video",
+      },
+      totalFiles: 12,
+    },
     params: [
+      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" }, { value: "21:9", label: "21:9 cinematic" },
+        { value: "16:9", label: "16:9" }, { value: "4:3", label: "4:3" }, { value: "1:1", label: "1:1" },
+        { value: "3:4", label: "3:4" }, { value: "9:16", label: "9:16" },
+      ]},
       { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
         { value: "480p", label: "480p" }, { value: "720p", label: "720p" }, { value: "1080p", label: "1080p" },
       ]},
-      { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
-        { value: "3", label: "3 giây" }, { value: "5", label: "5 giây" },
+      { key: "duration", label: "Độ dài", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" },
+        { value: "4", label: "4s" }, { value: "5", label: "5s" }, { value: "6", label: "6s" },
+        { value: "7", label: "7s" }, { value: "8", label: "8s" }, { value: "9", label: "9s" },
+        { value: "10", label: "10s" }, { value: "11", label: "11s" }, { value: "12", label: "12s" },
+        { value: "13", label: "13s" }, { value: "14", label: "14s" }, { value: "15", label: "15s" },
       ]},
+      { key: "generate_audio", label: "Tạo âm thanh", type: "boolean", default: true },
+      { key: "seed", label: "Seed", type: "number", default: "" as unknown as number, min: 0, group: "advanced" },
+      { key: "end_user_id", label: "End user ID", type: "string", default: "", group: "advanced" },
     ],
   },
   {
@@ -2683,22 +2871,49 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     endpoint: "bytedance/seedance-2.0/fast/reference-to-video",
     label: "Seedance 2.0 Fast · Reference",
     vendor: "ByteDance",
-    tagline: "Seedance 2.0 fast reference-to-video",
+    tagline: "Reference-to-video fast tier (720p max)",
     badge: "FAST",
     capability: "image-to-video",
     promptKey: "prompt",
-    promptLabel: "Prompt chuyển động",
-    promptPlaceholder: PROMPT_PLACEHOLDER_I2V,
-    imageKey: "image_url",
-    imageLabel: "Ảnh tham chiếu (URL)",
+    promptLabel: "Prompt (dùng @Image1, @Video1, @Audio1)",
+    promptPlaceholder: "Cảnh @Image1 đang chạy, @Video1 ở phía xa, @Audio1 vang lên...",
+    imagesKey: "image_urls",
+    videosKey: "video_urls",
+    audiosKey: "audio_urls",
     outputKind: "video",
+    audited: true,
+    pricing: {
+      unit: "second",
+      perUnitUsd: 0.2419,
+      defaultRunUnits: 5,
+      videoConditionedFactor: 0.6,
+      note: "Fast $0.2419/s, có video × 0.6 ($0.1452/s)",
+    },
+    inputLimits: {
+      images: { maxFiles: 9, maxBytesPerFile: 30 * 1024 * 1024, formats: ["image/jpeg", "image/png", "image/webp"] },
+      videos: { maxFiles: 3, maxBytesCombined: 50 * 1024 * 1024, maxDurationCombined: 15, minDurationPerFile: 2, formats: ["video/mp4", "video/quicktime"] },
+      audios: { maxFiles: 3, maxBytesPerFile: 15 * 1024 * 1024, maxDurationCombined: 15, formats: ["audio/mpeg", "audio/wav"] },
+      totalFiles: 12,
+    },
     params: [
+      { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" }, { value: "21:9", label: "21:9 cinematic" },
+        { value: "16:9", label: "16:9" }, { value: "4:3", label: "4:3" }, { value: "1:1", label: "1:1" },
+        { value: "3:4", label: "3:4" }, { value: "9:16", label: "9:16" },
+      ]},
       { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
         { value: "480p", label: "480p" }, { value: "720p", label: "720p" },
       ]},
-      { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
-        { value: "3", label: "3 giây" }, { value: "5", label: "5 giây" },
+      { key: "duration", label: "Độ dài", type: "select", default: "auto", options: [
+        { value: "auto", label: "Auto" },
+        { value: "4", label: "4s" }, { value: "5", label: "5s" }, { value: "6", label: "6s" },
+        { value: "7", label: "7s" }, { value: "8", label: "8s" }, { value: "9", label: "9s" },
+        { value: "10", label: "10s" }, { value: "11", label: "11s" }, { value: "12", label: "12s" },
+        { value: "13", label: "13s" }, { value: "14", label: "14s" }, { value: "15", label: "15s" },
       ]},
+      { key: "generate_audio", label: "Tạo âm thanh", type: "boolean", default: true },
+      { key: "seed", label: "Seed", type: "number", default: "" as unknown as number, min: 0, group: "advanced" },
+      { key: "end_user_id", label: "End user ID", type: "string", default: "", group: "advanced" },
     ],
   },
   {
