@@ -2090,9 +2090,10 @@ export function HomeCommandSurface() {
   const searchPanelRef = useRef<HTMLDivElement | null>(null);
   const mobileSearchPanelRef = useRef<HTMLDivElement | null>(null);
   const [searchPanelRect, setSearchPanelRect] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
-  const [autoPhase, setAutoPhase] = useState<DayPhase>(() =>
-    typeof window === "undefined" ? "day" : getDayPhase(getBangkokHour()),
-  );
+  // Both server and client must start at the same phase to avoid hydration
+  // mismatch. We sync to the real Bangkok phase in the effect below, after
+  // mount.
+  const [autoPhase, setAutoPhase] = useState<DayPhase>("day");
 
   useEffect(() => {
     if (interfaceTheme !== "auto") return;
