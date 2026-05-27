@@ -111,6 +111,10 @@ const voiceCopy = {
     settingsLanguage: "Language",
     settingsSpeed: "Speed",
     settingsSteps: "Diffusion steps",
+    settingsGuidance: "Guidance scale",
+    settingsDuration: "Fixed duration (s)",
+    settingsDurationAuto: "Auto",
+    settingsDenoise: "Denoise",
 
     generate: "Generate",
     stop: "Stop",
@@ -163,6 +167,10 @@ const voiceCopy = {
     settingsLanguage: "Ngôn ngữ",
     settingsSpeed: "Tốc độ",
     settingsSteps: "Diffusion steps",
+    settingsGuidance: "Guidance scale",
+    settingsDuration: "Độ dài cố định (giây)",
+    settingsDurationAuto: "Tự động",
+    settingsDenoise: "Khử noise reference",
 
     generate: "Tạo giọng",
     stop: "Dừng",
@@ -195,6 +203,9 @@ export function VoiceStudioShell() {
   const [genLanguage, setGenLanguage] = useState("");
   const [speed, setSpeed] = useState(1.0);
   const [numStep, setNumStep] = useState(32);
+  const [guidanceScale, setGuidanceScale] = useState(2.0);
+  const [duration, setDuration] = useState<number | null>(null);
+  const [denoise, setDenoise] = useState(true);
   const [activePreset, setActivePreset] = useState<string | null>("auto");
 
   const [status, setStatus] = useState<Status>({ kind: "checking" });
@@ -293,6 +304,9 @@ export function VoiceStudioShell() {
     if (genLanguage) form.set("language", genLanguage);
     form.set("speed", String(speed));
     form.set("num_step", String(numStep));
+    form.set("guidance_scale", String(guidanceScale));
+    form.set("denoise", denoise ? "true" : "false");
+    if (duration !== null && duration > 0) form.set("duration", String(duration));
     if (mode === "design") form.set("instruct", instruct.trim());
     if (mode === "clone" && refAudio) {
       form.set("ref_audio", refAudio);
@@ -807,6 +821,48 @@ export function VoiceStudioShell() {
                     onChange={(e) => setNumStep(parseInt(e.target.value, 10))}
                     className="accent-[#ef4444]"
                   />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087]">
+                    {copy.settingsGuidance} · {guidanceScale.toFixed(1)}
+                  </span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={5}
+                    step={0.1}
+                    value={guidanceScale}
+                    onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
+                    className="accent-[#ef4444]"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087]">
+                    {copy.settingsDuration} · {duration === null ? copy.settingsDurationAuto : `${duration.toFixed(1)}s`}
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={60}
+                    step={0.5}
+                    value={duration ?? 0}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setDuration(v === 0 ? null : v);
+                    }}
+                    className="accent-[#ef4444]"
+                  />
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 rounded-md border border-[#25211b] bg-[#0a0907]/82 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={denoise}
+                    onChange={(e) => setDenoise(e.target.checked)}
+                    className="size-3.5 accent-[#ef4444]"
+                  />
+                  <span className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#dfd5c7]">
+                    {copy.settingsDenoise}
+                  </span>
                 </label>
               </div>
             </div>
