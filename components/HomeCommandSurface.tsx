@@ -5,6 +5,7 @@ import {
   ArrowRight,
   AudioLines,
   Bot,
+  BookOpenText,
   Calculator,
   ChevronDown,
   Check,
@@ -335,12 +336,12 @@ const modules = [
   },
   {
     number: "06",
-    title: "Video Studio",
-    detail: "Edit · timeline · motion",
-    summary: "Studio dựng video: timeline, hiệu ứng motion, render workflow đa lớp.",
-    signal: "Video pipe",
-    action: "Open Video Studio",
-    icon: Clapperboard,
+    title: "Language Tutor",
+    detail: "Chat · sửa câu · flashcard",
+    summary: "Học ngoại ngữ qua hội thoại có sửa lỗi: gõ tiếng Anh/Nhật/Trung/Hàn/Pháp, AI trả lời bằng câu chuẩn + chỉ ra lỗi và cho cách nói tự nhiên hơn.",
+    signal: "Tutor lane",
+    action: "Open Language Tutor",
+    icon: BookOpenText,
     accent: "lime",
     shortcut: "6",
     lastUsed: "ready",
@@ -435,7 +436,7 @@ const railItems: ReadonlyArray<RailItem> = [
   { label: "Smart Recap", icon: FileSearch, href: "/smart-recap", shortcut: "3" },
   { label: "DocSense", icon: Languages, href: "/docsense", shortcut: "4" },
   { label: "Story Writer", icon: PenLine, href: "/story-writer", shortcut: "5" },
-  { label: "Video Studio", icon: Clapperboard, href: "/video-studio", shortcut: "6" },
+  { label: "Language Tutor", icon: BookOpenText, href: "/language-tutor", shortcut: "6" },
   { label: "Mystic Deck", icon: Moon, href: "/mystic-deck", shortcut: "7" },
   { label: "Voice Studio", icon: AudioLines, href: "/voice-studio", shortcut: "8" },
   { label: "Markets", icon: LineChart, href: "/markets", shortcut: "9" },
@@ -650,6 +651,13 @@ const moduleCopy = {
       summary: "Studio dựng video: timeline, hiệu ứng motion, render workflow đa lớp.",
       signal: "Pipeline video",
       action: "Mở Video Studio",
+    },
+    "Language Tutor": {
+      title: "Trợ lý ngôn ngữ",
+      detail: "Chat · sửa câu · flashcard",
+      summary: "Học ngoại ngữ qua hội thoại có sửa lỗi: gõ tiếng Anh/Nhật/Trung/Hàn/Pháp, AI trả lời bằng câu chuẩn + chỉ ra lỗi và gợi ý cách nói tự nhiên hơn.",
+      signal: "Khoang trợ giảng",
+      action: "Mở Trợ lý ngôn ngữ",
     },
     "Mystic Deck": {
       title: "Mystic Deck",
@@ -1035,7 +1043,7 @@ function moduleAnimationClass(title: string): string {
       return "module-anim-doc";
     case "Story Writer":
       return "module-anim-story";
-    case "Video Studio":
+    case "Language Tutor":
       return "module-anim-tutor";
     case "Mystic Deck":
       return "module-anim-mystic";
@@ -2393,7 +2401,7 @@ export function HomeCommandSurface() {
       "Smart Recap": "/smart-recap",
       "DocSense": "/docsense",
       "Story Writer": "/story-writer",
-      "Video Studio": "/video-studio",
+      "Language Tutor": "/language-tutor",
       "Mystic Deck": "/mystic-deck",
       "Voice Studio": "/voice-studio",
       "Markets": "/markets",

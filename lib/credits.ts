@@ -26,6 +26,7 @@ export const CYCLE_DAYS = 30;
 // Credits per action. Tune as the cost/value balance evolves.
 export const COST_TABLE = {
   "ask-anything": 3,
+  "language-tutor": 4,
   "mystic-interpret": 8,
   "playground-image": 10,
   "playground-video": 25,
