@@ -58,6 +58,47 @@ const TAG_GROUPS: ReadonlyArray<{ label: string; tags: ReadonlyArray<string> }> 
   { label: "Ngạc nhiên", tags: ["[surprise-ah]", "[surprise-oh]", "[surprise-wa]", "[surprise-yo]"] },
 ];
 
+type DesignAttr = { value: string; label: string };
+
+const DESIGN_GENDER: ReadonlyArray<DesignAttr> = [
+  { value: "female", label: "Nữ" },
+  { value: "male", label: "Nam" },
+];
+
+const DESIGN_AGE: ReadonlyArray<DesignAttr> = [
+  { value: "child", label: "Trẻ em" },
+  { value: "teenager", label: "Thiếu niên" },
+  { value: "young adult", label: "Người trẻ" },
+  { value: "middle-aged", label: "Trung niên" },
+  { value: "elderly", label: "Lớn tuổi" },
+];
+
+const DESIGN_PITCH: ReadonlyArray<DesignAttr> = [
+  { value: "very low pitch", label: "Rất trầm" },
+  { value: "low pitch", label: "Trầm" },
+  { value: "moderate pitch", label: "Trung bình" },
+  { value: "high pitch", label: "Cao" },
+  { value: "very high pitch", label: "Rất cao" },
+];
+
+const DESIGN_ACCENT: ReadonlyArray<DesignAttr> = [
+  { value: "", label: "Không" },
+  { value: "american accent", label: "Mỹ" },
+  { value: "british accent", label: "Anh" },
+  { value: "australian accent", label: "Úc" },
+  { value: "canadian accent", label: "Canada" },
+  { value: "indian accent", label: "Ấn Độ" },
+  { value: "chinese accent", label: "Trung" },
+  { value: "japanese accent", label: "Nhật" },
+  { value: "korean accent", label: "Hàn" },
+  { value: "russian accent", label: "Nga" },
+  { value: "portuguese accent", label: "Bồ" },
+];
+
+const DESIGN_EXTRA: ReadonlyArray<DesignAttr> = [
+  { value: "whisper", label: "Thì thầm" },
+];
+
 const LANGUAGES: ReadonlyArray<{ code: string; label: string }> = [
   { code: "", label: "Auto" },
   { code: "vi", label: "Tiếng Việt" },
@@ -99,8 +140,13 @@ const voiceCopy = {
     referenceUpload: "Upload audio",
     referenceTranscript: "Transcript (optional)",
 
-    instructTitle: "Voice description",
-    instructPlaceholder: "female, warm tone, mid pitch, conversational",
+    instructTitle: "Voice attributes",
+    instructHint: "Pick attributes — only validated combinations work",
+    designGender: "Gender",
+    designAge: "Age",
+    designPitch: "Pitch",
+    designAccent: "Accent",
+    designWhisper: "Whisper",
 
     textTitle: "Text",
     textPlaceholder: "Type or paste the text to read aloud…",
@@ -155,8 +201,13 @@ const voiceCopy = {
     referenceUpload: "Tải audio mẫu",
     referenceTranscript: "Phiên âm mẫu (tuỳ chọn)",
 
-    instructTitle: "Mô tả giọng",
-    instructPlaceholder: "nữ, giọng ấm, cao độ trung bình, kiểu trò chuyện",
+    instructTitle: "Thuộc tính giọng",
+    instructHint: "Chọn thuộc tính — chỉ tổ hợp hợp lệ mới chạy được",
+    designGender: "Giới tính",
+    designAge: "Độ tuổi",
+    designPitch: "Cao độ",
+    designAccent: "Giọng vùng",
+    designWhisper: "Thì thầm",
 
     textTitle: "Văn bản",
     textPlaceholder: "Nhập hoặc dán văn bản cần đọc…",
@@ -197,7 +248,11 @@ export function VoiceStudioShell() {
 
   const [mode, setMode] = useState<Mode>("auto");
   const [text, setText] = useState("");
-  const [instruct, setInstruct] = useState("");
+  const [designGender, setDesignGender] = useState<string>("female");
+  const [designAge, setDesignAge] = useState<string>("young adult");
+  const [designPitch, setDesignPitch] = useState<string>("moderate pitch");
+  const [designAccent, setDesignAccent] = useState<string>("");
+  const [designWhisper, setDesignWhisper] = useState(false);
   const [refAudio, setRefAudio] = useState<File | null>(null);
   const [refText, setRefText] = useState("");
   const [genLanguage, setGenLanguage] = useState("");
@@ -265,10 +320,29 @@ export function VoiceStudioShell() {
     [history, activeClipId],
   );
 
+  const designInstruct = useMemo(() => {
+    const parts = [designGender, designAge, designPitch];
+    if (designAccent) parts.push(designAccent);
+    if (designWhisper) parts.push("whisper");
+    return parts.filter(Boolean).join(", ");
+  }, [designGender, designAge, designPitch, designAccent, designWhisper]);
+
   const onPickPreset = (preset: Preset) => {
     setActivePreset(preset.id);
     setMode(preset.mode);
-    if (preset.instruct) setInstruct(preset.instruct);
+    if (preset.instruct) {
+      // Parse server preset back into picker state
+      const parts = preset.instruct.split(",").map((s) => s.trim());
+      const g = parts.find((p) => DESIGN_GENDER.some((x) => x.value === p));
+      const a = parts.find((p) => DESIGN_AGE.some((x) => x.value === p));
+      const pi = parts.find((p) => DESIGN_PITCH.some((x) => x.value === p));
+      const ac = parts.find((p) => DESIGN_ACCENT.some((x) => x.value === p && x.value !== ""));
+      if (g) setDesignGender(g);
+      if (a) setDesignAge(a);
+      if (pi) setDesignPitch(pi);
+      setDesignAccent(ac ?? "");
+      setDesignWhisper(parts.includes("whisper"));
+    }
   };
 
   const insertTag = (tag: string) => {
@@ -289,7 +363,7 @@ export function VoiceStudioShell() {
 
   const onGenerate = async () => {
     if (!text.trim()) return;
-    if (mode === "design" && !instruct.trim()) return;
+    if (mode === "design" && !designInstruct.trim()) return;
     if (mode === "clone" && !refAudio) return;
 
     abortRef.current?.abort();
@@ -307,7 +381,7 @@ export function VoiceStudioShell() {
     form.set("guidance_scale", String(guidanceScale));
     form.set("denoise", denoise ? "true" : "false");
     if (duration !== null && duration > 0) form.set("duration", String(duration));
-    if (mode === "design") form.set("instruct", instruct.trim());
+    if (mode === "design") form.set("instruct", designInstruct);
     if (mode === "clone" && refAudio) {
       form.set("ref_audio", refAudio);
       if (refText.trim()) form.set("ref_text", refText.trim());
@@ -717,16 +791,63 @@ export function VoiceStudioShell() {
 
             {mode === "design" ? (
               <div className="rounded-xl border border-[#25211b] bg-[#0c0a08]/72 p-4 shadow-[0_12px_36px_rgba(0,0,0,0.32)]">
-                <p className="mb-2 font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#ef4444]">
-                  {copy.instructTitle}
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="font-mono text-[0.58rem] uppercase tracking-[0.22em] text-[#ef4444]">
+                    {copy.instructTitle}
+                  </p>
+                  <span className="font-mono text-[0.5rem] uppercase tracking-[0.16em] text-[#756d64]">
+                    {copy.instructHint}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {(
+                    [
+                      { label: copy.designGender, options: DESIGN_GENDER, value: designGender, set: setDesignGender },
+                      { label: copy.designAge, options: DESIGN_AGE, value: designAge, set: setDesignAge },
+                      { label: copy.designPitch, options: DESIGN_PITCH, value: designPitch, set: setDesignPitch },
+                      { label: copy.designAccent, options: DESIGN_ACCENT, value: designAccent, set: setDesignAccent },
+                    ]
+                  ).map((row) => (
+                    <div key={row.label} className="flex flex-wrap items-center gap-1.5">
+                      <span className="mr-1 w-20 shrink-0 font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087]">
+                        {row.label}
+                      </span>
+                      {row.options.map((opt) => {
+                        const active = row.value === opt.value;
+                        return (
+                          <button
+                            key={`${row.label}-${opt.value}`}
+                            type="button"
+                            onClick={() => row.set(opt.value)}
+                            className={cn(
+                              "rounded-md border px-2.5 py-1 font-mono text-[0.55rem] uppercase tracking-[0.14em] transition",
+                              active
+                                ? "border-[#ef4444]/55 bg-[#ef4444]/14 text-[#ffe9e5] shadow-[0_0_0_1px_rgba(239,68,68,0.2)_inset]"
+                                : "border-[#25211b] bg-white/[0.025] text-[#9a9087] hover:border-white/20 hover:text-[#dfd5c7]",
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  <label className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      checked={designWhisper}
+                      onChange={(e) => setDesignWhisper(e.target.checked)}
+                      className="size-3.5 accent-[#ef4444]"
+                    />
+                    <span className="font-mono text-[0.58rem] uppercase tracking-[0.16em] text-[#dfd5c7]">
+                      {copy.designWhisper}
+                    </span>
+                  </label>
+                </div>
+                <p className="mt-3 rounded-md border border-white/8 bg-black/40 px-3 py-2 font-mono text-[0.65rem] text-[#dfd5c7]">
+                  <span className="text-[#756d64]">instruct: </span>
+                  {designInstruct || <span className="italic text-[#756d64]">empty</span>}
                 </p>
-                <input
-                  type="text"
-                  value={instruct}
-                  onChange={(e) => setInstruct(e.target.value)}
-                  placeholder={copy.instructPlaceholder}
-                  className="w-full rounded-md border border-[#25211b] bg-[#0a0907]/82 px-3 py-2.5 text-[0.88rem] text-[#f4eadc] placeholder:text-[#756d64] focus:border-[#ef4444]/45 focus:outline-none"
-                />
               </div>
             ) : null}
 
@@ -888,7 +1009,7 @@ export function VoiceStudioShell() {
                 disabled={
                   !isReady ||
                   !text.trim() ||
-                  (mode === "design" && !instruct.trim()) ||
+                  (mode === "design" && !designInstruct.trim()) ||
                   (mode === "clone" && !refAudio)
                 }
                 className="flex items-center gap-2 rounded-md border border-[#ef4444]/55 bg-[#ef4444] px-5 py-2 font-mono text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#1a0807] shadow-[0_12px_30px_rgba(239,68,68,0.36)] transition hover:bg-[#ff5a50] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
