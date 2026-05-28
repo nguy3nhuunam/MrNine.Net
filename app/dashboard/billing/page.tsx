@@ -31,7 +31,7 @@ async function createIntent(formData: FormData): Promise<
 
   await db.insert(transactions).values({
     userId: user.id,
-    provider: "mbbank-gmail",
+    provider: "sepay",
     providerRef: ref,
     amountVnd: vnd,
     amountMicroUsd: microUsd,
@@ -70,7 +70,7 @@ export default async function BillingPage() {
       <div>
         <h1 className="text-2xl font-semibold">Nạp tiền</h1>
         <p className="mt-1 text-sm text-[#9a9087]">
-          Chuyển khoản qua VietQR — số dư cập nhật trong 30s–2 phút khi MB Bank gửi biên lai.
+          Chuyển khoản qua VietQR — số dư cập nhật trong 5–30 giây qua SePay webhook.
         </p>
       </div>
 

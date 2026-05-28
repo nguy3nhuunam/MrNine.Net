@@ -1,16 +1,17 @@
 /**
- * VietQR helpers — Gmail biên lai flow.
+ * VietQR helpers — SePay webhook flow.
  *
  * Flow:
  *   1. User chọn số tiền VND.
  *   2. Tạo Transaction (status=pending) với providerRef = MR-XXXXXXXX.
  *   3. Render QR code chứa STK + bank + amount + content = providerRef.
  *   4. User chuyển khoản qua app banking.
- *   5. MB Bank gửi email biên lai → Gmail của bạn.
- *   6. Cron `/api/billing/gmail/poll` mỗi phút đọc Gmail, parse, credit.
+ *   5. SePay phát hiện chuyển khoản trong vài giây.
+ *   6. SePay POST `/api/billing/sepay/webhook` → idempotent credit.
  *
- * Không phụ thuộc SePay/Casso/dịch vụ trung gian. QR builder dùng URL public
- * của vietqr.io (free, không cần API key).
+ * Đăng ký SePay tại https://sepay.vn (free 100 webhook/ngày).
+ *
+ * QR builder dùng URL public của img.vietqr.io (free, không cần API key).
  */
 import { randomBytes } from "node:crypto";
 

@@ -12,7 +12,7 @@ const PUBLIC_PREFIXES: ReadonlyArray<string> = [
   "/api/auth",
   "/api/health",
   "/api/track",
-  "/api/billing/gmail/poll",
+  "/api/billing/sepay",
   "/voice-studio-runtime",
   "/_next",
 ];

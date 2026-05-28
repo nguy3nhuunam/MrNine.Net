@@ -9,8 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "gmail:authorize": "tsx -r dotenv/config scripts/gmail-authorize.ts dotenv_config_path=.env.local"
+    "lint": "eslint"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.2",
@@ -19,7 +18,6 @@
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.38.0",
-    "googleapis": "^172.0.0",
     "iztro": "^2.5.8",
     "lucide-react": "^1.14.0",
     "mongodb": "^6.21.0",
@@ -36,13 +34,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "playwright": "^1.60.0",
     "tailwindcss": "^4",
-    "tsx": "^4.22.3",
     "typescript": "^5"
   }
 }
