@@ -1,12 +1,16 @@
 /**
- * SePay VietQR helpers.
+ * VietQR helpers — Gmail biên lai flow.
  *
  * Flow:
- *   1. User chọn số tiền (VND, ≥ 50k).
- *   2. Tạo Transaction (status=pending) với providerRef = code unique (vd MR-{uuid8}).
- *   3. Render QR code gồm: STK, ngân hàng, số tiền, content = providerRef.
- *   4. SePay phát hiện chuyển khoản → POST webhook `/api/billing/sepay/webhook`.
- *   5. Webhook tìm Transaction theo providerRef trong content, idempotent credit.
+ *   1. User chọn số tiền VND.
+ *   2. Tạo Transaction (status=pending) với providerRef = MR-XXXXXXXX.
+ *   3. Render QR code chứa STK + bank + amount + content = providerRef.
+ *   4. User chuyển khoản qua app banking.
+ *   5. MB Bank gửi email biên lai → Gmail của bạn.
+ *   6. Cron `/api/billing/gmail/poll` mỗi phút đọc Gmail, parse, credit.
+ *
+ * Không phụ thuộc SePay/Casso/dịch vụ trung gian. QR builder dùng URL public
+ * của vietqr.io (free, không cần API key).
  */
 import { randomBytes } from "node:crypto";
 
@@ -34,25 +38,41 @@ export function newProviderRef(): string {
   return "MR-" + randomBytes(4).toString("hex").toUpperCase();
 }
 
-export function bankAccount(): { account: string; bank: string } {
+export function bankAccount(): { account: string; bank: string; holder: string } {
   return {
-    account: process.env.SEPAY_BANK_ACCOUNT ?? "",
-    bank: process.env.SEPAY_BANK_NAME ?? "",
+    account: process.env.BANK_ACCOUNT_NUMBER ?? process.env.SEPAY_BANK_ACCOUNT ?? "",
+    bank: process.env.BANK_NAME ?? process.env.SEPAY_BANK_NAME ?? "MBBank",
+    holder: process.env.BANK_ACCOUNT_HOLDER ?? "",
   };
 }
 
 /**
- * SePay QR URL — dùng SePay free QR builder.
- * https://qr.sepay.vn/img?acc=...&bank=...&amount=...&des=...&template=compact
+ * VietQR image URL — img.vietqr.io free, không cần API key.
+ * https://img.vietqr.io/image/<bank>-<account>-compact2.png?amount=...&addInfo=...
+ *
+ * Bank slug: MB / VCB / TCB / ACB / TPB / STB / BIDV / VPB ...
+ * (xem https://api.vietqr.io/v2/banks)
  */
-export function buildSepayQr(opts: { amount: number; ref: string }): string {
-  const { account, bank } = bankAccount();
+export function buildQrUrl(opts: { amount: number; ref: string }): string {
+  const { account, bank, holder } = bankAccount();
+  const bankSlug = normalizeBankSlug(bank);
   const params = new URLSearchParams({
-    acc: account,
-    bank,
     amount: String(opts.amount),
-    des: opts.ref,
-    template: "compact",
+    addInfo: opts.ref,
+    accountName: holder,
   });
-  return `https://qr.sepay.vn/img?${params.toString()}`;
+  return `https://img.vietqr.io/image/${bankSlug}-${account}-compact2.png?${params.toString()}`;
+}
+
+function normalizeBankSlug(name: string): string {
+  const s = name.toLowerCase().replace(/\s+/g, "");
+  if (s.includes("mb")) return "MB";
+  if (s.includes("vietcom") || s === "vcb") return "VCB";
+  if (s.includes("tech") || s === "tcb") return "TCB";
+  if (s === "acb") return "ACB";
+  if (s === "tpb" || s.includes("tpbank")) return "TPB";
+  if (s === "stb" || s.includes("sacom")) return "STB";
+  if (s.includes("vp") || s === "vpb") return "VPB";
+  if (s.includes("bidv")) return "BIDV";
+  return name.toUpperCase();
 }

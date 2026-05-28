@@ -6,8 +6,7 @@ import { requireUser } from "@/lib/pg/session";
 import { BillingPanel } from "@/components/dashboard/BillingPanel";
 import {
   bankAccount,
-  buildSepayQr,
-  microUsdToVnd as _u,
+  buildQrUrl,
   minTopupVnd,
   newProviderRef,
   vndRate,
@@ -32,7 +31,7 @@ async function createIntent(formData: FormData): Promise<
 
   await db.insert(transactions).values({
     userId: user.id,
-    provider: "sepay",
+    provider: "mbbank-gmail",
     providerRef: ref,
     amountVnd: vnd,
     amountMicroUsd: microUsd,
@@ -42,14 +41,15 @@ async function createIntent(formData: FormData): Promise<
 
   return {
     ref,
-    qrUrl: buildSepayQr({ amount: vnd, ref }),
+    qrUrl: buildQrUrl({ amount: vnd, ref }),
     vnd,
   };
 }
 
 export default async function BillingPage() {
   const user = await requireUser();
-  const { account, bank } = bankAccount();
+  const { account, bank, holder } = bankAccount();
+  const bankLabel = holder ? `${bank} · ${holder}` : bank;
 
   const txns = await db
     .select({
@@ -70,14 +70,14 @@ export default async function BillingPage() {
       <div>
         <h1 className="text-2xl font-semibold">Nạp tiền</h1>
         <p className="mt-1 text-sm text-[#9a9087]">
-          Chuyển khoản qua VietQR — số dư cập nhật tự động khi giao dịch hoàn tất.
+          Chuyển khoản qua VietQR — số dư cập nhật trong 30s–2 phút khi MB Bank gửi biên lai.
         </p>
       </div>
 
       <BillingPanel
         initialBalanceMicroUsd={user.balanceMicroUsd}
-        bankAccount={account || "(chưa cấu hình SEPAY_BANK_ACCOUNT)"}
-        bankName={bank || "(chưa cấu hình SEPAY_BANK_NAME)"}
+        bankAccount={account || "(chưa cấu hình BANK_ACCOUNT_NUMBER)"}
+        bankName={bankLabel || "(chưa cấu hình BANK_NAME)"}
         vndRate={vndRate()}
         minVnd={minTopupVnd()}
         createIntent={createIntent}

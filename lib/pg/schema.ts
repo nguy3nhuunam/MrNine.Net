@@ -237,3 +237,27 @@ export type User = typeof users.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Request = typeof requests.$inferSelect;
+
+// ── Key-value store cho cron state (Gmail historyId, last poll, ...) ──
+export const kvStore = pgTable("kv_store", {
+  key: varchar("key", { length: 120 }).primaryKey(),
+  value: jsonb("value"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+// ── Email-based txn dedup. Tránh credit 2 lần khi cron chạy lại ──
+export const emailEvents = pgTable(
+  "email_events",
+  {
+    messageId: varchar("message_id", { length: 120 }).primaryKey(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow(),
+    parsedRef: varchar("parsed_ref", { length: 64 }),
+    parsedAmountVnd: integer("parsed_amount_vnd"),
+    direction: varchar("direction", { length: 8 }),
+    status: varchar("status", { length: 32 }).notNull().default("pending"),
+    note: text("note"),
+  },
+  (t) => ({
+    refIdx: index("ix_email_events_ref").on(t.parsedRef),
+  }),
+);
