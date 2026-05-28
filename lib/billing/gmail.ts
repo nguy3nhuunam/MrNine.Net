@@ -19,13 +19,14 @@ import { google, type gmail_v1 } from "googleapis";
 import { parseMbEmail } from "./mbbank-parser";
 
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
-// Whitelist sender domains để tránh fake email
-const TRUSTED_SENDERS = [
-  "alert@mbbank.com.vn",
-  "thongbao@mbbank.com.vn",
-  "noreply@mbbank.com.vn",
-  "support@mbbank.com.vn",
-];
+
+// Whitelist mọi sender từ MB Bank domain — MB dùng nhiều sub-mailbox
+// (alert@, mbcard@, saokethe@, thongbao@, noreply@, ...). Verify domain
+// `@mbbank.com.vn` là đủ vì DKIM của MB ký trên domain này.
+function isTrustedSender(from: string): boolean {
+  const lower = from.toLowerCase();
+  return /<?[a-z0-9._-]+@mbbank\.com\.vn>?/.test(lower);
+}
 
 function getOAuthClient() {
   const clientId = process.env.GMAIL_CLIENT_ID;
@@ -84,11 +85,6 @@ function getHeader(headers: gmail_v1.Schema$MessagePartHeader[] | undefined, nam
   if (!headers) return "";
   const lower = name.toLowerCase();
   return headers.find((h) => (h.name ?? "").toLowerCase() === lower)?.value ?? "";
-}
-
-function isTrustedSender(from: string): boolean {
-  const lower = from.toLowerCase();
-  return TRUSTED_SENDERS.some((s) => lower.includes(s));
 }
 
 /**
