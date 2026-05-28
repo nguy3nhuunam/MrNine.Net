@@ -9,9 +9,30 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const FREE_USD = parseFloat(process.env.SIGNUP_FREE_CREDIT_USD ?? "0.5");
+const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY;
+
+async function verifyCaptcha(token: string | undefined, ip: string | null): Promise<boolean> {
+  if (!TURNSTILE_SECRET) return true; // Captcha optional ở dev
+  if (!token) return false;
+  const body = new URLSearchParams({
+    secret: TURNSTILE_SECRET,
+    response: token,
+    ...(ip ? { remoteip: ip } : {}),
+  });
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body,
+    });
+    const j = (await r.json()) as { success?: boolean };
+    return Boolean(j.success);
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(req: Request) {
-  let body: { email?: string; password?: string; displayName?: string };
+  let body: { email?: string; password?: string; displayName?: string; captchaToken?: string };
   try {
     body = await req.json();
   } catch {
@@ -27,6 +48,12 @@ export async function POST(req: Request) {
   }
   if (password.length < 8) {
     return NextResponse.json({ error: "password_too_short" }, { status: 400 });
+  }
+
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const captchaOk = await verifyCaptcha(body.captchaToken, ip);
+  if (!captchaOk) {
+    return NextResponse.json({ error: "captcha_failed" }, { status: 400 });
   }
 
   const existing = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];

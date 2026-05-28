@@ -5,6 +5,7 @@ import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { GlobalShortcuts } from "@/components/GlobalShortcuts";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { TopNav } from "@/components/TopNav";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo-jsonld";
 import "./globals.css";
 
@@ -110,7 +111,10 @@ export default function RootLayout({
         }
       >
         <LanguageProvider>
-          <AuthSessionProvider>{children}</AuthSessionProvider>
+          <AuthSessionProvider>
+            <TopNav />
+            {children}
+          </AuthSessionProvider>
           <GlobalShortcuts />
           <ServiceWorkerRegister />
         </LanguageProvider>
