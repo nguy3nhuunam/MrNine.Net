@@ -167,6 +167,19 @@ const playgroundCopy = {
     runShortcut: "Ctrl + Enter để chạy",
     uploaded: "Đã tải lên",
     remoteUrl: "Liên kết ngoài",
+    multiModalRefs: "Tệp tham chiếu",
+    referenceImages: "Ảnh tham chiếu",
+    referenceVideos: "Video tham chiếu",
+    referenceAudios: "Audio tham chiếu",
+    csvImagePlaceholder: "Mỗi dòng/CSV một URL ảnh",
+    csvVideoPlaceholder: "Mỗi dòng/CSV một URL video",
+    csvAudioPlaceholder: "Mỗi dòng/CSV một URL audio",
+    totalFilesMax: "Tổng tối đa",
+    totalFilesUnit: "tệp",
+    pricingLabel: "Giá",
+    selectShort: "Chọn",
+    responseMissingRequest: "Phản hồi thiếu thông tin truy vấn",
+    pickerImageOnly: "Chỉ chọn ảnh",
   },
   en: {
     back: "Back to home",
@@ -213,6 +226,19 @@ const playgroundCopy = {
     runShortcut: "Press Ctrl + Enter to run",
     uploaded: "Uploaded",
     remoteUrl: "Remote URL",
+    multiModalRefs: "Multi-modal references",
+    referenceImages: "Reference images",
+    referenceVideos: "Reference videos",
+    referenceAudios: "Reference audios",
+    csvImagePlaceholder: "One image URL per line / CSV",
+    csvVideoPlaceholder: "One video URL per line / CSV",
+    csvAudioPlaceholder: "One audio URL per line / CSV",
+    totalFilesMax: "Max total",
+    totalFilesUnit: "files",
+    pricingLabel: "Price",
+    selectShort: "Select",
+    responseMissingRequest: "Response is missing request info",
+    pickerImageOnly: "Pick image only",
   },
 } satisfies Record<WebLanguage, Record<string, string>>;
 
@@ -949,7 +975,7 @@ export function AIPlaygroundShell() {
       const statusUrl = json.statusUrl as string | undefined;
       const responseUrl = json.responseUrl as string | undefined;
       if (!statusUrl || !responseUrl) {
-        throw new Error("Phản hồi thiếu thông tin truy vấn");
+        throw new Error(copy.responseMissingRequest);
       }
       setStatus({ kind: "queued", requestId, statusUrl, responseUrl, logs: [] });
       startPolling(activeModel.id, requestId, statusUrl, responseUrl);
@@ -1297,13 +1323,13 @@ export function AIPlaygroundShell() {
             {activeModel.imagesKey || activeModel.videosKey || activeModel.audiosKey ? (
               <div className="space-y-3 rounded-lg border border-[#25211b] bg-[#0c0a08] p-3">
                 <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-[#d6a548]">
-                  Multi-modal references
+                  {copy.multiModalRefs}
                 </p>
                 {activeModel.imagesKey ? (
                   <MultiUrlInput
-                    label={`Reference images${activeModel.inputLimits?.images ? ` (max ${activeModel.inputLimits.images.maxFiles})` : ""}`}
+                    label={`${copy.referenceImages}${activeModel.inputLimits?.images ? ` (max ${activeModel.inputLimits.images.maxFiles})` : ""}`}
                     hint={activeModel.inputLimits?.images?.hint}
-                    placeholder="Mỗi dòng/CSV một URL ảnh"
+                    placeholder={copy.csvImagePlaceholder}
                     value={imagesByModel[activeModel.id] ?? ""}
                     onChange={(v) => setImagesByModel((s) => ({ ...s, [activeModel.id]: v }))}
                     accept="image/*"
@@ -1320,9 +1346,9 @@ export function AIPlaygroundShell() {
                 ) : null}
                 {activeModel.videosKey ? (
                   <MultiUrlInput
-                    label={`Reference videos${activeModel.inputLimits?.videos ? ` (max ${activeModel.inputLimits.videos.maxFiles})` : ""}`}
+                    label={`${copy.referenceVideos}${activeModel.inputLimits?.videos ? ` (max ${activeModel.inputLimits.videos.maxFiles})` : ""}`}
                     hint={activeModel.inputLimits?.videos?.hint}
-                    placeholder="Mỗi dòng/CSV một URL video"
+                    placeholder={copy.csvVideoPlaceholder}
                     value={videosByModel[activeModel.id] ?? ""}
                     onChange={(v) => setVideosByModel((s) => ({ ...s, [activeModel.id]: v }))}
                     accept="video/*"
@@ -1339,9 +1365,9 @@ export function AIPlaygroundShell() {
                 ) : null}
                 {activeModel.audiosKey ? (
                   <MultiUrlInput
-                    label={`Reference audios${activeModel.inputLimits?.audios ? ` (max ${activeModel.inputLimits.audios.maxFiles})` : ""}`}
+                    label={`${copy.referenceAudios}${activeModel.inputLimits?.audios ? ` (max ${activeModel.inputLimits.audios.maxFiles})` : ""}`}
                     hint={activeModel.inputLimits?.audios?.hint}
-                    placeholder="Mỗi dòng/CSV một URL audio"
+                    placeholder={copy.csvAudioPlaceholder}
                     value={audiosByModel[activeModel.id] ?? ""}
                     onChange={(v) => setAudiosByModel((s) => ({ ...s, [activeModel.id]: v }))}
                     accept="audio/*"
@@ -1358,12 +1384,12 @@ export function AIPlaygroundShell() {
                 ) : null}
                 {activeModel.inputLimits?.totalFiles ? (
                   <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#756d64]">
-                    Tổng tối đa {activeModel.inputLimits.totalFiles} file
+                    {copy.totalFilesMax} {activeModel.inputLimits.totalFiles} {copy.totalFilesUnit}
                   </p>
                 ) : null}
                 {activeModel.pricing?.note ? (
                   <p className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-[#9a9087]">
-                    Giá: {activeModel.pricing.note}
+                    {copy.pricingLabel}: {activeModel.pricing.note}
                   </p>
                 ) : null}
               </div>

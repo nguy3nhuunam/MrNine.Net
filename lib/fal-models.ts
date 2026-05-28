@@ -1218,7 +1218,6 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
       { key: "seed", label: "Seed", type: "number", default: "" as unknown as number, min: 0, group: "advanced" },
     ],
   },
-  },
   {
     id: "hidream-i1-full",
     endpoint: "fal-ai/hidream-i1-full",
