@@ -282,6 +282,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.133, defaultRunUnits: 1, note: "High 1024² · Low $0.009 · Med $0.034" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "1024x1024", options: [
         { value: "1024x1024", label: "1024x1024" },
@@ -351,6 +352,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.039, defaultRunUnits: 1 },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "1:1", options: [
         { value: "21:9", label: "21:9" }, { value: "16:9", label: "16:9" }, { value: "3:2", label: "3:2" },
@@ -512,6 +514,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.006, defaultRunUnits: 1, note: "$0.006/MP" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "landscape_4_3", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -645,6 +648,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.01, defaultRunUnits: 1, note: "$0.01/MP" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "square_hd", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -669,6 +673,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.005, defaultRunUnits: 1, note: "$0.005/MP" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "square_hd", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -694,6 +699,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.02, defaultRunUnits: 1 },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "1:1", options: [
         { value: "2:1", label: "2:1" }, { value: "20:9", label: "20:9" }, { value: "19.5:9", label: "19.5:9" },
@@ -724,6 +730,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.07, defaultRunUnits: 1, note: "$0.05 @1K · $0.07 @2K" },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "1:1", options: [
         { value: "2:1", label: "2:1" }, { value: "20:9", label: "20:9" }, { value: "19.5:9", label: "19.5:9" },
@@ -754,6 +761,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.04, defaultRunUnits: 1 },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "square_hd", options: IMAGE_SIZES_FAL },
       { key: "background_color", label: "Background color (R,G,B)", type: "string", default: "", group: "advanced", hint: "Optional, ví dụ '255,0,0'" },
@@ -774,6 +782,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.25, defaultRunUnits: 1 },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "square_hd", options: IMAGE_SIZES_FAL },
       { key: "background_color", label: "Background color (R,G,B)", type: "string", default: "", group: "advanced" },
@@ -793,6 +802,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.08, defaultRunUnits: 1 },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "square_hd", options: IMAGE_SIZES_FAL },
       { key: "background_color", label: "Background color (R,G,B)", type: "string", default: "", group: "advanced" },
@@ -813,6 +823,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.04, defaultRunUnits: 1 },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "1:1", options: [
         { value: "1:1", label: "1:1" }, { value: "2:3", label: "2:3" }, { value: "3:2", label: "3:2" },
@@ -1043,6 +1054,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0, defaultRunUnits: 1, note: "BYOK — billing qua key OpenAI của bạn" },
     params: [
       { key: "openai_api_key", label: "OpenAI API Key", type: "string", default: "", hint: "Bắt buộc — billing đi thẳng qua OpenAI key của bạn" },
       { key: "image_size", label: "Kích thước", type: "select", default: "auto", options: [
@@ -1187,6 +1199,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.02, defaultRunUnits: 1, note: "$0.02/MP" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "landscape_4_3", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -1218,6 +1231,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.05, defaultRunUnits: 1, note: "$0.05/MP" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "square_hd", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -1387,6 +1401,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.025, defaultRunUnits: 1, note: "$0.025/MP" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "landscape_4_3", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -1409,6 +1424,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.035, defaultRunUnits: 1, note: "$0.035/MP" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "landscape_4_3", options: IMAGE_SIZES_FAL },
       { key: "loras", label: "LoRA URLs (CSV)", type: "string", default: "", hint: "URL safetensors LoRA, cách nhau bằng dấu phẩy. Server gộp nhiều LoRA trước khi inference." },
@@ -1437,6 +1453,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh chủ thể (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.04, defaultRunUnits: 1, note: "$0.04/MP" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "square_hd", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -1459,6 +1476,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.02, defaultRunUnits: 1, note: "$0.02/MP" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "landscape_4_3", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -1482,6 +1500,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.00111, defaultRunUnits: 5, note: "Compute-second billing" },
     params: [
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
       { key: "guidance_scale", label: "Guidance (CFG)", type: "number", default: 3.5, min: 1, max: 10, step: 0.5, group: "advanced" },
@@ -1502,6 +1521,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.00111, defaultRunUnits: 5, note: "Compute-second billing" },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "1:1", options: [
         { value: "1:1", label: "1:1" }, { value: "16:9", label: "16:9" }, { value: "9:16", label: "9:16" },
@@ -1524,6 +1544,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.00111, defaultRunUnits: 5, note: "Compute-second billing" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "square_hd", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -1552,6 +1573,7 @@ export const textToImageModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_IMAGE,
     outputKind: "image",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.00111, defaultRunUnits: 3, note: "Compute-second billing" },
     params: [
       { key: "image_size", label: "Kích thước", type: "select", default: "square_hd", options: IMAGE_SIZES_FAL },
       { key: "num_images", label: "Số ảnh", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -1768,6 +1790,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.03, defaultRunUnits: 1, note: "$0.03 cho MP đầu, $0.004/MP sau" },
     params: [
       { key: "dilate_pixels", label: "Dilate mask (px)", type: "number", default: 10, min: 0, max: 50, step: 1, hint: "Mở rộng mép mask để xoá sạch hơn" },
       { key: "output_format", label: "Định dạng", type: "select", default: "jpeg", group: "advanced", options: FORMAT_OPTIONS },
@@ -1842,6 +1865,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imagesKey: "reference_image_urls",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.01, defaultRunUnits: 1, note: "$0.01/MP" },
     inputLimits: {
       images: { maxFiles: 4, formats: ["image/jpeg", "image/png", "image/webp"], hint: "Reference images" },
     },
@@ -1873,6 +1897,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.01, defaultRunUnits: 1 },
     inputLimits: {
       images: { maxFiles: 1, maxBytesPerFile: 10 * 1024 * 1024, formats: ["image/jpeg", "image/png", "image/webp"], hint: "Max 10MB" },
     },
@@ -1891,6 +1916,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imagesKey: "image_urls",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.022, defaultRunUnits: 1, note: "$0.02 output + $0.002 input" },
     inputLimits: {
       images: { maxFiles: 3, formats: ["image/jpeg", "image/png", "image/webp"] },
     },
@@ -1926,6 +1952,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.001, defaultRunUnits: 1, note: "$0.001/MP" },
     params: [
       { key: "upscale_mode", label: "Mode", type: "select", default: "factor", options: [
         { value: "factor", label: "Factor (×N)" }, { value: "target", label: "Target resolution" },
@@ -1957,6 +1984,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.15, defaultRunUnits: 1, note: "$0.15/output (4K ×2) + $0.05 vision fee/req" },
     params: [
       { key: "target_sizes", label: "Kích thước đích (CSV WxH)", type: "string", default: "1024x1024", hint: "Ví dụ: 1024x1024,1920x1080. Server không upscale, chỉ chọn preset rồi crop." },
       { key: "resolution", label: "Resolution tier", type: "select", default: "1K", options: [
@@ -1987,6 +2015,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.04, defaultRunUnits: 1 },
     inputLimits: {
       images: { maxFiles: 1, formats: ["image/png", "image/jpeg", "image/webp", "image/avif", "image/heif"] },
     },
@@ -2011,6 +2040,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.04, defaultRunUnits: 1 },
     params: [
       { key: "mask_url", label: "Mask URL", type: "string", default: "", group: "advanced", hint: "Optional — vùng cần edit" },
       { key: "negative_prompt", label: "Negative prompt", type: "textarea", default: "", group: "advanced" },
@@ -2070,6 +2100,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imagesKey: "image_urls",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.05, defaultRunUnits: 1, note: "$0.05/ảnh + $0.007/ảnh input thêm" },
     inputLimits: {
       images: { maxFiles: 4, formats: ["image/jpeg", "image/png", "image/webp"], hint: "Up to 4 reference images" },
     },
@@ -2199,6 +2230,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imagesKey: "image_urls",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0, defaultRunUnits: 1, note: "BYOK — billing qua key OpenAI" },
     params: [
       { key: "openai_api_key", label: "OpenAI API Key", type: "string", default: "", hint: "Bắt buộc — billing đi thẳng qua OpenAI key của bạn" },
       { key: "image_size", label: "Kích thước", type: "select", default: "auto", options: [
@@ -2379,6 +2411,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.03, defaultRunUnits: 1, note: "$0.03/MP" },
     params: [
       { key: "upscale_factor", label: "Upscale", type: "number", default: 2, min: 1, max: 4, step: 0.5 },
       { key: "creativity", label: "Creativity", type: "number", default: 0.35, min: 0, max: 1, step: 0.05, hint: "Cao = bay xa khỏi prompt" },
@@ -2404,6 +2437,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.00111, defaultRunUnits: 8, note: "Compute-second billing" },
     params: [
       { key: "scale", label: "Scale", type: "number", default: 2, min: 1, max: 4, step: 0.5 },
       { key: "steps", label: "Steps", type: "number", default: 50, min: 10, max: 100, step: 1, group: "advanced" },
@@ -2434,6 +2468,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.018, defaultRunUnits: 1 },
     params: [],
   },
   {
@@ -2451,6 +2486,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.04, defaultRunUnits: 1 },
     params: [
       { key: "ref_image_url", label: "Reference background URL (optional)", type: "string", default: "", hint: "Cung cấp ref_image_url HOẶC prompt, không cùng lúc" },
       { key: "negative_prompt", label: "Negative prompt", type: "textarea", default: "", group: "advanced" },
@@ -2475,6 +2511,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.04, defaultRunUnits: 1 },
     params: [
       { key: "mask_type", label: "Mask type", type: "select", default: "manual", options: [
         { value: "manual", label: "Manual (vẽ tay)" },
@@ -2498,6 +2535,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.04, defaultRunUnits: 1 },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ canvas", type: "select", default: "1:1", options: [
         { value: "1:1", label: "1:1" }, { value: "2:3", label: "2:3" }, { value: "3:2", label: "3:2" },
@@ -2583,6 +2621,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.035, defaultRunUnits: 1, note: "$0.035/MP" },
     params: [
       { key: "strength", label: "Strength", type: "number", default: 0.85, min: 0, max: 1, step: 0.05, hint: "1.0 = remake hoàn toàn, 0 = giữ ảnh gốc" },
       { key: "loras", label: "LoRA URLs (CSV)", type: "string", default: "", hint: "URL safetensors, cách nhau bằng dấu phẩy" },
@@ -2615,6 +2654,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.001, defaultRunUnits: 5, note: "Compute-second billing" },
     params: [
       { key: "upscale_factor", label: "Upscale", type: "number", default: 4, min: 2, max: 4, step: 2, hint: "Hiện chỉ 2x/4x" },
       { key: "checkpoint", label: "Checkpoint", type: "select", default: "v1", group: "advanced", options: [
@@ -2637,6 +2677,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.00111, defaultRunUnits: 5, note: "Compute-second billing" },
     params: [
       { key: "scale", label: "Scale", type: "number", default: 2, min: 1, max: 4, step: 0.5 },
       { key: "model", label: "Model variant", type: "select", default: "RealESRGAN_x4plus", group: "advanced", options: [
@@ -2669,6 +2710,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.00111, defaultRunUnits: 3, note: "Compute-second billing" },
     params: [
       { key: "version", label: "Phiên bản", type: "select", default: "1.4", options: [
         { value: "1.2", label: "1.2" }, { value: "1.3", label: "1.3" }, { value: "1.4", label: "1.4" },
@@ -2691,6 +2733,7 @@ export const imageToImageModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh nguồn (URL)",
     outputKind: "image",
     audited: true,
+    pricing: { unit: "image", perUnitUsd: 0.0021, defaultRunUnits: 1, note: "$0.0021/MP" },
     params: [
       { key: "fidelity", label: "Fidelity", type: "number", default: 0.5, min: 0, max: 1, step: 0.05, hint: "0 = chất lượng cao nhất, 1 = sát ảnh gốc" },
       { key: "upscale_factor", label: "Upscale", type: "number", default: 2, min: 1, max: 4, step: 1 },
@@ -3050,6 +3093,7 @@ export const textToVideoModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_VIDEO,
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.28, defaultRunUnits: 5, note: "$1.40 cho 5s, +$0.28/giây thêm" },
     params: [
       { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
         { value: "5", label: "5 giây" }, { value: "10", label: "10 giây" },
@@ -3074,6 +3118,7 @@ export const textToVideoModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_VIDEO,
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.124, defaultRunUnits: 5, note: "1080p 5s ~$0.62 · token-based $2.5/1M" },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "16:9", options: [
         { value: "21:9", label: "21:9" }, { value: "16:9", label: "16:9" }, { value: "4:3", label: "4:3" },
@@ -3105,6 +3150,7 @@ export const textToVideoModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_VIDEO,
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.036, defaultRunUnits: 5, note: "720p 5s ~$0.18 · token-based $1.8/1M" },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "16:9", options: [
         { value: "21:9", label: "21:9" }, { value: "16:9", label: "16:9" }, { value: "4:3", label: "4:3" },
@@ -3456,6 +3502,7 @@ export const textToVideoModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_VIDEO,
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.06, defaultRunUnits: 5, note: "8s ×2 giá" },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "16:9", options: [
         { value: "16:9", label: "16:9" }, { value: "4:3", label: "4:3" }, { value: "1:1", label: "1:1" },
@@ -3489,6 +3536,7 @@ export const textToVideoModels: ReadonlyArray<FalModel> = [
     promptPlaceholder: PROMPT_PLACEHOLDER_VIDEO,
     outputKind: "video",
     audited: true,
+    pricing: { unit: "video", perUnitUsd: 0.20, defaultRunUnits: 1 },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "16:9", options: [
         { value: "9:16", label: "9:16" }, { value: "1:1", label: "1:1" }, { value: "16:9", label: "16:9" },
@@ -3938,6 +3986,7 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.10, defaultRunUnits: 5 },
     params: [
       { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
         { value: "480p", label: "480p" }, { value: "580p", label: "580p" }, { value: "720p", label: "720p" },
@@ -3996,6 +4045,7 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.28, defaultRunUnits: 5, note: "$1.40 cho 5s, +$0.28/giây thêm" },
     params: [
       { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
         { value: "5", label: "5 giây" }, { value: "10", label: "10 giây" },
@@ -4091,6 +4141,7 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.124, defaultRunUnits: 5, note: "1080p 5s ~$0.62 · token-based $2.5/1M" },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "auto", options: [
         { value: "auto", label: "Auto" }, { value: "21:9", label: "21:9" }, { value: "16:9", label: "16:9" },
@@ -4125,6 +4176,7 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.036, defaultRunUnits: 5, note: "720p 5s ~$0.18 · auto-redirect Pro Fast" },
     params: [
       { key: "aspect_ratio", label: "Tỉ lệ", type: "select", default: "auto", options: [
         { value: "auto", label: "Auto" }, { value: "21:9", label: "21:9" }, { value: "16:9", label: "16:9" },
@@ -4322,6 +4374,7 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.04, defaultRunUnits: 5, note: "$0.04/s @24fps · detail pass ×2" },
     params: [
       { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
         { value: "480p", label: "480p" }, { value: "720p", label: "720p" },
@@ -4458,6 +4511,7 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "video", perUnitUsd: 0.20, defaultRunUnits: 1 },
     params: [
       { key: "video_size", label: "Kích thước", type: "select", default: "landscape_16_9", options: IMAGE_SIZES_FAL },
       { key: "negative_prompt", label: "Negative prompt", type: "textarea", default: "", group: "advanced" },
@@ -4483,6 +4537,7 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "video", perUnitUsd: 0.075, defaultRunUnits: 1 },
     params: [
       { key: "motion_bucket_id", label: "Motion intensity", type: "number", default: 127, min: 1, max: 255, step: 1, hint: "Cao = nhiều motion" },
       { key: "fps", label: "FPS", type: "number", default: 25, min: 5, max: 30, step: 1, group: "advanced" },
@@ -4528,6 +4583,7 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.06, defaultRunUnits: 5, note: "8s ×2 giá" },
     params: [
       { key: "resolution", label: "Độ phân giải", type: "select", default: "540p", options: [
         { value: "360p", label: "360p" }, { value: "540p", label: "540p" }, { value: "720p", label: "720p" },
@@ -4554,6 +4610,7 @@ export const imageToVideoModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "video", perUnitUsd: 0.15, defaultRunUnits: 1 },
     params: [
       { key: "resolution", label: "Độ phân giải", type: "select", default: "720p", options: [
         { value: "580p", label: "580p" }, { value: "720p", label: "720p" },
@@ -4667,6 +4724,7 @@ export const motionControlModels: ReadonlyArray<FalModel> = [
     imageLabel: "Video đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.002, defaultRunUnits: 8 },
     params: [
       { key: "duration", label: "Độ dài (giây)", type: "number", default: 8, min: 1, max: 30, step: 1, hint: "Cap tại độ dài video" },
       { key: "negative_prompt", label: "Negative prompt", type: "textarea", default: "", group: "advanced" },
@@ -4692,6 +4750,7 @@ export const motionControlModels: ReadonlyArray<FalModel> = [
     imageLabel: "Video đầu vào (URL) — 3-60s, max 100MB, ≤2160px",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.28, defaultRunUnits: 5, note: "$0.14/s @720p · $0.28/s @1080p" },
     inputLimits: {
       videos: { maxFiles: 1, maxBytesPerFile: 100 * 1024 * 1024, maxDurationPerFile: 60, minDurationPerFile: 3, hint: "MP4/MOV H.264, ≥8fps, output cap 15s" },
       images: { maxFiles: 5, maxBytesPerFile: 10 * 1024 * 1024, formats: ["image/jpeg", "image/png", "image/webp"], hint: "Reference images @Image1...@Image5, ≥300px" },
@@ -4724,6 +4783,7 @@ export const motionControlModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh trang phục tham chiếu (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.02, defaultRunUnits: 10 },
     params: [
       { key: "image_url", label: "Frame input (URL hoặc data URI)", type: "string", default: "", hint: "Realtime endpoint: gửi từng frame qua WebSocket" },
     ],
@@ -4873,6 +4933,7 @@ export const motionControlModels: ReadonlyArray<FalModel> = [
     imageLabel: "Video đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.01, defaultRunUnits: 10 },
     params: [
       { key: "duration", label: "Độ dài (giây)", type: "number", default: 10, min: 1, max: 60, step: 1, hint: ">10s dùng sliding window" },
       { key: "num_samples", label: "Số biến thể", type: "number", default: 1, min: 1, max: 4, step: 1 },
@@ -4913,6 +4974,7 @@ export const motionControlModels: ReadonlyArray<FalModel> = [
     imageIsArray: true,
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.098, defaultRunUnits: 5 },
     params: [
       { key: "effect_scene", label: "Hiệu ứng", type: "select", default: "squish", options: KLING_EFFECT_OPTIONS },
       { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
@@ -4936,6 +4998,7 @@ export const motionControlModels: ReadonlyArray<FalModel> = [
     imageIsArray: true,
     outputKind: "video",
     audited: true,
+    pricing: { unit: "second", perUnitUsd: 0.056, defaultRunUnits: 5 },
     params: [
       { key: "effect_scene", label: "Hiệu ứng", type: "select", default: "squish", options: KLING_EFFECT_OPTIONS },
       { key: "duration", label: "Độ dài", type: "select", default: "5", options: [
@@ -4958,6 +5021,7 @@ export const motionControlModels: ReadonlyArray<FalModel> = [
     imageLabel: "Ảnh đầu vào (URL)",
     outputKind: "video",
     audited: true,
+    pricing: { unit: "video", perUnitUsd: 0.45, defaultRunUnits: 1, note: "Fixed per-effect" },
     params: [
       { key: "pikaffect", label: "Hiệu ứng", type: "select", default: "Cake-ify", options: PIKAFFECTS_OPTIONS },
       { key: "negative_prompt", label: "Negative prompt", type: "textarea", default: "", group: "advanced" },
