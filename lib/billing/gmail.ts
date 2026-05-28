@@ -1,32 +1,19 @@
 /**
- * Gmail API client cho việc đọc biên lai MB Bank.
+ * Gmail API client cho việc đọc biên lai bank.
+ *
+ * Bank chọn theo BANK_NAME env (MB / VPB / VCB / TCB / ACB / TPB / STB / BIDV).
+ * Logic match từng bank ở lib/billing/bank-parsers.ts.
  *
  * Setup:
  *   1. Tạo Google Cloud project
  *   2. Enable Gmail API
  *   3. Tạo OAuth 2.0 credentials → desktop app
- *   4. Chạy `npm run gmail:authorize` (script dưới) → grant scope gmail.readonly
+ *   4. Chạy `npm run gmail:authorize` → grant scope gmail.readonly
  *   5. Lưu refresh_token vào env GMAIL_REFRESH_TOKEN
- *
- * Cron sẽ:
- *   - Lấy `historyId` cuối lưu trong Postgres (key-value `gmail_state`)
- *   - Gmail.users.history.list từ historyId đó
- *   - Với mỗi history mới có addedMessages, fetch full message
- *   - Parse → match ref → credit balance idempotent
  */
 import { google, type gmail_v1 } from "googleapis";
 
-import { parseMbEmail } from "./mbbank-parser";
-
-const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
-
-// Whitelist mọi sender từ MB Bank domain — MB dùng nhiều sub-mailbox
-// (alert@, mbcard@, saokethe@, thongbao@, noreply@, ...). Verify domain
-// `@mbbank.com.vn` là đủ vì DKIM của MB ký trên domain này.
-function isTrustedSender(from: string): boolean {
-  const lower = from.toLowerCase();
-  return /<?[a-z0-9._-]+@mbbank\.com\.vn>?/.test(lower);
-}
+import { getBankAdapter } from "./bank-parsers";
 
 function getOAuthClient() {
   const clientId = process.env.GMAIL_CLIENT_ID;
@@ -42,6 +29,20 @@ function getOAuthClient() {
 
 export function getGmail(): gmail_v1.Gmail {
   return google.gmail({ version: "v1", auth: getOAuthClient() });
+}
+
+export function getActiveBankSlug(): string {
+  const raw = process.env.BANK_NAME ?? "MB";
+  const s = raw.toLowerCase().replace(/\s+/g, "");
+  if (s.includes("mb")) return "MB";
+  if (s.includes("vp")) return "VPB";
+  if (s.includes("vietcom") || s === "vcb") return "VCB";
+  if (s.includes("tech") || s === "tcb") return "TCB";
+  if (s === "acb") return "ACB";
+  if (s.includes("tpb")) return "TPB";
+  if (s === "stb" || s.includes("sacom")) return "STB";
+  if (s.includes("bidv")) return "BIDV";
+  return "MB";
 }
 
 /**
@@ -87,40 +88,32 @@ function getHeader(headers: gmail_v1.Schema$MessagePartHeader[] | undefined, nam
   return headers.find((h) => (h.name ?? "").toLowerCase() === lower)?.value ?? "";
 }
 
+export type BankInboxItem = {
+  messageId: string;
+  from: string;
+  subject: string;
+  date: number;
+  body: string;
+};
+
 /**
- * List unread messages từ MB Bank trong N ngày gần nhất.
- * Cron poll path. Idempotent: dùng messageId làm dedup key.
+ * List email biên lai bank trong N ngày gần nhất, theo bank đang active.
  */
-export async function listMbInbox(opts: { days?: number; max?: number } = {}): Promise<
-  Array<{
-    messageId: string;
-    from: string;
-    subject: string;
-    date: number;
-    body: string;
-  }>
-> {
+export async function listBankInbox(opts: { days?: number; max?: number } = {}): Promise<BankInboxItem[]> {
   const days = opts.days ?? 1;
   const max = opts.max ?? 50;
+  const slug = getActiveBankSlug();
+  const adapter = getBankAdapter(slug);
   const gmail = getGmail();
-
-  // Gmail search query — match MB sender + nội dung biến động số dư
-  const q = `from:mbbank.com.vn newer_than:${days}d`;
 
   const list = await gmail.users.messages.list({
     userId: "me",
-    q,
+    q: adapter.searchQuery(days),
     maxResults: max,
   });
 
   const items = list.data.messages ?? [];
-  const out: Array<{
-    messageId: string;
-    from: string;
-    subject: string;
-    date: number;
-    body: string;
-  }> = [];
+  const out: BankInboxItem[] = [];
 
   for (const m of items) {
     if (!m.id) continue;
@@ -131,7 +124,7 @@ export async function listMbInbox(opts: { days?: number; max?: number } = {}): P
     });
     const headers = full.data.payload?.headers ?? [];
     const from = getHeader(headers, "From");
-    if (!isTrustedSender(from)) continue;
+    if (!adapter.trustedSender(from)) continue;
     const subject = getHeader(headers, "Subject");
     const dateHdr = getHeader(headers, "Date");
     const date = dateHdr ? Date.parse(dateHdr) || Date.now() : Date.now();
@@ -147,4 +140,17 @@ export async function listMbInbox(opts: { days?: number; max?: number } = {}): P
   return out;
 }
 
-export { parseMbEmail };
+/** Parse 1 email theo bank đang active. */
+export function parseBankEmail(body: string) {
+  const slug = getActiveBankSlug();
+  return getBankAdapter(slug).parse(body);
+}
+
+// ── Backward-compat exports ────────────────────────────────────────
+/** @deprecated dùng listBankInbox */
+export const listMbInbox = listBankInbox;
+/** @deprecated dùng parseBankEmail */
+export const parseMbEmail = (body: string) => {
+  const slug = getActiveBankSlug();
+  return getBankAdapter(slug).parse(body);
+};

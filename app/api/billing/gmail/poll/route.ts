@@ -17,7 +17,7 @@ import {
   transactions,
   users,
 } from "@/lib/pg/schema";
-import { listMbInbox, parseMbEmail } from "@/lib/billing/gmail";
+import { listBankInbox, parseBankEmail } from "@/lib/billing/gmail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
 
   let messages;
   try {
-    messages = await listMbInbox({ days, max });
+    messages = await listBankInbox({ days, max });
   } catch (e) {
     return NextResponse.json(
       { error: "gmail_fetch_failed", message: (e as Error).message },
@@ -64,7 +64,7 @@ export async function GET(req: Request) {
       continue;
     }
 
-    const parsed = parseMbEmail(m.body);
+    const parsed = parseBankEmail(m.body);
     if (!parsed) {
       await db.insert(emailEvents).values({
         messageId: m.messageId,

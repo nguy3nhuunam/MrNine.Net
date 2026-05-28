@@ -1,4 +1,6 @@
-import { parseMbEmail } from "../lib/billing/mbbank-parser";
+import { getBankAdapter } from "../lib/billing/bank-parsers";
+
+const parseMbEmail = (s: string) => getBankAdapter("MB").parse(s);
 
 const samples = [
   {
