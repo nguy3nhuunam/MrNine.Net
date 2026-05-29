@@ -29,14 +29,14 @@ function NavInner() {
         </Link>
 
         <div className="hidden items-center gap-5 text-sm text-[#c8bdaf] md:flex">
-          <Link href="/ai-playground" className="hover:text-[#f4eadc]">
-            Playground
+          <Link href="/api-gateway" className="hover:text-[#f4eadc]">
+            API Gateway
           </Link>
           <Link href="/api-docs" className="hover:text-[#f4eadc]">
-            API
+            Docs
           </Link>
-          <Link href="/pricing" className="hover:text-[#f4eadc]">
-            Bảng giá
+          <Link href="/ai-playground" className="hover:text-[#f4eadc]">
+            Playground
           </Link>
           <Link href="/legal/terms" className="text-[#9a9087] hover:text-[#f4eadc]">
             Điều khoản

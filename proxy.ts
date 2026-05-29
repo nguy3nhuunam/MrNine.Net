@@ -13,6 +13,7 @@ const PUBLIC_PATHS = new Set<string>([
   "/legal/privacy",
   "/legal/terms",
   "/pricing",
+  "/api-gateway",
   "/api-docs",
   "/status",
   "/sign-in",
