@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/pg/db";
 import { transactions, users } from "@/lib/pg/schema";
+import { RefundButton } from "@/components/admin/RefundButton";
 
 export const metadata = { title: "Giao dịch · Admin", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -54,12 +55,13 @@ export default async function TransactionsAdminPage() {
               <th className="px-3 py-2 text-left">Provider</th>
               <th className="px-3 py-2 text-left">Tạo</th>
               <th className="px-3 py-2 text-left">Hoàn tất</th>
+              <th className="px-3 py-2 text-right">Action</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-[#5d544a]">
+                <td colSpan={9} className="px-3 py-8 text-center text-[#5d544a]">
                   Chưa có giao dịch.
                 </td>
               </tr>
@@ -79,6 +81,13 @@ export default async function TransactionsAdminPage() {
                   </td>
                   <td className="px-3 py-2 text-[#9a9087]">
                     {r.completedAt ? new Date(r.completedAt).toLocaleString("vi-VN") : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {r.status === "completed" ? (
+                      <RefundButton id={r.id} providerRef={r.providerRef} />
+                    ) : (
+                      <span className="font-mono text-[0.6rem] text-[#5d544a]">—</span>
+                    )}
                   </td>
                 </tr>
               ))
