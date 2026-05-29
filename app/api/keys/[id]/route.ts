@@ -25,6 +25,7 @@ export async function PATCH(
   const body = (await req.json().catch(() => ({}))) as {
     allowedModels?: string[] | null;
     name?: string;
+    monthlySpendLimitUsd?: number | null;
   };
 
   const patch: Record<string, unknown> = {};
@@ -38,6 +39,11 @@ export async function PATCH(
   }
   if (typeof body.name === "string" && body.name.trim()) {
     patch.name = body.name.trim().slice(0, 120);
+  }
+  if (body.monthlySpendLimitUsd === null) {
+    patch.monthlySpendLimitMicroUsd = null;
+  } else if (Number.isFinite(body.monthlySpendLimitUsd) && Number(body.monthlySpendLimitUsd) >= 0) {
+    patch.monthlySpendLimitMicroUsd = Math.round(Number(body.monthlySpendLimitUsd) * 1_000_000);
   }
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "no_fields" }, { status: 400 });
