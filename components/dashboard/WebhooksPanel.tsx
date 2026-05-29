@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -64,12 +65,20 @@ export function WebhooksPanel({ initial }: { initial: Hook[] }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Webhooks</h1>
-        <p className="mt-1 text-sm text-[#9a9087]">
-          POST sự kiện vào URL của bạn. Header <code className="text-[#dff8e4]">X-MrNine-Signature: t=&lt;ts&gt;,v1=&lt;hex&gt;</code>{" "}
-          với <code className="text-[#dff8e4]">v1 = HMAC_SHA256(secret, &quot;t.body&quot;)</code>.
-        </p>
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Webhooks</h1>
+          <p className="mt-1 text-sm text-[#9a9087]">
+            POST sự kiện vào URL của bạn. Header <code className="text-[#dff8e4]">X-MrNine-Signature: t=&lt;ts&gt;,v1=&lt;hex&gt;</code>{" "}
+            với <code className="text-[#dff8e4]">v1 = HMAC_SHA256(secret, &quot;t.body&quot;)</code>.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/webhooks/deliveries"
+          className="rounded-md border border-white/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-[#9a9087] hover:border-white/30"
+        >
+          Deliveries log →
+        </Link>
       </div>
 
       {createdSecret ? (
