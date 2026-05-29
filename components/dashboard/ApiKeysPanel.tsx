@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AllowedModelsButton } from "./AllowedModelsButton";
 
 type Row = {
   id: string;
@@ -9,6 +10,7 @@ type Row = {
   status: "active" | "disabled" | "revoked";
   createdAt: string | null;
   lastUsedAt: string | null;
+  allowedModels: string[] | null;
 };
 
 export function ApiKeysPanel({
@@ -86,6 +88,7 @@ export function ApiKeysPanel({
               <th className="px-3 py-2 text-left">Prefix</th>
               <th className="px-3 py-2 text-left">Tạo</th>
               <th className="px-3 py-2 text-left">Lần dùng cuối</th>
+              <th className="px-3 py-2 text-left">Models</th>
               <th className="px-3 py-2 text-left">Trạng thái</th>
               <th className="px-3 py-2 text-right">Thao tác</th>
             </tr>
@@ -93,7 +96,7 @@ export function ApiKeysPanel({
           <tbody>
             {keys.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-[#5d544a]">
+                <td colSpan={7} className="px-3 py-8 text-center text-[#5d544a]">
                   Chưa có key. Tạo key đầu tiên ở trên.
                 </td>
               </tr>
@@ -107,6 +110,9 @@ export function ApiKeysPanel({
                   </td>
                   <td className="px-3 py-2 text-[#9a9087]">
                     {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString("vi-VN") : "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <AllowedModelsButton id={k.id} current={k.allowedModels} />
                   </td>
                   <td className="px-3 py-2">
                     <StatusBadge status={k.status} />

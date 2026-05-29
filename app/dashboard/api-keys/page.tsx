@@ -67,6 +67,7 @@ export default async function ApiKeysPage() {
       status: apiKeys.status,
       createdAt: apiKeys.createdAt,
       lastUsedAt: apiKeys.lastUsedAt,
+      allowedModels: apiKeys.allowedModels,
     })
     .from(apiKeys)
     .where(eq(apiKeys.userId, user.id))
