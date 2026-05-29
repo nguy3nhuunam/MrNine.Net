@@ -30,6 +30,7 @@ import { db } from "@/lib/pg/db";
 import { balanceLedger, transactions, users } from "@/lib/pg/schema";
 import { sendMail, topupEmail } from "@/lib/email/resend";
 import { notifyTopup } from "@/lib/notify/discord";
+import { fireWebhook } from "@/lib/notify/user-webhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -145,6 +146,14 @@ export async function POST(req: Request) {
         providerRef,
       });
     }
+
+    fireWebhook(txn.userId, "topup_completed", {
+      transaction_id: txn.id,
+      provider_ref: providerRef,
+      amount_vnd: txn.amountVnd,
+      amount_micro_usd: txn.amountMicroUsd,
+      new_balance_micro_usd: newBalance,
+    });
   });
 
   return NextResponse.json({ ok: true, credited_micro_usd: txn.amountMicroUsd });

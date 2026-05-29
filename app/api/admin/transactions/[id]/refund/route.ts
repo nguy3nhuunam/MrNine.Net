@@ -18,6 +18,7 @@ import { balanceLedger, transactions, users } from "@/lib/pg/schema";
 import { requireAdmin } from "@/lib/admin-config";
 import { auth } from "@/auth";
 import { notifyRefund } from "@/lib/notify/discord";
+import { fireWebhook } from "@/lib/notify/user-webhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -96,6 +97,13 @@ export async function POST(
       amountVnd: txn.amountVnd,
       amountMicroUsd: txn.amountMicroUsd,
       providerRef: txn.providerRef,
+    });
+    fireWebhook(txn.userId, "refund_issued", {
+      transaction_id: txn.id,
+      provider_ref: txn.providerRef,
+      amount_vnd: txn.amountVnd,
+      amount_micro_usd: txn.amountMicroUsd,
+      new_balance_micro_usd: newBalance,
     });
   });
 

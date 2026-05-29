@@ -25,6 +25,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ── Enums ──────────────────────────────────────────────────────────
 export const userStatusEnum = pgEnum("user_status", ["active", "suspended", "deleted"]);
@@ -281,3 +282,27 @@ export const couponRedemptions = pgTable(
 );
 
 export type Coupon = typeof coupons.$inferSelect;
+
+// ── User webhooks ──────────────────────────────────────────────────
+export const userWebhooks = pgTable(
+  "user_webhooks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    secret: varchar("secret", { length: 128 }).notNull(),
+    events: jsonb("events").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    enabled: boolean("enabled").notNull().default(true),
+    lastFiredAt: timestamp("last_fired_at", { withTimezone: true }),
+    lastStatus: integer("last_status"),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    userIdx: index("ix_user_webhooks_user").on(t.userId),
+  }),
+);
+
+export type UserWebhook = typeof userWebhooks.$inferSelect;

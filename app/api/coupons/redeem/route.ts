@@ -11,6 +11,7 @@ import { db } from "@/lib/pg/db";
 import { balanceLedger, couponRedemptions, coupons, users } from "@/lib/pg/schema";
 import { requireUser } from "@/lib/pg/session";
 import { notifyCouponRedeemed } from "@/lib/notify/discord";
+import { fireWebhook } from "@/lib/notify/user-webhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,6 +89,13 @@ export async function POST(req: Request) {
         email: me.email,
         code: c.code,
         creditedMicroUsd: credit,
+      });
+
+      fireWebhook(me.id, "coupon_redeemed", {
+        code: c.code,
+        kind: c.kind,
+        credited_micro_usd: credit,
+        new_balance_micro_usd: newBal,
       });
 
       return NextResponse.json({

@@ -17,6 +17,7 @@ import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "@/lib/pg/db";
 import { users } from "@/lib/pg/schema";
 import { sendMail, lowBalanceEmail } from "@/lib/email/resend";
+import { fireWebhook } from "@/lib/notify/user-webhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,6 +69,10 @@ export async function GET(req: Request) {
         .update(users)
         .set({ lowBalanceNotifiedAt: new Date() })
         .where(eq(users.id, u.id));
+      fireWebhook(u.id, "balance_low", {
+        balance_micro_usd: Number(u.balance),
+        threshold_micro_usd: THRESHOLD,
+      });
     } else {
       failed++;
     }
