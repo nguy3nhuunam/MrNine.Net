@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { isAdminEmail } from "@/lib/admin-config";
 import { db } from "@/lib/pg/db";
 import { modelMap } from "@/lib/pg/schema";
+import { EditButton, ToggleEnabled } from "@/components/admin/ModelMapClient";
 
 export const metadata = { title: "Model map · Admin", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -71,7 +72,7 @@ export default async function ModelMapPage() {
         </p>
       </div>
 
-      <form action={upsertModel} className="grid gap-3 rounded-xl border border-white/8 bg-[#0c0a08] p-4 sm:grid-cols-7">
+      <form id="model-upsert" action={upsertModel} className="grid gap-3 rounded-xl border border-white/8 bg-[#0c0a08] p-4 sm:grid-cols-7">
         <Field label="Public name" name="publicName" placeholder="gpt-5.4" />
         <Field label="Provider" name="provider" defaultValue="aiyan" />
         <Field label="Provider model" name="providerModel" placeholder="gpt-5.4" />
@@ -118,22 +119,29 @@ export default async function ModelMapPage() {
                   <td className="px-3 py-2 text-right">{Number(m.outputCostPerMtok).toFixed(4)}</td>
                   <td className="px-3 py-2 text-right">{Number(m.markup).toFixed(3)}×</td>
                   <td className="px-3 py-2">
-                    <span
-                      className={
-                        "rounded-full px-2 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.16em] " +
-                        (m.enabled ? "bg-[#45a85d]/15 text-[#dff8e4]" : "bg-white/5 text-[#9a9087]")
-                      }
-                    >
-                      {m.enabled ? "enabled" : "disabled"}
-                    </span>
+                    <ToggleEnabled id={m.id} enabled={m.enabled} />
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <form action={deleteModel} className="inline">
-                      <input type="hidden" name="id" value={m.id} />
-                      <button className="rounded border border-[#ef4444]/30 px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#ef4444] hover:bg-[#ef4444]/10">
-                        Xoá
-                      </button>
-                    </form>
+                    <div className="flex justify-end gap-2">
+                      <EditButton
+                        model={{
+                          id: m.id,
+                          publicName: m.publicName,
+                          provider: m.provider,
+                          providerModel: m.providerModel,
+                          inputCostPerMtok: String(m.inputCostPerMtok),
+                          outputCostPerMtok: String(m.outputCostPerMtok),
+                          markup: String(m.markup),
+                          enabled: m.enabled,
+                        }}
+                      />
+                      <form action={deleteModel} className="inline">
+                        <input type="hidden" name="id" value={m.id} />
+                        <button className="rounded border border-[#ef4444]/30 px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#ef4444] hover:bg-[#ef4444]/10">
+                          Xoá
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               ))
