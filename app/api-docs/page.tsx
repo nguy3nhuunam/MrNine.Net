@@ -332,6 +332,50 @@ print(r.data[0].url)`}
           />
         </Section>
 
+        <Section title="Image variations">
+          <CodeBlock
+            language="python"
+            code={`r = client.images.create_variation(
+    model="dall-e-2",
+    image=open("input.png", "rb"),
+    n=2,
+    size="1024x1024",
+)
+for d in r.data:
+    print(d.url)`}
+          />
+        </Section>
+
+        <Section title="Moderation (free)">
+          <CodeBlock
+            language="python"
+            code={`r = client.moderations.create(
+    model="omni-moderation-latest",
+    input="Some text to check",
+)
+print(r.results[0].flagged, r.results[0].categories)`}
+          />
+        </Section>
+
+        <Section title="Rerank (Cohere/Jina format)">
+          <CodeBlock
+            language="bash"
+            code={`curl https://api.mrnine.net/v1/rerank \\
+  -H "Authorization: Bearer sk-mrnine-..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "rerank-multilingual-v3",
+    "query": "AI gateway giá rẻ",
+    "documents": [
+      "MrNine bán API key OpenAI compatible",
+      "Hôm nay trời mưa",
+      "VietQR thanh toán nhanh"
+    ],
+    "top_n": 2
+  }'`}
+          />
+        </Section>
+
         <Section title="Text-to-speech">
           <CodeBlock
             language="python"
