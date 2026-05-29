@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
+import { db } from "@/lib/pg/db";
+import { users } from "@/lib/pg/schema";
 import clientPromise from "@/lib/mongodb";
 import type { StoreItem } from "@/lib/ai-store-catalog";
 import { aiStoreCatalog } from "@/lib/ai-store-catalog";
@@ -23,7 +26,8 @@ const DEFAULT_CONFIG: SiteConfig = {
 const CACHE_TTL_MS = 30_000;
 let cached: { value: SiteConfig; expires: number } | null = null;
 
-function adminEmails(): Set<string> {
+/** Bootstrap admin emails từ env — chỉ dùng để promote tài khoản đầu tiên. */
+function bootstrapAdminEmails(): Set<string> {
   const raw = process.env.ADMIN_EMAILS ?? "mrnine.net@gmail.com";
   return new Set(
     raw
@@ -35,7 +39,16 @@ function adminEmails(): Set<string> {
 
 export async function isAdminEmail(email: string | null | undefined): Promise<boolean> {
   if (!email) return false;
-  return adminEmails().has(email.toLowerCase());
+  const e = email.toLowerCase();
+  // Đầu tiên check DB.
+  try {
+    const row = (await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.email, e)).limit(1))[0];
+    if (row?.isAdmin) return true;
+  } catch {
+    // ignore — DB chưa sẵn sàng → fall back env.
+  }
+  // Fallback: env-based bootstrap admin (vẫn cho phép kể cả chưa có row).
+  return bootstrapAdminEmails().has(e);
 }
 
 export async function requireAdmin() {

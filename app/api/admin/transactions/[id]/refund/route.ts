@@ -19,6 +19,7 @@ import { requireAdmin } from "@/lib/admin-config";
 import { auth } from "@/auth";
 import { notifyRefund } from "@/lib/notify/discord";
 import { fireWebhook } from "@/lib/notify/user-webhook";
+import { recordAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -104,6 +105,13 @@ export async function POST(
       amount_vnd: txn.amountVnd,
       amount_micro_usd: txn.amountMicroUsd,
       new_balance_micro_usd: newBalance,
+    });
+    recordAudit({
+      actorEmail: session?.user?.email ?? null,
+      action: "transaction.refund",
+      targetType: "transaction",
+      targetId: txn.id,
+      metadata: { amount_vnd: txn.amountVnd, amount_micro_usd: txn.amountMicroUsd, user_email: userEmail },
     });
   });
 

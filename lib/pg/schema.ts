@@ -339,3 +339,25 @@ export const webhookDeliveries = pgTable(
 );
 
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+
+// ── Audit log (admin actions) ─────────────────────────────────────
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: serial("id").primaryKey(),
+    actorEmail: varchar("actor_email", { length: 255 }),
+    action: varchar("action", { length: 64 }).notNull(),
+    targetType: varchar("target_type", { length: 64 }),
+    targetId: varchar("target_id", { length: 128 }),
+    metadata: jsonb("metadata"),
+    ip: varchar("ip", { length: 64 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    actorIdx: index("ix_audit_actor").on(t.actorEmail),
+    actionIdx: index("ix_audit_action").on(t.action),
+    createdIdx: index("ix_audit_created").on(t.createdAt),
+  }),
+);
+
+export type AuditEntry = typeof auditLog.$inferSelect;

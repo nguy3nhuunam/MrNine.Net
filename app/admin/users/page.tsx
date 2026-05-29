@@ -6,6 +6,7 @@ import { isAdminEmail } from "@/lib/admin-config";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { recordAudit } from "@/lib/audit";
 
 export const metadata = { title: "Users · Admin", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -44,17 +45,50 @@ async function adjustBalance(formData: FormData) {
       note: `[admin:${adminEmail}] ${note}`,
     });
   });
+  recordAudit({
+    actorEmail: adminEmail,
+    action: "user.adjust_balance",
+    targetType: "user",
+    targetId: userId,
+    metadata: { delta_micro_usd: delta, note },
+  });
   revalidatePath("/admin/users");
 }
 
 async function toggleStatus(formData: FormData) {
   "use server";
   const session = await auth();
-  if (!(await isAdminEmail(session?.user?.email ?? null))) return;
+  const adminEmail = session?.user?.email ?? null;
+  if (!(await isAdminEmail(adminEmail))) return;
   const userId = String(formData.get("userId") ?? "");
   const next = String(formData.get("status") ?? "active") as "active" | "suspended";
   if (!userId) return;
   await db.update(users).set({ status: next }).where(eq(users.id, userId));
+  recordAudit({
+    actorEmail: adminEmail,
+    action: "user.toggle_status",
+    targetType: "user",
+    targetId: userId,
+    metadata: { new_status: next },
+  });
+  revalidatePath("/admin/users");
+}
+
+async function toggleAdmin(formData: FormData) {
+  "use server";
+  const session = await auth();
+  const adminEmail = session?.user?.email ?? null;
+  if (!(await isAdminEmail(adminEmail))) return;
+  const userId = String(formData.get("userId") ?? "");
+  const promote = formData.get("promote") === "1";
+  if (!userId) return;
+  await db.update(users).set({ isAdmin: promote }).where(eq(users.id, userId));
+  recordAudit({
+    actorEmail: adminEmail,
+    action: promote ? "user.promote" : "user.demote",
+    targetType: "user",
+    targetId: userId,
+  });
   revalidatePath("/admin/users");
 }
 
@@ -128,9 +162,21 @@ export default async function AdminUsersPage({
                 <tr key={u.id} className="border-t border-white/5">
                   <td className="px-3 py-2">
                     <div className="font-mono text-[0.78rem]">{u.email}</div>
-                    <div className="text-[0.65rem] text-[#5d544a]">
-                      {u.displayName ?? "—"} {u.isAdmin ? "· admin" : ""}
-                    </div>
+                    <div className="text-[0.65rem] text-[#5d544a]">{u.displayName ?? "—"}</div>
+                    <form action={toggleAdmin} className="mt-1 inline-block">
+                      <input type="hidden" name="userId" value={u.id} />
+                      <input type="hidden" name="promote" value={u.isAdmin ? "0" : "1"} />
+                      <button
+                        className={
+                          "rounded-full px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.16em] " +
+                          (u.isAdmin
+                            ? "bg-[#d6a548]/20 text-[#d6a548] hover:bg-[#d6a548]/30"
+                            : "bg-white/5 text-[#5d544a] hover:bg-white/10")
+                        }
+                      >
+                        {u.isAdmin ? "admin · click to demote" : "promote admin"}
+                      </button>
+                    </form>
                   </td>
                   <td className="px-3 py-2 text-right">${(u.balance / 1_000_000).toFixed(4)}</td>
                   <td className="px-3 py-2 text-right text-[#9a9087]">

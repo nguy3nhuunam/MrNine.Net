@@ -11,6 +11,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/pg/db";
 import { coupons, users } from "@/lib/pg/schema";
 import { requireAdmin } from "@/lib/admin-config";
+import { recordAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,6 +92,13 @@ export async function POST(req: Request) {
         createdBy: adminRow?.id ?? null,
       })
       .returning();
+    recordAudit({
+      actorEmail: adminEmail,
+      action: "coupon.create",
+      targetType: "coupon",
+      targetId: inserted[0]?.id,
+      metadata: { code, kind: body.kind, value: valueMicroUsd, maxRedemptions },
+    });
     return NextResponse.json({ ok: true, coupon: inserted[0] });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -115,5 +123,13 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "already_redeemed", count: c.redeemedCount }, { status: 409 });
   }
   await db.delete(coupons).where(eq(coupons.id, id));
+  const session = await auth();
+  recordAudit({
+    actorEmail: session?.user?.email ?? null,
+    action: "coupon.delete",
+    targetType: "coupon",
+    targetId: id,
+    metadata: { code: c.code },
+  });
   return NextResponse.json({ ok: true });
 }
