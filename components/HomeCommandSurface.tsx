@@ -419,6 +419,18 @@ const modules = [
     shortcut: "=",
     lastUsed: "ready",
   },
+  {
+    number: "13",
+    title: "API Gateway",
+    detail: "OpenAI-compatible · sk-mrnine-*",
+    summary: "API gateway tương thích OpenAI cho dev VN: chat, embeddings, audio, image, batch. Thanh toán VietQR. Codex, OpenAI SDK, Cursor, Claude Code đều chạy.",
+    signal: "Gateway online",
+    action: "Open API Gateway",
+    icon: Bot,
+    accent: "red",
+    shortcut: "[",
+    lastUsed: "ready",
+  },
 ];
 
 type ModuleCard = (typeof modules)[number];
@@ -444,6 +456,7 @@ const railItems: ReadonlyArray<RailItem> = [
   { label: "AI Store", icon: ShoppingBag, href: "/ai-store", shortcut: "0" },
   { label: "Tools", icon: Wrench, href: "/tools", shortcut: "-" },
   { label: "Calculators", icon: Calculator, href: "/calculators", shortcut: "=" },
+  { label: "API Gateway", icon: Bot, href: "/api-gateway", shortcut: "[" },
   { label: "Profile", icon: Bot, href: "/profile" },
 ];
 
@@ -1058,6 +1071,8 @@ function moduleAnimationClass(title: string): string {
       return "module-anim-tools";
     case "Calculators":
       return "module-anim-calc";
+    case "API Gateway":
+      return "module-anim-gateway";
     default:
       return "";
   }
@@ -2425,10 +2440,18 @@ export function HomeCommandSurface() {
       "AI Store": "/ai-store",
       "Tools": "/tools",
       "Calculators": "/calculators",
+      "API Gateway": "/api-gateway",
     };
     const destination = destinations[title];
 
     if (!destination) {
+      return;
+    }
+
+    // API Gateway là public — bỏ qua auth gate
+    if (title === "API Gateway") {
+      recordVisit(title, destination);
+      router.push(destination);
       return;
     }
 
