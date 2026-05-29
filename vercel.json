@@ -20,5 +20,8 @@
     "app/api/story-writer/chapters/[id]/detect/route.ts": { "maxDuration": 60 },
     "app/api/story-writer/short/route.ts": { "maxDuration": 60 },
     "app/api/story-writer/suggest-setting/route.ts": { "maxDuration": 50 }
-  }
+  },
+  "crons": [
+    { "path": "/api/cron/low-balance-check", "schedule": "0 * * * *" }
+  ]
 }

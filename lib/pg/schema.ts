@@ -52,6 +52,7 @@ export const users = pgTable(
     balanceMicroUsd: bigint("balance_micro_usd", { mode: "number" }).notNull().default(0),
     lifetimeTopupMicroUsd: bigint("lifetime_topup_micro_usd", { mode: "number" }).notNull().default(0),
     lifetimeSpendMicroUsd: bigint("lifetime_spend_micro_usd", { mode: "number" }).notNull().default(0),
+    lowBalanceNotifiedAt: timestamp("low_balance_notified_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },

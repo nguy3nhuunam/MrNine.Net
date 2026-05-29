@@ -28,6 +28,7 @@ import { eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/pg/db";
 import { balanceLedger, transactions, users } from "@/lib/pg/schema";
+import { sendMail, topupEmail } from "@/lib/email/resend";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,11 +102,13 @@ export async function POST(req: Request) {
       .set({
         balanceMicroUsd: sql`${users.balanceMicroUsd} + ${txn.amountMicroUsd}`,
         lifetimeTopupMicroUsd: sql`${users.lifetimeTopupMicroUsd} + ${txn.amountMicroUsd}`,
+        lowBalanceNotifiedAt: null,
       })
       .where(eq(users.id, txn.userId))
-      .returning({ balance: users.balanceMicroUsd });
+      .returning({ balance: users.balanceMicroUsd, email: users.email });
 
     const newBalance = Number(updated[0]?.balance ?? 0);
+    const userEmail = updated[0]?.email ?? null;
 
     await tx.insert(balanceLedger).values({
       userId: txn.userId,
@@ -121,6 +124,19 @@ export async function POST(req: Request) {
       .update(transactions)
       .set({ status: "completed", completedAt: new Date(), rawPayload: body })
       .where(eq(transactions.id, txn.id));
+
+    if (userEmail) {
+      // Fire-and-forget — không block webhook ack với SePay.
+      void sendMail(
+        topupEmail({
+          email: userEmail,
+          amountVnd: txn.amountVnd,
+          amountMicroUsd: txn.amountMicroUsd,
+          newBalanceMicroUsd: newBalance,
+          providerRef,
+        }),
+      ).catch((err) => console.error("[email] topup notify failed", err));
+    }
   });
 
   return NextResponse.json({ ok: true, credited_micro_usd: txn.amountMicroUsd });
