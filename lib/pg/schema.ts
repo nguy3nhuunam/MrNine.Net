@@ -238,3 +238,46 @@ export type User = typeof users.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Request = typeof requests.$inferSelect;
+
+// ── Coupons ────────────────────────────────────────────────────────
+export const couponKindEnum = pgEnum("coupon_kind", ["fixed_micro_usd", "fixed_vnd"]);
+
+export const coupons = pgTable(
+  "coupons",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: varchar("code", { length: 64 }).notNull().unique(),
+    kind: couponKindEnum("kind").notNull(),
+    valueMicroUsd: bigint("value_micro_usd", { mode: "number" }).notNull(),
+    maxRedemptions: integer("max_redemptions").notNull().default(1),
+    redeemedCount: integer("redeemed_count").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    note: text("note"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    codeIdx: uniqueIndex("ix_coupons_code").on(t.code),
+  }),
+);
+
+export const couponRedemptions = pgTable(
+  "coupon_redemptions",
+  {
+    id: serial("id").primaryKey(),
+    couponId: uuid("coupon_id")
+      .notNull()
+      .references(() => coupons.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    creditedMicroUsd: bigint("credited_micro_usd", { mode: "number" }).notNull(),
+    redeemedAt: timestamp("redeemed_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    uniqUserCoupon: uniqueIndex("uq_coupon_redemptions_user").on(t.couponId, t.userId),
+    couponIdx: index("ix_coupon_redemptions_coupon").on(t.couponId),
+  }),
+);
+
+export type Coupon = typeof coupons.$inferSelect;

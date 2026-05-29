@@ -4,6 +4,7 @@ import { db } from "@/lib/pg/db";
 import { transactions } from "@/lib/pg/schema";
 import { requireUser } from "@/lib/pg/session";
 import { BillingPanel } from "@/components/dashboard/BillingPanel";
+import { CouponRedeemPanel } from "@/components/dashboard/CouponRedeemPanel";
 import {
   bankAccount,
   buildQrUrl,
@@ -82,6 +83,8 @@ export default async function BillingPage() {
         minVnd={minTopupVnd()}
         createIntent={createIntent}
       />
+
+      <CouponRedeemPanel />
 
       <section>
         <h2 className="text-sm font-mono uppercase tracking-[0.2em] text-[#9a9087]">Lịch sử nạp</h2>

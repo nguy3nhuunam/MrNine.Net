@@ -31,6 +31,7 @@ export async function GatewayAdminFrame({ children }: { children: React.ReactNod
               <NavLink href="/admin/provider-keys" label="Provider keys" />
               <NavLink href="/admin/model-map" label="Model map" />
               <NavLink href="/admin/transactions" label="Giao dịch" />
+              <NavLink href="/admin/coupons" label="Coupon" />
               <NavLink href="/admin/logs" label="Logs" />
               <NavLink href="/admin" label="Site" />
             </nav>
