@@ -16,6 +16,8 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/pg/db";
 import { balanceLedger, transactions, users } from "@/lib/pg/schema";
 import { requireAdmin } from "@/lib/admin-config";
+import { auth } from "@/auth";
+import { notifyRefund } from "@/lib/notify/discord";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,9 +69,10 @@ export async function POST(
         lifetimeTopupMicroUsd: sql`${users.lifetimeTopupMicroUsd} - ${txn.amountMicroUsd}`,
       })
       .where(eq(users.id, txn.userId))
-      .returning({ balance: users.balanceMicroUsd });
+      .returning({ balance: users.balanceMicroUsd, email: users.email });
 
     const newBalance = Number(updated[0]?.balance ?? 0);
+    const userEmail = updated[0]?.email ?? "unknown";
 
     await tx.insert(balanceLedger).values({
       userId: txn.userId,
@@ -85,6 +88,15 @@ export async function POST(
       .update(transactions)
       .set({ status: "refunded" })
       .where(eq(transactions.id, txn.id));
+
+    const session = await auth();
+    notifyRefund({
+      adminEmail: session?.user?.email ?? null,
+      userEmail,
+      amountVnd: txn.amountVnd,
+      amountMicroUsd: txn.amountMicroUsd,
+      providerRef: txn.providerRef,
+    });
   });
 
   return NextResponse.json({ ok: true, refunded_micro_usd: txn.amountMicroUsd });

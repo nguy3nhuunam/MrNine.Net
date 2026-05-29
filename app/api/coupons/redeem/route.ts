@@ -10,6 +10,7 @@ import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/lib/pg/db";
 import { balanceLedger, couponRedemptions, coupons, users } from "@/lib/pg/schema";
 import { requireUser } from "@/lib/pg/session";
+import { notifyCouponRedeemed } from "@/lib/notify/discord";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,6 +82,12 @@ export async function POST(req: Request) {
         requestId: `coupon-${c.code}`,
         note: `Coupon ${c.code}`,
         metadataJson: { coupon_id: c.id, code: c.code, kind: c.kind },
+      });
+
+      notifyCouponRedeemed({
+        email: me.email,
+        code: c.code,
+        creditedMicroUsd: credit,
       });
 
       return NextResponse.json({

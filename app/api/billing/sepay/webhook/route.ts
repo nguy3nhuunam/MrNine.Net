@@ -29,6 +29,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/pg/db";
 import { balanceLedger, transactions, users } from "@/lib/pg/schema";
 import { sendMail, topupEmail } from "@/lib/email/resend";
+import { notifyTopup } from "@/lib/notify/discord";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -136,6 +137,13 @@ export async function POST(req: Request) {
           providerRef,
         }),
       ).catch((err) => console.error("[email] topup notify failed", err));
+      notifyTopup({
+        email: userEmail,
+        amountVnd: txn.amountVnd,
+        amountMicroUsd: txn.amountMicroUsd,
+        newBalanceMicroUsd: newBalance,
+        providerRef,
+      });
     }
   });
 

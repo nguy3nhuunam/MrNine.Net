@@ -12,6 +12,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/pg/db";
 import { balanceLedger, users, type User } from "@/lib/pg/schema";
+import { notifySignup } from "@/lib/notify/discord";
 
 const SIGNUP_FREE_USD = parseFloat(process.env.SIGNUP_FREE_CREDIT_USD ?? "0.5");
 
@@ -40,6 +41,9 @@ export async function requireUser(): Promise<User> {
         balanceAfterMicroUsd: free,
         note: "Welcome bonus (OAuth)",
       });
+    }
+    if (row) {
+      notifySignup({ email: row.email, balanceMicroUsd: free });
     }
   }
   return row;
