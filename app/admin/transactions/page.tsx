@@ -40,6 +40,18 @@ export default async function TransactionsAdminPage() {
         <div className="flex gap-3 text-sm">
           <Stat label="Tổng đã nạp (200)" value={`${totalCompletedVnd.toLocaleString("vi-VN")}đ`} />
           <Stat label="Pending" value={String(pending)} />
+          <a
+            href="/api/admin/export/transactions.csv"
+            className="self-stretch rounded-lg border border-[#d6a548]/40 bg-[#d6a548]/10 px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[#d6a548] transition hover:bg-[#d6a548]/20"
+          >
+            Export CSV (30d)
+          </a>
+          <a
+            href="/api/admin/export/usage.csv"
+            className="self-stretch rounded-lg border border-[#45a85d]/40 bg-[#45a85d]/10 px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[#dff8e4] transition hover:bg-[#45a85d]/20"
+          >
+            Usage CSV (30d)
+          </a>
         </div>
       </div>
 
