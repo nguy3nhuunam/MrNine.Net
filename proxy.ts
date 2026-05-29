@@ -7,12 +7,28 @@ const SESSION_COOKIE_NAMES = [
   "__Secure-next-auth.session-token",
 ];
 
-const PUBLIC_PATHS = new Set<string>(["/", "/about", "/legal/privacy", "/legal/terms"]);
+const PUBLIC_PATHS = new Set<string>([
+  "/",
+  "/about",
+  "/legal/privacy",
+  "/legal/terms",
+  "/pricing",
+  "/api-docs",
+  "/status",
+  "/sign-in",
+  "/sign-in/verify",
+  "/sign-up",
+]);
 const PUBLIC_PREFIXES: ReadonlyArray<string> = [
   "/api/auth",
   "/api/health",
   "/api/track",
   "/api/billing/sepay",
+  "/api/openapi.json",
+  "/api/postman.json",
+  "/api/locale",
+  "/api/telegram",
+  "/r/",
   "/voice-studio-runtime",
   "/_next",
 ];
