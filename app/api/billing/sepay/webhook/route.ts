@@ -31,6 +31,7 @@ import { balanceLedger, transactions, users } from "@/lib/pg/schema";
 import { sendMail, topupEmail } from "@/lib/email/resend";
 import { notifyTopup } from "@/lib/notify/discord";
 import { fireWebhook } from "@/lib/notify/user-webhook";
+import { grantReferralBonus } from "@/lib/referral";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -155,6 +156,11 @@ export async function POST(req: Request) {
       new_balance_micro_usd: newBalance,
     });
   });
+
+  // Referral bonus chạy ngoài transaction để không block ack webhook.
+  void grantReferralBonus(txn.userId, txn.amountMicroUsd).catch((e) =>
+    console.error("[referral] grantReferralBonus failed", e),
+  );
 
   return NextResponse.json({ ok: true, credited_micro_usd: txn.amountMicroUsd });
 }

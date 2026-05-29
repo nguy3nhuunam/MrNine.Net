@@ -7,12 +7,14 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/pg/db";
 import { balanceLedger, users, type User } from "@/lib/pg/schema";
 import { notifySignup } from "@/lib/notify/discord";
+import { generateReferralCode, lookupReferrer } from "@/lib/referral";
 
 const SIGNUP_FREE_USD = parseFloat(process.env.SIGNUP_FREE_CREDIT_USD ?? "0.5");
 
@@ -24,12 +26,22 @@ export async function requireUser(): Promise<User> {
   let row = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
   if (!row) {
     const free = Math.round(SIGNUP_FREE_USD * 1_000_000);
+    const referralCode = generateReferralCode();
+    let referredBy: string | null = null;
+    try {
+      const refCookie = (await cookies()).get("mrnine_ref")?.value;
+      if (refCookie) referredBy = await lookupReferrer(refCookie);
+    } catch {
+      // ignore cookie errors
+    }
     const inserted = await db
       .insert(users)
       .values({
         email,
         displayName: session?.user?.name ?? null,
         balanceMicroUsd: free,
+        referralCode,
+        referredBy,
       })
       .returning();
     row = inserted[0];
@@ -44,6 +56,15 @@ export async function requireUser(): Promise<User> {
     }
     if (row) {
       notifySignup({ email: row.email, balanceMicroUsd: free });
+    }
+  } else if (!row.referralCode) {
+    // Backfill referralCode cho row cũ.
+    try {
+      const code = generateReferralCode();
+      await db.update(users).set({ referralCode: code }).where(eq(users.id, row.id));
+      row = { ...row, referralCode: code };
+    } catch {
+      // ignore unique collision
     }
   }
   return row;

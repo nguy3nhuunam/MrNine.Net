@@ -92,6 +92,28 @@ export default async function DashboardOverview() {
         </div>
       </section>
 
+      <section className="rounded-xl border border-[#d6a548]/30 bg-[#d6a548]/5 p-4">
+        <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.24em] text-[#d6a548]">
+          Referral
+        </h2>
+        <p className="mt-2 text-sm text-[#c8bdaf]">
+          Mời bạn bè qua link riêng — bạn nhận <span className="text-[#dff8e4]">10% topup</span> (tối đa $5),
+          họ nhận <span className="text-[#dff8e4]">$1 welcome</span> khi nạp lần đầu.
+        </p>
+        {user.referralCode ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <code className="rounded-md border border-white/10 bg-[#0c0a08] px-3 py-2 font-mono text-sm text-[#f4eadc]">
+              https://mrnine.net/r/{user.referralCode}
+            </code>
+            <code className="rounded-md border border-white/10 bg-[#0c0a08] px-3 py-2 font-mono text-xs text-[#9a9087]">
+              code: {user.referralCode}
+            </code>
+          </div>
+        ) : (
+          <p className="mt-2 font-mono text-xs text-[#9a9087]">Đang tạo mã referral…</p>
+        )}
+      </section>
+
       <section>
         <h2 className="text-sm font-mono uppercase tracking-[0.2em] text-[#9a9087]">Request gần đây</h2>
         <div className="mt-3 overflow-hidden rounded-lg border border-white/8">
