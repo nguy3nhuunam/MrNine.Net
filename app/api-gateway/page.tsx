@@ -3,6 +3,7 @@ import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/pg/db";
 import { modelMap } from "@/lib/pg/schema";
+import { ApiGatewayHeader } from "@/components/ApiGatewayHeader";
 
 const og = "/api/og?title=API%20Gateway&subtitle=OpenAI-compatible%20%C2%B7%20VietQR&accent=red";
 
@@ -83,9 +84,11 @@ export default async function ApiGatewayPage() {
       <div className="pointer-events-none fixed inset-0 -z-20 bg-[radial-gradient(circle_at_16%_10%,rgba(239,68,68,0.16),transparent_30%),radial-gradient(circle_at_80%_14%,rgba(214,165,72,0.08),transparent_24%),linear-gradient(180deg,#0d0c0a_0%,#070604_100%)]" />
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(rgba(94,86,75,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(94,86,75,0.055)_1px,transparent_1px)] bg-[size:48px_48px] opacity-40" />
 
+      <ApiGatewayHeader />
+
       {/* HERO full-bleed */}
-      <section className="relative border-b border-white/8">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-28">
+      <section className="relative overflow-hidden border-b border-white/8 module-anim-gateway">
+        <div className="relative z-[1] mx-auto max-w-[110rem] px-6 py-20 lg:px-10 lg:py-28">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#ef4444]/30 bg-[#ef4444]/8 px-3 py-1 font-mono text-[0.6rem] uppercase tracking-[0.24em] text-[#ef4444]">
             <span className="size-1.5 rounded-full bg-[#ef4444]" />
             OpenAI-compatible · Live
@@ -123,7 +126,7 @@ export default async function ApiGatewayPage() {
 
       {/* QUICKSTART code blocks */}
       <section className="border-b border-white/8">
-        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
+        <div className="mx-auto max-w-[110rem] px-6 py-16 lg:px-10">
           <div className="mb-8 flex items-end justify-between">
             <div>
               <p className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-[#9a9087]">
@@ -169,7 +172,7 @@ print(r.choices[0].message.content)`}
 
       {/* FEATURED MODELS — preview pricing */}
       <section className="border-b border-white/8">
-        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
+        <div className="mx-auto max-w-[110rem] px-6 py-16 lg:px-10">
           <div className="mb-8 flex items-end justify-between">
             <div>
               <p className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-[#9a9087]">
@@ -196,7 +199,7 @@ print(r.choices[0].message.content)`}
               {featured.map((row) => (
                 <div
                   key={row.model}
-                  className="group relative overflow-hidden rounded-xl border border-white/8 bg-[#0c0a08] p-5 transition hover:border-[#ef4444]/30"
+                  className="group relative overflow-hidden rounded-xl border border-white/8 bg-[#0c0a08] p-5 transition-all duration-200 hover:-translate-y-1 hover:border-[#ef4444]/45 hover:bg-[#1c1612] hover:shadow-[0_12px_40px_rgba(239,68,68,0.12),0_0_0_1px_rgba(239,68,68,0.08)_inset]"
                 >
                   <div className="flex items-center justify-between">
                     <span className="rounded-full bg-white/5 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-[#dff8e4]">
@@ -232,7 +235,7 @@ print(r.choices[0].message.content)`}
 
       {/* FULL PRICING TABLE */}
       <section id="full-pricing" className="border-b border-white/8">
-        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
+        <div className="mx-auto max-w-[110rem] px-6 py-16 lg:px-10">
           <div className="mb-6">
             <p className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-[#9a9087]">
               Bảng giá đầy đủ
@@ -292,7 +295,7 @@ print(r.choices[0].message.content)`}
 
       {/* FEATURES grid */}
       <section className="border-b border-white/8">
-        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
+        <div className="mx-auto max-w-[110rem] px-6 py-16 lg:px-10">
           <div className="mb-8">
             <p className="font-mono text-[0.65rem] uppercase tracking-[0.24em] text-[#9a9087]">
               Vì sao chọn MrNine
@@ -331,7 +334,7 @@ print(r.choices[0].message.content)`}
 
       {/* FAQ + CTA */}
       <section>
-        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
+        <div className="mx-auto max-w-[110rem] px-6 py-16 lg:px-10">
           <div className="grid gap-6 md:grid-cols-3">
             <FaqCard
               title="Refund?"
