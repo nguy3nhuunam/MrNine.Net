@@ -111,3 +111,44 @@ export function lowBalanceEmail(opts: {
 </body></html>`;
   return { to: opts.email, subject, html, text };
 }
+
+export function dailyDigestEmail(opts: {
+  email: string;
+  balanceMicroUsd: number;
+  costMicroUsd24h: number;
+  requests24h: number;
+  topModel: string | null;
+}): SendArgs {
+  const { email, balanceMicroUsd, costMicroUsd24h, requests24h, topModel } = opts;
+  const subject = `MrNine — Báo cáo hôm qua: ${requests24h} requests, ${fmtUsd(costMicroUsd24h)}`;
+  const text = [
+    `Tổng kết 24 giờ qua:`,
+    ``,
+    `  Requests: ${requests24h}`,
+    `  Chi phí:  ${fmtUsd(costMicroUsd24h)}`,
+    `  Model dùng nhiều nhất: ${topModel ?? "—"}`,
+    ``,
+    `Số dư hiện tại: ${fmtUsd(balanceMicroUsd)}`,
+    ``,
+    `Mở dashboard: ${APP_URL}/dashboard`,
+    `Tắt báo cáo này: ${APP_URL}/dashboard/settings`,
+    ``,
+    `— MrNine Gateway`,
+  ].join("\n");
+  const html = `<!doctype html><html><body style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f5f5f7;padding:24px;color:#111">
+<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #e5e7eb">
+  <h1 style="margin:0 0 8px;font-size:20px">Báo cáo hôm qua</h1>
+  <p style="margin:0 0 24px;color:#6b7280">Tóm tắt 24 giờ qua trên MrNine Gateway.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <tr><td style="padding:8px 0;color:#6b7280">Requests</td><td style="text-align:right;font-weight:600">${requests24h.toLocaleString("vi-VN")}</td></tr>
+    <tr><td style="padding:8px 0;color:#6b7280">Chi phí</td><td style="text-align:right;font-weight:600">${fmtUsd(costMicroUsd24h)}</td></tr>
+    <tr><td style="padding:8px 0;color:#6b7280">Model nhiều nhất</td><td style="text-align:right;font-family:ui-monospace,monospace">${topModel ?? "—"}</td></tr>
+    <tr><td style="padding:8px 0;color:#6b7280;border-top:1px solid #e5e7eb">Số dư hiện tại</td><td style="text-align:right;font-weight:700;border-top:1px solid #e5e7eb">${fmtUsd(balanceMicroUsd)}</td></tr>
+  </table>
+  <a href="${APP_URL}/dashboard" style="display:inline-block;margin-top:24px;background:#111;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-size:14px">Mở dashboard</a>
+  <p style="margin:24px 0 0;color:#9ca3af;font-size:11px">Không muốn nhận email này? <a href="${APP_URL}/dashboard/settings" style="color:#9ca3af">Tắt báo cáo</a></p>
+</div>
+<p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px">MrNine · ${email}</p>
+</body></html>`;
+  return { to: email, subject, html, text };
+}

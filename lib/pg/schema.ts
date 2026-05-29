@@ -57,6 +57,8 @@ export const users = pgTable(
     referralCode: varchar("referral_code", { length: 16 }).unique(),
     referredBy: uuid("referred_by"),
     referralBonusGranted: boolean("referral_bonus_granted").notNull().default(false),
+    digestEnabled: boolean("digest_enabled").notNull().default(true),
+    lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
