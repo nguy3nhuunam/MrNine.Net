@@ -4,10 +4,23 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/pg/db";
 import { modelMap } from "@/lib/pg/schema";
 
+const og = "/api/og?title=API%20Gateway&subtitle=OpenAI-compatible%20%C2%B7%20VietQR&accent=red";
+
 export const metadata = {
   title: "API Gateway · MrNine",
   description:
     "OpenAI-compatible API gateway cho dev VN. Tương thích Codex, OpenAI SDK, Cursor, Claude Code. Thanh toán VietQR, markup ~20%.",
+  openGraph: {
+    title: "MrNine API Gateway",
+    description: "API gateway tương thích OpenAI cho dev VN. Codex, OpenAI SDK, Cursor, Claude Code. Thanh toán VietQR.",
+    images: [og],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MrNine API Gateway",
+    description: "OpenAI-compatible API gateway, thanh toán VietQR.",
+    images: [og],
+  },
 };
 
 export const dynamic = "force-dynamic";

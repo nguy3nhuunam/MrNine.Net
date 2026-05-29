@@ -193,11 +193,27 @@ const moduleEntries: ReadonlyArray<ModuleEntry> = [
     ],
     howVi: "Mở /calculators, chọn loại máy tính ở dải tab phía trên. Nhập số trực tiếp, kết quả cập nhật realtime.",
   },
+  {
+    title: "API Gateway",
+    status: "live",
+    route: "/api-gateway",
+    shortcut: "[",
+    summaryVi: "API gateway tương thích OpenAI cho dev VN (api.mrnine.net). Lấy API key sk-mrnine-*, nạp tiền VietQR, gọi chat/embeddings/audio/image/batch như OpenAI. Public — không cần đăng nhập để xem.",
+    capabilitiesVi: [
+      "Endpoint tương thích OpenAI: /v1/chat/completions (stream + tools), /v1/embeddings, /v1/audio/transcriptions + /speech, /v1/images/generations + edits + variations, /v1/moderations (free), /v1/rerank, /v1/batches, /v1/files, /v1/models, /v1/usage/me.",
+      "Dùng được ngay với Codex, OpenAI SDK (Python/JS), Cursor, Claude Code — chỉ đổi base_url + API key.",
+      "Thanh toán VietQR (VPBank), markup ~20% so với giá gốc, signup tặng $0.5, top-up tối thiểu 50k VND.",
+      "Dashboard quản lý: tạo/khoá API key, giới hạn model cho từng key, folder, spending limit theo tháng, xem usage per-key + theo session.",
+      "Có API Playground gọi gateway trực tiếp từ trình duyệt, tải Postman collection + OpenAPI spec.",
+      "Trang /pricing tự sinh từ model_map enabled, /api-docs có sample code live, /status xem health gateway + provider key + error rate 5 phút.",
+    ],
+    howVi: "Mở /api-gateway xem quickstart + bảng giá. Đăng nhập rồi vào /dashboard/api-keys tạo key, /dashboard/billing nạp VietQR, /dashboard/playground test thử. Đọc /api-docs để tích hợp.",
+  },
 ];
 
 const featureNotes = [
   "Search bar trên home tìm được module, model FAL, và các studio (Voice Studio, Video Studio). Phím tắt: ⌘K hoặc Ctrl+K để focus, ↑↓ để chọn, Enter để mở.",
-  "Phím tắt 1-9 / 0 / - / = trên home mở nhanh module tương ứng (theo ô số trên thẻ). 9 = Markets, 0 = AI Store, - = Tools, = = Calculators.",
+  "Phím tắt 1-9 / 0 / - / = / [ trên home mở nhanh module tương ứng (theo ô số trên thẻ). 9 = Markets, 0 = AI Store, - = Tools, = = Calculators, [ = API Gateway.",
   "Click logo MrNine ở bất kỳ trang nào để quay về trang chủ.",
   "Theme có 7 preset: Auto, Crimson, Signal, Gold, Frost, Eclipse, Plasma — đổi ở dropdown góc phải header. Auto cycles theo giờ Bangkok.",
   "Ngôn ngữ EN/VI đổi ở chip góc phải header.",

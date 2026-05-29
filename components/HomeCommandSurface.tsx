@@ -715,6 +715,13 @@ const moduleCopy = {
       signal: "Máy tính",
       action: "Mở Calculators",
     },
+    "API Gateway": {
+      title: "API Gateway",
+      detail: "OpenAI-compatible · sk-mrnine-*",
+      summary: "API gateway tương thích OpenAI cho dev VN: chat, embeddings, audio, image, batch. Thanh toán VietQR. Codex, OpenAI SDK, Cursor, Claude Code đều chạy.",
+      signal: "Gateway trực tuyến",
+      action: "Mở API Gateway",
+    },
   },
 } satisfies Record<WebLanguage, Record<string, Partial<ModuleCard>>>;
 
@@ -995,6 +1002,7 @@ const moduleNavMap: Record<string, string> = {
   "AI Store": "/ai-store",
   "Tools": "/tools",
   "Calculators": "/calculators",
+  "API Gateway": "/api-gateway",
 };
 
 const extraFeatureEntries: ReadonlyArray<{
@@ -2308,7 +2316,8 @@ export function HomeCommandSurface() {
   }
 
   function navigateToResult(result: SearchResult) {
-    if (sessionStatus !== "authenticated") {
+    const isPublic = result.title === "API Gateway";
+    if (!isPublic && sessionStatus !== "authenticated") {
       setAuthPromptForced(true);
       setAuthPromptDismissed(false);
       return;

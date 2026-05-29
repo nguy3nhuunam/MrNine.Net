@@ -160,9 +160,9 @@ async function _handler_POST(request: Request, ctx: GuardContext) {
             "<<ACTION>>{\"type\":\"navigate\",\"label\":\"Mở Photo Fix\",\"href\":\"/photo-fix\",\"reason\":\"Xoá nền ảnh dùng Photo Fix\"}<<END>>\n\n" +
             "Loại action hỗ trợ:\n" +
             "- navigate: { type, label, href, reason } — đưa user đến route phù hợp.\n" +
-            "  Ví dụ href: /ai-playground?capability=text-to-image&model=flux-2-pro , /photo-fix , /smart-recap , /docsense , /story-writer , /mystic-deck , /voice-studio , /video-studio , /markets , /markets?focus=BTC , /ai-store , /tools , /calculators.\n" +
+            "  Ví dụ href: /ai-playground?capability=text-to-image&model=flux-2-pro , /photo-fix , /smart-recap , /docsense , /story-writer , /mystic-deck , /voice-studio , /video-studio , /markets , /markets?focus=BTC , /ai-store , /tools , /calculators , /api-gateway , /pricing , /api-docs.\n" +
             "- compose: { type, label, steps:[{label,href}], reason } — workflow nhiều bước.\n\n" +
-            "Chỉ phát ACTION khi user thực sự muốn LÀM (ví dụ 'tạo ảnh sunset', 'tóm tắt video này', 'xem giá vàng/bitcoin', 'mua tài khoản ChatGPT', 'format JSON này', 'tính thuế lương 30 triệu'). Đừng phát khi user chỉ hỏi nói chuyện thông thường hoặc chỉ hỏi cách dùng. Một câu trả lời tối đa một ACTION.\n\n" +
+            "Chỉ phát ACTION khi user thực sự muốn LÀM (ví dụ 'tạo ảnh sunset', 'tóm tắt video này', 'xem giá vàng/bitcoin', 'mua tài khoản ChatGPT', 'format JSON này', 'tính thuế lương 30 triệu', 'lấy API key OpenAI-compatible', 'tích hợp Codex/Cursor/Claude Code'). Đừng phát khi user chỉ hỏi nói chuyện thông thường hoặc chỉ hỏi cách dùng. Một câu trả lời tối đa một ACTION.\n\n" +
             "Khi user hỏi GIÁ một asset cụ thể (BTC, ETH, vàng, USD, JPY, ...) thì TRẢ LỜI THẲNG con số từ snapshot bên dưới rồi mới phát ACTION dẫn tới /markets?focus=SYMBOL. KHÔNG nói 'tôi không có dữ liệu realtime' nếu snapshot có asset đó.\n\n" +
             "Khi user hỏi về tính năng/cách dùng/module/model của trang, dùng kiến thức website cung cấp dưới đây thay vì đoán.\n\n" +
             SITE_KNOWLEDGE_PROMPT +

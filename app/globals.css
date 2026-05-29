@@ -728,7 +728,8 @@ a {
 .module-anim-markets::after,
 .module-anim-store::after,
 .module-anim-tools::after,
-.module-anim-calc::after {
+.module-anim-calc::after,
+.module-anim-gateway::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -750,7 +751,8 @@ a {
 .module-card-signal:hover.module-anim-markets::after,
 .module-card-signal:hover.module-anim-store::after,
 .module-card-signal:hover.module-anim-tools::after,
-.module-card-signal:hover.module-anim-calc::after {
+.module-card-signal:hover.module-anim-calc::after,
+.module-card-signal:hover.module-anim-gateway::after {
   opacity: 0.78;
 }
 
@@ -956,6 +958,19 @@ a {
   50%      { transform: translateY(-1%); opacity: 0.56; }
 }
 
+/* API Gateway — red signal pulse sweeping like data over the wire. */
+.module-anim-gateway::after {
+  background:
+    radial-gradient(circle at 20% 110%, rgba(239, 68, 68, 0.3), transparent 55%),
+    radial-gradient(circle at 80% 112%, rgba(71, 201, 217, 0.16), transparent 60%);
+  animation: gatewayPulse 10s ease-in-out infinite;
+  opacity: 0.5;
+}
+@keyframes gatewayPulse {
+  0%, 100% { transform: translateY(6%); opacity: 0.32; }
+  50%      { transform: translateY(-1%); opacity: 0.58; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .module-anim-playground::after,
   .module-anim-photo::after,
@@ -968,7 +983,8 @@ a {
   .module-anim-markets::after,
   .module-anim-store::after,
   .module-anim-tools::after,
-  .module-anim-calc::after {
+  .module-anim-calc::after,
+  .module-anim-gateway::after {
     animation: none !important;
   }
 }
