@@ -1,20 +1,59 @@
 import Link from "next/link";
+import { asc, eq } from "drizzle-orm";
+
+import { db } from "@/lib/pg/db";
+import { modelMap } from "@/lib/pg/schema";
 
 export const metadata = {
   title: "Bảng giá · MrNine",
   description: "Pricing pay-as-you-go cho API gateway, AI Playground và các tools khác. Thanh toán VND qua VietQR.",
 };
 
-const API_TIERS = [
-  { tag: "Cốt lõi", model: "GPT-5.4 (xhigh)", input: "$5/MTok", output: "$20/MTok" },
-  { tag: "Hot", model: "GPT-5", input: "$4/MTok", output: "$16/MTok" },
-  { tag: "Hot", model: "Claude 4.7 Opus", input: "$15/MTok", output: "$75/MTok" },
-  { tag: "Cốt lõi", model: "Claude 4.6 Sonnet", input: "$3/MTok", output: "$15/MTok" },
-  { tag: "Rẻ", model: "Haiku 4.5", input: "$0.8/MTok", output: "$4/MTok" },
-  { tag: "Multimodal", model: "Gemini 3.5 Pro", input: "$3/MTok", output: "$15/MTok" },
-];
+export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
-export default function PricingPage() {
+const VND_RATE = parseInt(process.env.USD_VND_RATE ?? "25500", 10);
+
+function tagFor(provider: string, publicName: string): string {
+  const p = provider.toLowerCase();
+  const n = publicName.toLowerCase();
+  if (n.includes("haiku") || n.includes("mini") || n.includes("flash")) return "Rẻ";
+  if (n.includes("opus") || n.includes("ultra") || n.includes("xhigh")) return "Cao cấp";
+  if (n.includes("vision") || n.includes("multi") || n.includes("gemini")) return "Multimodal";
+  if (p === "openrouter") return "Failover";
+  return "Cốt lõi";
+}
+
+function fmtPerMtok(usdPerMtok: number, markup: number): { usd: string; vnd: string } {
+  const final = usdPerMtok * markup;
+  return {
+    usd: `$${final.toFixed(2)}`,
+    vnd: `${Math.round(final * VND_RATE).toLocaleString("vi-VN")}đ`,
+  };
+}
+
+export default async function PricingPage() {
+  const rows = await db
+    .select({
+      publicName: modelMap.publicName,
+      provider: modelMap.provider,
+      inputCost: modelMap.inputCostPerMtok,
+      outputCost: modelMap.outputCostPerMtok,
+      markup: modelMap.markup,
+    })
+    .from(modelMap)
+    .where(eq(modelMap.enabled, true))
+    .orderBy(asc(modelMap.publicName));
+
+  const tiers = rows.map((r) => ({
+    model: r.publicName,
+    provider: r.provider,
+    tag: tagFor(r.provider, r.publicName),
+    input: fmtPerMtok(Number(r.inputCost), Number(r.markup)),
+    output: fmtPerMtok(Number(r.outputCost), Number(r.markup)),
+    markup: Number(r.markup),
+  }));
+
   return (
     <main className="min-h-screen bg-[#090807] text-[#f4eadc]">
       <div className="mx-auto max-w-5xl px-6 py-16">
@@ -33,7 +72,7 @@ export default function PricingPage() {
               <li>• Endpoint: <code className="text-[#dff8e4]">https://api.mrnine.net/v1</code></li>
               <li>• Tương thích Codex, OpenAI SDK, Cursor, Claude Code, mọi client OpenAI-compatible</li>
               <li>• Markup ~20% trên giá provider</li>
-              <li>• Chuyển $ → VND theo tỷ giá ngày, hiện tại 1 USD ≈ 25.500 VND</li>
+              <li>• Chuyển $ → VND theo tỷ giá ngày, hiện tại 1 USD ≈ {VND_RATE.toLocaleString("vi-VN")} VND</li>
               <li>• Free credit khi đăng ký: <span className="text-[#dff8e4]">$0.5</span></li>
             </ul>
             <Link
@@ -62,10 +101,10 @@ export default function PricingPage() {
 
         <section className="mt-12">
           <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.24em] text-[#9a9087]">
-            Một vài model API tiêu biểu
+            Bảng giá API ({tiers.length} models đang bật)
           </h2>
           <p className="mt-2 text-xs text-[#5d544a]">
-            Giá có thể thay đổi theo provider. Xem giá realtime trong dashboard sau khi đăng nhập.
+            Giá đã cộng markup. Cập nhật tự động từ admin · cache 5 phút. Đăng nhập để xem usage realtime.
           </p>
           <div className="mt-4 overflow-hidden rounded-xl border border-white/8">
             <table className="w-full text-sm">
@@ -73,23 +112,37 @@ export default function PricingPage() {
                 <tr>
                   <th className="px-3 py-2 text-left">Tag</th>
                   <th className="px-3 py-2 text-left">Model</th>
-                  <th className="px-3 py-2 text-right">Input (per million tokens)</th>
-                  <th className="px-3 py-2 text-right">Output (per million tokens)</th>
+                  <th className="px-3 py-2 text-right">Input / 1M tokens</th>
+                  <th className="px-3 py-2 text-right">Output / 1M tokens</th>
                 </tr>
               </thead>
               <tbody>
-                {API_TIERS.map((row) => (
-                  <tr key={row.model} className="border-t border-white/5">
-                    <td className="px-3 py-2">
-                      <span className="rounded-full bg-white/5 px-2 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#dff8e4]">
-                        {row.tag}
-                      </span>
+                {tiers.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-8 text-center text-[#5d544a]">
+                      Chưa có model nào được bật. Liên hệ admin.
                     </td>
-                    <td className="px-3 py-2 font-mono">{row.model}</td>
-                    <td className="px-3 py-2 text-right">{row.input}</td>
-                    <td className="px-3 py-2 text-right">{row.output}</td>
                   </tr>
-                ))}
+                ) : (
+                  tiers.map((row) => (
+                    <tr key={row.model} className="border-t border-white/5">
+                      <td className="px-3 py-2">
+                        <span className="rounded-full bg-white/5 px-2 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.16em] text-[#dff8e4]">
+                          {row.tag}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 font-mono">{row.model}</td>
+                      <td className="px-3 py-2 text-right">
+                        <div>{row.input.usd}</div>
+                        <div className="text-[0.7rem] text-[#5d544a]">{row.input.vnd}</div>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <div>{row.output.usd}</div>
+                        <div className="text-[0.7rem] text-[#5d544a]">{row.output.vnd}</div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
