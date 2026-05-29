@@ -225,6 +225,98 @@ requires_openai_auth = true`}
           </ul>
         </Section>
 
+        <Section title="Function calling (tools)">
+          <p className="text-sm text-[#c8bdaf]">
+            Pass-through hoàn toàn — gateway forward field <code className="text-[#dff8e4]">tools</code>{" "}
+            và <code className="text-[#dff8e4]">tool_choice</code> sang upstream. Phía model trả{" "}
+            <code className="text-[#dff8e4]">tool_calls</code>, bạn execute tool và gửi role
+            <code className="text-[#dff8e4]">tool</code> message kèm <code>tool_call_id</code>.
+          </p>
+          <CodeBlock
+            language="python"
+            code={`from openai import OpenAI
+import json
+
+client = OpenAI(base_url="https://api.mrnine.net/v1", api_key="sk-mrnine-...")
+
+tools = [{
+    "type": "function",
+    "function": {
+        "name": "get_weather",
+        "description": "Lấy thời tiết hiện tại theo thành phố",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "city": {"type": "string"},
+                "unit": {"type": "string", "enum": ["c", "f"], "default": "c"},
+            },
+            "required": ["city"],
+        },
+    },
+}]
+
+messages = [{"role": "user", "content": "Trời Hà Nội hôm nay thế nào?"}]
+r = client.chat.completions.create(model="gpt-5.4", messages=messages, tools=tools)
+msg = r.choices[0].message
+messages.append(msg)
+
+if msg.tool_calls:
+    for tc in msg.tool_calls:
+        args = json.loads(tc.function.arguments)
+        result = lookup_weather(args["city"])  # bạn tự implement
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tc.id,
+            "content": json.dumps(result),
+        })
+    r2 = client.chat.completions.create(model="gpt-5.4", messages=messages, tools=tools)
+    print(r2.choices[0].message.content)`}
+          />
+          <p className="mt-3 text-sm text-[#c8bdaf]">
+            <code className="text-[#dff8e4]">tool_choice</code> có thể là{" "}
+            <code>"auto"</code>, <code>"required"</code>, <code>"none"</code>, hoặc{" "}
+            <code>{`{"type":"function","function":{"name":"..."}}`}</code> để ép gọi tool cụ thể.
+          </p>
+        </Section>
+
+        <Section title="Embeddings">
+          <CodeBlock
+            language="python"
+            code={`r = client.embeddings.create(
+    model="text-embedding-3-small",
+    input=["Hello", "Xin chào"],
+)
+for d in r.data:
+    print(d.index, len(d.embedding))`}
+          />
+        </Section>
+
+        <Section title="Audio transcription">
+          <CodeBlock
+            language="python"
+            code={`with open("audio.mp3", "rb") as f:
+    r = client.audio.transcriptions.create(
+        model="whisper-1",
+        file=f,
+        language="vi",
+    )
+print(r.text)`}
+          />
+        </Section>
+
+        <Section title="Image generation">
+          <CodeBlock
+            language="python"
+            code={`r = client.images.generate(
+    model="dall-e-3",
+    prompt="A red panda coding at a desk, studio ghibli style",
+    size="1024x1024",
+    n=1,
+)
+print(r.data[0].url)`}
+          />
+        </Section>
+
         <Section title="Rate limit & quota">
           <ul className="list-disc space-y-1 pl-5 text-sm text-[#c8bdaf]">
             <li>Default RPM = 60 / phút, TPM = 200K tokens / phút mỗi key.</li>
