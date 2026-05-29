@@ -317,6 +317,61 @@ print(r.data[0].url)`}
           />
         </Section>
 
+        <Section title="Image edit (inpainting)">
+          <CodeBlock
+            language="python"
+            code={`r = client.images.edit(
+    model="dall-e-2",
+    image=open("input.png", "rb"),
+    mask=open("mask.png", "rb"),
+    prompt="Replace masked area with a sunflower field",
+    n=1,
+    size="1024x1024",
+)
+print(r.data[0].url)`}
+          />
+        </Section>
+
+        <Section title="Text-to-speech">
+          <CodeBlock
+            language="python"
+            code={`r = client.audio.speech.create(
+    model="tts-1",
+    voice="alloy",
+    input="Xin chào, tôi là MrNine.",
+)
+r.stream_to_file("hello.mp3")`}
+          />
+        </Section>
+
+        <Section title="Batch API (50% rẻ hơn)">
+          <p className="text-sm text-[#c8bdaf]">
+            Upload .jsonl input → tạo batch → poll status → download output. Hoàn thành trong 24h, giá rẻ ~50%.
+          </p>
+          <CodeBlock
+            language="python"
+            code={`# 1. Upload input
+f = client.files.create(
+    file=open("requests.jsonl", "rb"),
+    purpose="batch",
+)
+
+# 2. Tạo batch
+batch = client.batches.create(
+    input_file_id=f.id,
+    endpoint="/v1/chat/completions",
+    completion_window="24h",
+)
+print(batch.id, batch.status)
+
+# 3. Poll status
+batch = client.batches.retrieve(batch.id)
+if batch.status == "completed":
+    out = client.files.content(batch.output_file_id)
+    print(out.text)`}
+          />
+        </Section>
+
         <Section title="Rate limit & quota">
           <ul className="list-disc space-y-1 pl-5 text-sm text-[#c8bdaf]">
             <li>Default RPM = 60 / phút, TPM = 200K tokens / phút mỗi key.</li>
