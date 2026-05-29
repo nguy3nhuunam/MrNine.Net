@@ -4,6 +4,7 @@ import Link from "next/link";
 import { db } from "@/lib/pg/db";
 import { apiKeys, dailyUsage, requests } from "@/lib/pg/schema";
 import { formatVnd, microUsdToUsd, microUsdToVnd, requireUser } from "@/lib/pg/session";
+import { QuotaPanel } from "@/components/dashboard/QuotaPanel";
 
 export const metadata = { title: "Dashboard · MrNine" };
 export const dynamic = "force-dynamic";
@@ -81,6 +82,15 @@ export default async function DashboardOverview() {
           <div className="mt-1 text-[0.7rem] text-[#5d544a]">≈ {formatVnd(microUsdToVnd(last7Cost))}</div>
         </Card>
       </div>
+
+      <section>
+        <h2 className="text-sm font-mono uppercase tracking-[0.2em] text-[#9a9087]">
+          Rate limit (RPM/TPM) live
+        </h2>
+        <div className="mt-3">
+          <QuotaPanel />
+        </div>
+      </section>
 
       <section>
         <h2 className="text-sm font-mono uppercase tracking-[0.2em] text-[#9a9087]">Request gần đây</h2>
