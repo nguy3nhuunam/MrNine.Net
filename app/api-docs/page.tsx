@@ -9,6 +9,7 @@ export const metadata = {
   description: "Hướng dẫn dùng API gateway OpenAI-compatible của MrNine — Codex CLI, OpenAI SDK, curl, streaming SSE.",
 };
 
+export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 const GATEWAY_OPENAPI_URL =
@@ -48,14 +49,21 @@ async function loadEndpoints(): Promise<EndpointRow[] | null> {
 }
 
 export default async function ApiDocsPage() {
-  const [liveEndpoints, models] = await Promise.all([
-    loadEndpoints(),
-    db
-      .select({ name: modelMap.publicName, provider: modelMap.provider })
-      .from(modelMap)
-      .where(eq(modelMap.enabled, true))
-      .orderBy(asc(modelMap.publicName)),
-  ]);
+  let liveEndpoints: EndpointRow[] | null = null;
+  let models: { name: string; provider: string }[] = [];
+
+  try {
+    [liveEndpoints, models] = await Promise.all([
+      loadEndpoints(),
+      db
+        .select({ name: modelMap.publicName, provider: modelMap.provider })
+        .from(modelMap)
+        .where(eq(modelMap.enabled, true))
+        .orderBy(asc(modelMap.publicName)),
+    ]);
+  } catch (e) {
+    console.error("[api-docs] load failed", e);
+  }
 
   return (
     <main className="min-h-screen bg-[#090807] text-[#f4eadc]">

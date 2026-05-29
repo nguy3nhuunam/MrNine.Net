@@ -33,17 +33,22 @@ function fmtPerMtok(usdPerMtok: number, markup: number): { usd: string; vnd: str
 }
 
 export default async function PricingPage() {
-  const rows = await db
-    .select({
-      publicName: modelMap.publicName,
-      provider: modelMap.provider,
-      inputCost: modelMap.inputCostPerMtok,
-      outputCost: modelMap.outputCostPerMtok,
-      markup: modelMap.markup,
-    })
-    .from(modelMap)
-    .where(eq(modelMap.enabled, true))
-    .orderBy(asc(modelMap.publicName));
+  let rows: { publicName: string; provider: string; inputCost: string; outputCost: string; markup: string }[] = [];
+  try {
+    rows = await db
+      .select({
+        publicName: modelMap.publicName,
+        provider: modelMap.provider,
+        inputCost: modelMap.inputCostPerMtok,
+        outputCost: modelMap.outputCostPerMtok,
+        markup: modelMap.markup,
+      })
+      .from(modelMap)
+      .where(eq(modelMap.enabled, true))
+      .orderBy(asc(modelMap.publicName));
+  } catch (e) {
+    console.error("[pricing] load failed", e);
+  }
 
   const tiers = rows.map((r) => ({
     model: r.publicName,

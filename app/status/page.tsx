@@ -30,30 +30,40 @@ async function gatewayHealth(): Promise<Health> {
 }
 
 export default async function StatusPage() {
-  const [health, providerStats, errorWindow] = await Promise.all([
-    gatewayHealth(),
-    db
-      .select({
-        provider: providerKeys.provider,
-        status: providerKeys.status,
-        count: sql<number>`count(*)`,
-      })
-      .from(providerKeys)
-      .groupBy(providerKeys.provider, providerKeys.status),
-    (async () => {
-      const since = new Date(Date.now() - 5 * 60_000);
-      const rows = await db
+  let health: Health = { ok: false, status: "unknown" };
+  let providerStats: { provider: string; status: string; count: number }[] = [];
+  let errorWindow: { total: number; ok: number; err5xx: number; err4xx: number } = {
+    total: 0, ok: 0, err5xx: 0, err4xx: 0,
+  };
+
+  try {
+    [health, providerStats, errorWindow] = await Promise.all([
+      gatewayHealth(),
+      db
         .select({
-          total: sql<number>`count(*)`,
-          ok: sql<number>`sum(case when ${requests.statusCode} < 400 then 1 else 0 end)`,
-          err5xx: sql<number>`sum(case when ${requests.statusCode} >= 500 then 1 else 0 end)`,
-          err4xx: sql<number>`sum(case when ${requests.statusCode} >= 400 and ${requests.statusCode} < 500 then 1 else 0 end)`,
+          provider: providerKeys.provider,
+          status: providerKeys.status,
+          count: sql<number>`count(*)`,
         })
-        .from(requests)
-        .where(gte(requests.createdAt, since));
-      return rows[0];
-    })(),
-  ]);
+        .from(providerKeys)
+        .groupBy(providerKeys.provider, providerKeys.status),
+      (async () => {
+        const since = new Date(Date.now() - 5 * 60_000);
+        const rows = await db
+          .select({
+            total: sql<number>`count(*)`,
+            ok: sql<number>`sum(case when ${requests.statusCode} < 400 then 1 else 0 end)`,
+            err5xx: sql<number>`sum(case when ${requests.statusCode} >= 500 then 1 else 0 end)`,
+            err4xx: sql<number>`sum(case when ${requests.statusCode} >= 400 and ${requests.statusCode} < 500 then 1 else 0 end)`,
+          })
+          .from(requests)
+          .where(gte(requests.createdAt, since));
+        return rows[0] ?? { total: 0, ok: 0, err5xx: 0, err4xx: 0 };
+      })(),
+    ]);
+  } catch (e) {
+    console.error("[status] load failed", e);
+  }
 
   const total = Number(errorWindow.total ?? 0);
   const errRate = total === 0 ? 0 : (Number(errorWindow.err5xx) / total) * 100;
