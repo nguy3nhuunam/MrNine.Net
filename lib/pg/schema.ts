@@ -86,6 +86,7 @@ export const apiKeys = pgTable(
     monthlySpendLimitMicroUsd: bigint("monthly_spend_limit_micro_usd", { mode: "number" }),
     monthlySpendUsedMicroUsd: bigint("monthly_spend_used_micro_usd", { mode: "number" }).notNull().default(0),
     periodStart: timestamp("period_start", { withTimezone: true }).notNull().defaultNow(),
+    folder: varchar("folder", { length: 64 }),
     allowedModels: jsonb("allowed_models").$type<string[] | null>(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),

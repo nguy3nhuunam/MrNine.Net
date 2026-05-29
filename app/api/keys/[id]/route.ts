@@ -26,6 +26,7 @@ export async function PATCH(
     allowedModels?: string[] | null;
     name?: string;
     monthlySpendLimitUsd?: number | null;
+    folder?: string | null;
   };
 
   const patch: Record<string, unknown> = {};
@@ -44,6 +45,12 @@ export async function PATCH(
     patch.monthlySpendLimitMicroUsd = null;
   } else if (Number.isFinite(body.monthlySpendLimitUsd) && Number(body.monthlySpendLimitUsd) >= 0) {
     patch.monthlySpendLimitMicroUsd = Math.round(Number(body.monthlySpendLimitUsd) * 1_000_000);
+  }
+  if (body.folder === null) {
+    patch.folder = null;
+  } else if (typeof body.folder === "string") {
+    const f = body.folder.trim().slice(0, 64);
+    patch.folder = f.length > 0 ? f : null;
   }
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "no_fields" }, { status: 400 });
