@@ -202,6 +202,7 @@ export const requests = pgTable(
     debugPayload: jsonb("debug_payload"),
     clientIp: varchar("client_ip", { length: 64 }),
     userAgent: varchar("user_agent", { length: 255 }),
+    sessionId: varchar("session_id", { length: 128 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (t) => ({
@@ -209,6 +210,7 @@ export const requests = pgTable(
     userIdx: index("ix_requests_user_id").on(t.userId),
     apiKeyIdx: index("ix_requests_api_key_id").on(t.apiKeyId),
     userCreatedIdx: index("ix_requests_user_created").on(t.userId, t.createdAt),
+    sessionIdx: index("ix_requests_session").on(t.sessionId),
   }),
 );
 

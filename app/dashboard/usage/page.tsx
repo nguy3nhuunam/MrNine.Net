@@ -69,6 +69,28 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
 
   const totalsForBars = perKey.reduce((s, k) => s + Number(k.costMicroUsd), 0);
 
+  // Session breakdown — chỉ hiện top 20 session có cost cao nhất trong range
+  const sessions = await db
+    .select({
+      sessionId: requests.sessionId,
+      requestCount: sql<number>`count(*)`,
+      totalTokens: sql<number>`coalesce(sum(${requests.totalTokens}), 0)`,
+      costMicroUsd: sql<number>`coalesce(sum(${requests.costUserMicroUsd}), 0)`,
+      firstAt: sql<Date>`min(${requests.createdAt})`,
+      lastAt: sql<Date>`max(${requests.createdAt})`,
+    })
+    .from(requests)
+    .where(
+      and(
+        eq(requests.userId, user.id),
+        gte(requests.createdAt, since),
+        sql`${requests.sessionId} IS NOT NULL`,
+      ),
+    )
+    .groupBy(requests.sessionId)
+    .orderBy(desc(sql`coalesce(sum(${requests.costUserMicroUsd}), 0)`))
+    .limit(20);
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between">
@@ -134,6 +156,59 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
               );
             })
           )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-white/8 bg-[#0c0a08] p-4">
+        <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.24em] text-[#9a9087]">
+          Sessions ({sessions.length})
+        </h2>
+        <p className="mt-1 text-xs text-[#5d544a]">
+          Top 20 session đắt nhất. Gateway capture từ <code className="text-[#dff8e4]">metadata.conversation_id</code>,{" "}
+          <code className="text-[#dff8e4]">previous_response_id</code>, hoặc header{" "}
+          <code className="text-[#dff8e4]">X-Session-Id</code>.
+        </p>
+        <div className="mt-3 overflow-x-auto rounded-lg border border-white/5">
+          <table className="w-full text-sm">
+            <thead className="bg-[#120c09] text-[0.65rem] uppercase tracking-[0.16em] text-[#5d544a]">
+              <tr>
+                <th className="px-3 py-2 text-left">Session ID</th>
+                <th className="px-3 py-2 text-right">Requests</th>
+                <th className="px-3 py-2 text-right">Tokens</th>
+                <th className="px-3 py-2 text-right">Cost</th>
+                <th className="px-3 py-2 text-left">Bắt đầu</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-3 py-6 text-center text-[#5d544a]">
+                    Chưa có session nào — gửi request kèm{" "}
+                    <code className="text-[#dff8e4]">metadata.conversation_id</code> để gom nhóm.
+                  </td>
+                </tr>
+              ) : (
+                sessions.map((s) => (
+                  <tr key={s.sessionId} className="border-t border-white/5">
+                    <td className="px-3 py-2 font-mono text-[0.7rem] text-[#dff8e4]">
+                      {s.sessionId?.slice(0, 24)}
+                      {s.sessionId && s.sessionId.length > 24 ? "…" : ""}
+                    </td>
+                    <td className="px-3 py-2 text-right">{Number(s.requestCount).toLocaleString("vi-VN")}</td>
+                    <td className="px-3 py-2 text-right text-[#9a9087]">
+                      {Number(s.totalTokens).toLocaleString("vi-VN")}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      ${(Number(s.costMicroUsd) / 1_000_000).toFixed(4)}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-[0.7rem] text-[#5d544a]">
+                      {s.firstAt ? new Date(s.firstAt).toLocaleString("vi-VN") : "—"}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
 
