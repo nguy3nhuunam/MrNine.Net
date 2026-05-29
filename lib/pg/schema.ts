@@ -59,6 +59,7 @@ export const users = pgTable(
     referralBonusGranted: boolean("referral_bonus_granted").notNull().default(false),
     digestEnabled: boolean("digest_enabled").notNull().default(true),
     lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
+    telegramChatId: bigint("telegram_chat_id", { mode: "number" }).unique(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
@@ -366,3 +367,13 @@ export const auditLog = pgTable(
 );
 
 export type AuditEntry = typeof auditLog.$inferSelect;
+
+export const telegramLinkTokens = pgTable("telegram_link_tokens", {
+  token: varchar("token", { length: 64 }).primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
