@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/pg/session";
 import { DigestToggle } from "@/components/dashboard/DigestToggle";
 import { TelegramLinkPanel } from "@/components/dashboard/TelegramLinkPanel";
+import { TwoFactorPanel } from "@/components/dashboard/TwoFactorPanel";
 
 export const metadata = { title: "Settings · MrNine" };
 export const dynamic = "force-dynamic";
@@ -35,6 +36,18 @@ export default async function SettingsPage() {
         </p>
         <div className="mt-4">
           <TelegramLinkPanel linked={me.telegramChatId !== null} />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-white/8 bg-[#0c0a08] p-4">
+        <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.24em] text-[#9a9087]">
+          Two-factor authentication
+        </h2>
+        <p className="mt-2 text-xs text-[#5d544a]">
+          Yêu cầu 6-digit TOTP code khi đăng nhập bằng email + password. OAuth (Google/Discord/Magic-link) không bị ảnh hưởng.
+        </p>
+        <div className="mt-4">
+          <TwoFactorPanel enabled={me.totpEnabled} />
         </div>
       </section>
     </div>

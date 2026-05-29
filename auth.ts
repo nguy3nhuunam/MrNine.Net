@@ -59,10 +59,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Mật khẩu", type: "password" },
+        totp: { label: "TOTP code", type: "text" },
       },
       async authorize(creds) {
         const email = String(creds?.email ?? "").toLowerCase().trim();
         const password = String(creds?.password ?? "");
+        const totpInput = String(creds?.totp ?? "").trim();
         if (!email || !password) return null;
 
         const row = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
@@ -70,6 +72,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const ok = await bcrypt.compare(password, row.passwordHash);
         if (!ok) return null;
+
+        if (row.totpEnabled) {
+          if (!totpInput) {
+            // Hint client biết cần TOTP code.
+            throw new Error("totp_required");
+          }
+          const { verifyToken } = await import("@/lib/totp");
+          const okTotp = row.totpSecret ? verifyToken(totpInput, row.totpSecret) : false;
+          if (!okTotp) return null;
+        }
 
         return {
           id: row.id,
