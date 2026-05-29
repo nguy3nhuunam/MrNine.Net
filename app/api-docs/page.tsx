@@ -1,11 +1,62 @@
 import Link from "next/link";
 
+import { db } from "@/lib/pg/db";
+import { modelMap } from "@/lib/pg/schema";
+import { eq, asc } from "drizzle-orm";
+
 export const metadata = {
   title: "API docs · MrNine",
   description: "Hướng dẫn dùng API gateway OpenAI-compatible của MrNine — Codex CLI, OpenAI SDK, curl, streaming SSE.",
 };
 
-export default function ApiDocsPage() {
+export const revalidate = 3600;
+
+const GATEWAY_OPENAPI_URL =
+  process.env.GATEWAY_OPENAPI_URL ?? "https://api.mrnine.net/_openapi.json";
+
+type EndpointRow = {
+  method: string;
+  path: string;
+  summary: string;
+};
+
+async function loadEndpoints(): Promise<EndpointRow[] | null> {
+  try {
+    const res = await fetch(GATEWAY_OPENAPI_URL, {
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    const spec = (await res.json()) as {
+      paths?: Record<string, Record<string, { summary?: string; description?: string }>>;
+    };
+    if (!spec.paths) return null;
+    const rows: EndpointRow[] = [];
+    for (const [path, ops] of Object.entries(spec.paths)) {
+      for (const [method, op] of Object.entries(ops)) {
+        rows.push({
+          method: method.toUpperCase(),
+          path,
+          summary: op.summary ?? op.description ?? "",
+        });
+      }
+    }
+    return rows.sort((a, b) => a.path.localeCompare(b.path));
+  } catch {
+    return null;
+  }
+}
+
+export default async function ApiDocsPage() {
+  const [liveEndpoints, models] = await Promise.all([
+    loadEndpoints(),
+    db
+      .select({ name: modelMap.publicName, provider: modelMap.provider })
+      .from(modelMap)
+      .where(eq(modelMap.enabled, true))
+      .orderBy(asc(modelMap.publicName)),
+  ]);
+
   return (
     <main className="min-h-screen bg-[#090807] text-[#f4eadc]">
       <div className="mx-auto max-w-4xl px-6 py-16">
@@ -26,22 +77,80 @@ export default function ApiDocsPage() {
         </p>
 
         <Section title="Endpoints">
-          <ul className="space-y-2 text-sm text-[#c8bdaf]">
-            <li>
-              <code className="text-[#dff8e4]">POST /v1/responses</code> — chuẩn mới, dùng bởi Codex CLI (
-              <code className="text-[#9a9087]">wire_api = "responses"</code>).
-            </li>
-            <li>
-              <code className="text-[#dff8e4]">POST /v1/chat/completions</code> — OpenAI SDK / Cursor / Claude
-              Code / mọi client OpenAI cũ. Hỗ trợ <code>stream=true</code>.
-            </li>
-            <li>
-              <code className="text-[#dff8e4]">GET /v1/models</code> — list model active.
-            </li>
-            <li>
-              <code className="text-[#dff8e4]">GET /health</code> — public, không cần auth.
-            </li>
-          </ul>
+          {liveEndpoints && liveEndpoints.length > 0 ? (
+            <div className="overflow-hidden rounded-lg border border-white/8">
+              <table className="w-full text-sm">
+                <thead className="bg-[#120c09] text-[0.6rem] uppercase tracking-[0.16em] text-[#5d544a]">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Method</th>
+                    <th className="px-3 py-2 text-left">Path</th>
+                    <th className="px-3 py-2 text-left">Summary</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {liveEndpoints.map((e) => (
+                    <tr key={`${e.method}-${e.path}`} className="border-t border-white/5">
+                      <td className="px-3 py-2">
+                        <span
+                          className={
+                            "rounded-full px-2 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.16em] " +
+                            (e.method === "GET"
+                              ? "bg-[#45a85d]/15 text-[#dff8e4]"
+                              : "bg-[#d6a548]/15 text-[#d6a548]")
+                          }
+                        >
+                          {e.method}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 font-mono text-[0.78rem] text-[#dff8e4]">{e.path}</td>
+                      <td className="px-3 py-2 text-[0.78rem] text-[#9a9087]">{e.summary || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="border-t border-white/5 bg-[#0c0a08] px-3 py-2 font-mono text-[0.6rem] text-[#5d544a]">
+                Live từ {GATEWAY_OPENAPI_URL} · cache 1h
+              </p>
+            </div>
+          ) : (
+            <ul className="space-y-2 text-sm text-[#c8bdaf]">
+              <li>
+                <code className="text-[#dff8e4]">POST /v1/responses</code> — chuẩn mới, dùng bởi Codex CLI (
+                <code className="text-[#9a9087]">wire_api = &quot;responses&quot;</code>).
+              </li>
+              <li>
+                <code className="text-[#dff8e4]">POST /v1/chat/completions</code> — OpenAI SDK / Cursor / Claude
+                Code / mọi client OpenAI cũ. Hỗ trợ <code>stream=true</code>.
+              </li>
+              <li>
+                <code className="text-[#dff8e4]">GET /v1/models</code> — list model active.
+              </li>
+              <li>
+                <code className="text-[#dff8e4]">GET /v1/usage/me</code> — balance + usage 30 ngày.
+              </li>
+              <li>
+                <code className="text-[#dff8e4]">GET /health</code> — public, không cần auth.
+              </li>
+            </ul>
+          )}
+        </Section>
+
+        <Section title={`Models đang bật (${models.length})`}>
+          {models.length === 0 ? (
+            <p className="text-sm text-[#5d544a]">Chưa có model nào được bật.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {models.map((m) => (
+                <code
+                  key={m.name}
+                  className="rounded-md border border-white/10 bg-[#120c09] px-2 py-1 font-mono text-[0.75rem] text-[#dff8e4]"
+                  title={m.provider}
+                >
+                  {m.name}
+                </code>
+              ))}
+            </div>
+          )}
         </Section>
 
         <Section title="curl — chat completions stream">
