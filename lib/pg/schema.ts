@@ -306,3 +306,34 @@ export const userWebhooks = pgTable(
 );
 
 export type UserWebhook = typeof userWebhooks.$inferSelect;
+
+export const webhookDeliveryStatusEnum = pgEnum("webhook_delivery_status", [
+  "pending",
+  "succeeded",
+  "failed",
+]);
+
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: serial("id").primaryKey(),
+    webhookId: uuid("webhook_id")
+      .notNull()
+      .references(() => userWebhooks.id, { onDelete: "cascade" }),
+    event: varchar("event", { length: 64 }).notNull(),
+    payload: jsonb("payload").notNull(),
+    status: webhookDeliveryStatusEnum("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextRetryAt: timestamp("next_retry_at", { withTimezone: true }).notNull().defaultNow(),
+    lastStatus: integer("last_status"),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => ({
+    pendingIdx: index("ix_webhook_deliveries_pending").on(t.status, t.nextRetryAt),
+    webhookIdx: index("ix_webhook_deliveries_webhook").on(t.webhookId),
+  }),
+);
+
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
