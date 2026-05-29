@@ -460,6 +460,22 @@ if batch.status == "completed":
             </a>
             . Khi báo lỗi, kèm <code className="text-[#dff8e4]">X-MrNine-Request-Id</code> để tra cứu.
           </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href="/api/openapi.json"
+              className="rounded-md border border-white/10 bg-[#120c09] px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[#dff8e4] hover:border-white/30"
+              download
+            >
+              ↓ OpenAPI 3.1 spec
+            </a>
+            <a
+              href="/api/postman.json"
+              className="rounded-md border border-[#d6a548]/40 bg-[#d6a548]/10 px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[#d6a548] hover:bg-[#d6a548]/20"
+              download
+            >
+              ↓ Postman collection v2.1
+            </a>
+          </div>
         </Section>
       </div>
     </main>
