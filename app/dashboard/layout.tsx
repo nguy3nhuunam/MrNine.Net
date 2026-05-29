@@ -2,10 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { getLocale, getTranslator } from "@/lib/i18n";
+import { LocaleSwitcher } from "@/components/dashboard/LocaleSwitcher";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
+
+  const t = await getTranslator();
+  const locale = await getLocale();
 
   return (
     <div className="min-h-screen bg-[#090807] text-[#f4eadc]">
@@ -16,16 +21,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
               MrNine
             </Link>
             <nav className="flex items-center gap-4 text-sm">
-              <NavLink href="/dashboard" label="Tổng quan" />
-              <NavLink href="/dashboard/api-keys" label="API keys" />
-              <NavLink href="/dashboard/usage" label="Usage" />
-              <NavLink href="/dashboard/billing" label="Nạp tiền" />
-              <NavLink href="/dashboard/playground" label="Playground" />
-              <NavLink href="/dashboard/webhooks" label="Webhooks" />
-              <NavLink href="/dashboard/settings" label="Settings" />
+              <NavLink href="/dashboard" label={t("nav.overview")} />
+              <NavLink href="/dashboard/api-keys" label={t("nav.api_keys")} />
+              <NavLink href="/dashboard/usage" label={t("nav.usage")} />
+              <NavLink href="/dashboard/billing" label={t("nav.billing")} />
+              <NavLink href="/dashboard/playground" label={t("nav.playground")} />
+              <NavLink href="/dashboard/webhooks" label={t("nav.webhooks")} />
+              <NavLink href="/dashboard/settings" label={t("nav.settings")} />
             </nav>
           </div>
           <div className="flex items-center gap-3 text-xs">
+            <LocaleSwitcher current={locale} />
             <span className="text-[#9a9087]">{session.user.email}</span>
             <form
               action={async () => {
@@ -35,7 +41,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               }}
             >
               <button className="rounded-md border border-white/10 px-2.5 py-1 font-mono uppercase tracking-[0.16em] text-[#9a9087] hover:border-white/30">
-                Thoát
+                {t("common.signout")}
               </button>
             </form>
           </div>
