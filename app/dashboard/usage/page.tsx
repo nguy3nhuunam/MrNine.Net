@@ -1,7 +1,7 @@
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 
 import { db } from "@/lib/pg/db";
-import { requests } from "@/lib/pg/schema";
+import { apiKeys, requests } from "@/lib/pg/schema";
 import { microUsdToUsd, requireUser } from "@/lib/pg/session";
 
 export const metadata = { title: "Usage · MrNine" };
@@ -45,6 +45,30 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
   const totalTokens = rows.reduce((s, r) => s + (r.totalTokens ?? 0), 0);
   const okCount = rows.filter((r) => (r.statusCode ?? 0) < 400).length;
 
+  // Per-key breakdown trong cùng range
+  const perKey = await db
+    .select({
+      keyId: apiKeys.id,
+      keyName: apiKeys.name,
+      keyPrefix: apiKeys.keyPrefix,
+      requestCount: sql<number>`count(${requests.id})`,
+      totalTokens: sql<number>`coalesce(sum(${requests.totalTokens}), 0)`,
+      costMicroUsd: sql<number>`coalesce(sum(${requests.costUserMicroUsd}), 0)`,
+    })
+    .from(apiKeys)
+    .leftJoin(
+      requests,
+      and(
+        eq(requests.apiKeyId, apiKeys.id),
+        gte(requests.createdAt, since),
+      ),
+    )
+    .where(eq(apiKeys.userId, user.id))
+    .groupBy(apiKeys.id, apiKeys.name, apiKeys.keyPrefix)
+    .orderBy(desc(sql`coalesce(sum(${requests.costUserMicroUsd}), 0)`));
+
+  const totalsForBars = perKey.reduce((s, k) => s + Number(k.costMicroUsd), 0);
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between">
@@ -75,6 +99,43 @@ export default async function UsagePage({ searchParams }: { searchParams: Promis
         <Stat label="Tổng tokens" value={totalTokens.toLocaleString("vi-VN")} />
         <Stat label="Tổng chi phí" value={`$${microUsdToUsd(totalCost)}`} />
       </div>
+
+      <section className="rounded-xl border border-white/8 bg-[#0c0a08] p-4">
+        <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.24em] text-[#9a9087]">
+          Theo API key ({range})
+        </h2>
+        <div className="mt-3 space-y-2">
+          {perKey.length === 0 ? (
+            <p className="font-mono text-xs text-[#5d544a]">Chưa có key nào.</p>
+          ) : (
+            perKey.map((k) => {
+              const cost = Number(k.costMicroUsd);
+              const pct = totalsForBars === 0 ? 0 : (cost / totalsForBars) * 100;
+              return (
+                <div key={k.keyId} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium">{k.keyName}</span>
+                      <span className="font-mono text-[0.65rem] text-[#5d544a]">{k.keyPrefix}</span>
+                    </div>
+                    <div className="flex items-center gap-3 font-mono text-[0.78rem]">
+                      <span className="text-[#9a9087]">{Number(k.requestCount).toLocaleString("vi-VN")} req</span>
+                      <span className="text-[#9a9087]">{Number(k.totalTokens).toLocaleString("vi-VN")} tok</span>
+                      <span className="text-[#dff8e4]">${(cost / 1_000_000).toFixed(4)}</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#ef4444] to-[#d6a548]"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
 
       <div className="overflow-x-auto rounded-xl border border-white/8">
         <table className="w-full min-w-[860px] text-sm">
